@@ -1,8 +1,42 @@
 import { useState, useEffect, useCallback } from "react";
-import { loadProfile, saveProfile as dbSaveProfile, loadSharedInsights, pushSharedInsight } from "./supabase.js";
 
+// ─── CONFIG ──────────────────────────────────────────────────────────────────
 const CHILD_NAME = "Lucas";
+const SUPABASE_URL = "https://enppydwndwwbmnueuuup.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_Gf2rnCwwTS7rfmUQ8K_VmQ_RkC1bJZt";
+const GEMINI_MODEL = "gemini-2.0-flash";
 
+// ─── SUPABASE HELPERS ────────────────────────────────────────────────────────
+async function supabaseLoad() {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/lucas_data?id=eq.lucas&select=data`, {
+      headers: {
+        "apikey": SUPABASE_ANON_KEY,
+        "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+      },
+    });
+    const rows = await res.json();
+    if (rows && rows.length > 0 && rows[0].data) return JSON.parse(rows[0].data);
+    return null;
+  } catch { return null; }
+}
+
+async function supabaseSave(profile) {
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/lucas_data`, {
+      method: "POST",
+      headers: {
+        "apikey": SUPABASE_ANON_KEY,
+        "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+        "Content-Type": "application/json",
+        "Prefer": "resolution=merge-duplicates",
+      },
+      body: JSON.stringify({ id: "lucas", data: JSON.stringify(profile), updated_at: new Date().toISOString() }),
+    });
+  } catch {}
+}
+
+// ─── DEFAULTS & LEVELS ───────────────────────────────────────────────────────
 const DEFAULT_PROFILE = {
   name: CHILD_NAME,
   totalPoints: 0,
@@ -19,11 +53,7 @@ const DEFAULT_PROFILE = {
     difficulty: "CE1 début",
     presetFormat: "",
   },
-  memory: {
-    usedVerbs: [],
-    usedWords: [],
-    weakPoints: [],
-  },
+  memory: { usedVerbs: [], usedWords: [], weakPoints: [] },
 };
 
 const LEVEL_THRESHOLDS = [0, 100, 250, 450, 700, 1000];
@@ -41,6 +71,7 @@ function getLevelInfo(points) {
   return { level, name: LEVEL_NAMES[level], color: LEVEL_COLORS[level], progress: Math.min(progress, 100), pointsToNext: Math.max(0, next - points) };
 }
 
+// ─── COMPOSANTS ──────────────────────────────────────────────────────────────
 function StarRating({ value, onChange }) {
   return (
     <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
@@ -76,10 +107,12 @@ function MiniChart({ sessions }) {
   );
 }
 
+// ─── APP PRINCIPALE ───────────────────────────────────────────────────────────
 export default function App() {
   const [profile, setProfile] = useState(null);
   const [view, setView] = useState("home");
   const [loading, setLoading] = useState(true);
+  const [syncStatus, setSyncStatus] = useState(""); // "", "saving", "saved", "error"
   const [generating, setGenerating] = useState(false);
   const [generatedExercises, setGeneratedExercises] = useState(null);
   const [sessionScore, setSessionScore] = useState(null);
@@ -89,55 +122,72 @@ export default function App() {
   const [starRating, setStarRating] = useState(0);
   const [insightText, setInsightText] = useState("");
   const [printMode, setPrintMode] = useState(false);
-  const [apiKey, setApiKey] = useState(() => localStorage.getItem("lucas_api_key") || "");
+  // Clé Gemini stockée en localStorage
+  const [geminiKey, setGeminiKey] = useState(() => localStorage.getItem("lucas_gemini_key") || "");
+  const [showKeyInput, setShowKeyInput] = useState(false);
 
   const showToast = (msg, color = "#34d399") => {
     setToast({ msg, color });
     setTimeout(() => setToast(null), 3200);
   };
 
+  // ── Chargement initial depuis Supabase, fallback localStorage
   useEffect(() => {
     async function load() {
-      try {
-        const data = await loadProfile();
-        if (data && Object.keys(data).length > 0) setProfile(data);
-        else setProfile({ ...DEFAULT_PROFILE });
-      } catch {
-        setProfile({ ...DEFAULT_PROFILE });
+      let data = await supabaseLoad();
+      if (!data) {
+        // fallback local si Supabase vide ou inaccessible
+        try {
+          const local = localStorage.getItem("lucas_profile_v4");
+          if (local) data = JSON.parse(local);
+        } catch {}
       }
+      setProfile(data || { ...DEFAULT_PROFILE });
       setLoading(false);
     }
     load();
   }, []);
 
+  // ── Sauvegarde : localStorage immédiat + Supabase async
   const saveProfile = useCallback(async (p) => {
     setProfile(p);
-    try { await dbSaveProfile(p); } catch (e) { console.error(e); }
+    localStorage.setItem("lucas_profile_v4", JSON.stringify(p));
+    setSyncStatus("saving");
+    try {
+      await supabaseSave(p);
+      setSyncStatus("saved");
+      setTimeout(() => setSyncStatus(""), 2000);
+    } catch {
+      setSyncStatus("error");
+      setTimeout(() => setSyncStatus(""), 3000);
+    }
   }, []);
 
-  const handleApiKeyChange = (val) => {
-    setApiKey(val);
-    localStorage.setItem("lucas_api_key", val);
+  // ── Sauvegarde clé Gemini en localStorage
+  const saveGeminiKey = (key) => {
+    setGeminiKey(key);
+    localStorage.setItem("lucas_gemini_key", key);
   };
 
+  // ── Génération via Gemini
   async function generateExercises() {
     if (!profile) return;
-    if (!apiKey.trim()) { showToast("Entre ta clé API Anthropic !", "#f59e0b"); return; }
+    if (!geminiKey.trim()) {
+      setShowKeyInput(true);
+      showToast("Entre ta clé API Gemini !", "#f59e0b");
+      return;
+    }
     setGenerating(true);
     setGeneratedExercises(null);
     setSessionScore(null);
     setStarRating(0);
     setInsightText("");
 
-    const shared = await loadSharedInsights();
-    const recentObs = shared.slice(-4).map(i => i.text).join("; ");
     const { memory, weeklyConfig } = profile;
-
     const memCtx = [
       memory.usedVerbs.length ? `Verbes DÉJÀ utilisés (ne pas répéter) : ${memory.usedVerbs.slice(-12).join(", ")}` : "",
       memory.usedWords.length ? `Mots de dictée déjà vus (varier) : ${memory.usedWords.slice(-12).join(", ")}` : "",
       memory.weakPoints.length ? `Points faibles identifiés par les parents : ${memory.weakPoints.slice(-5).join(" | ")}` : "",
-      recentObs ? `Observations récentes partagées : ${recentObs}` : "",
     ].filter(Boolean).join("\n");
 
     const formatBlock = weeklyConfig.presetFormat
@@ -162,7 +212,7 @@ RÈGLES :
 - Pour la conjugaison, liste les verbes dans "verbsUsed"
 - Pour la dictée, liste les mots clés dans "wordsUsed"
 
-Réponds UNIQUEMENT en JSON valide :
+Réponds UNIQUEMENT en JSON valide (pas de markdown, pas de backticks) :
 {
   "sessionTitle": "...",
   "exercises": [
@@ -179,27 +229,28 @@ Réponds UNIQUEMENT en JSON valide :
 }`;
 
     try {
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": apiKey,
-          "anthropic-version": "2023-06-01",
-          "anthropic-dangerous-direct-browser-access": "true"
-        },
-        body: JSON.stringify({
-          model: "claude-3-5-sonnet-20241022",
-          max_tokens: 2000,
-          messages: [{ role: "user", content: prompt }]
-        })
-      });
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${geminiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { temperature: 0.7, maxOutputTokens: 2048 },
+          }),
+        }
+      );
       const data = await res.json();
-      const text = data.content.map(b => b.text || "").join("");
-      const parsed = JSON.parse(text.replace(/```json|```/g, "").trim());
+
+      // Gemini renvoie dans candidates[0].content.parts[0].text
+      const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      const clean = raw.replace(/```json|```/g, "").trim();
+      const parsed = JSON.parse(clean);
       setGeneratedExercises(parsed);
       setView("exercises");
-    } catch {
-      showToast("Erreur de génération, réessaie !", "#f87171");
+    } catch (err) {
+      console.error(err);
+      showToast("Erreur Gemini — vérifie ta clé API", "#f87171");
     }
     setGenerating(false);
   }
@@ -209,8 +260,6 @@ Réponds UNIQUEMENT en JSON valide :
     const points = starRating * 20;
     const newVerbs = generatedExercises?.exercises?.flatMap(e => e.verbsUsed || []) || [];
     const newWords = generatedExercises?.exercises?.flatMap(e => e.wordsUsed || []) || [];
-
-    if (insightText) await pushSharedInsight(insightText);
 
     const newProfile = {
       ...profile,
@@ -239,6 +288,7 @@ Réponds UNIQUEMENT en JSON valide :
     setView("config");
   };
 
+  // ── Styles
   const S = {
     app: { minHeight: "100vh", background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%)", fontFamily: "Georgia, serif", color: "white", paddingBottom: 80 },
     header: { background: "rgba(255,255,255,0.03)", borderBottom: "1px solid rgba(255,255,255,0.08)", padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", backdropFilter: "blur(10px)", position: "sticky", top: 0, zIndex: 100 },
@@ -253,17 +303,19 @@ Réponds UNIQUEMENT en JSON valide :
     wrap: { padding: "0 16px", maxWidth: 600, margin: "0 auto" },
   };
 
+  // ── Loading
   if (loading) return (
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#0f172a" }}>
       <div style={{ textAlign: "center", color: "white", fontFamily: "Georgia, serif" }}>
         <div style={{ fontSize: 48, marginBottom: 12 }}>📚</div>
-        <div>Chargement de l'espace de {CHILD_NAME}…</div>
+        <div>Chargement depuis Supabase…</div>
       </div>
     </div>
   );
 
   const li = getLevelInfo(profile.totalPoints);
 
+  // ── Mode impression
   if (printMode && generatedExercises) return (
     <div style={{ fontFamily: "Georgia, serif", padding: "20mm", color: "#1e293b", background: "white" }}>
       <div style={{ textAlign: "center", borderBottom: "3px solid #6366f1", paddingBottom: 14, marginBottom: 24 }}>
@@ -292,6 +344,7 @@ Réponds UNIQUEMENT en JSON valide :
     </div>
   );
 
+  // ── Render principal
   return (
     <div style={S.app}>
       {toast && (
@@ -299,19 +352,29 @@ Réponds UNIQUEMENT en JSON valide :
           {toast.msg}
         </div>
       )}
+
       <div style={S.header}>
         <div>
           <div style={{ fontSize: 17, fontWeight: 700 }}>📚 École de {CHILD_NAME}</div>
-          <div style={{ fontSize: 11, color: "#94a3b8" }}>CE1 · Suivi personnalisé</div>
+          <div style={{ fontSize: 11, color: "#94a3b8", display: "flex", alignItems: "center", gap: 6 }}>
+            CE1 · Suivi personnalisé
+            {syncStatus === "saving" && <span style={{ color: "#f59e0b" }}>● sync…</span>}
+            {syncStatus === "saved" && <span style={{ color: "#34d399" }}>● synchronisé</span>}
+            {syncStatus === "error" && <span style={{ color: "#f87171" }}>● erreur sync</span>}
+          </div>
         </div>
         <div style={{ textAlign: "right" }}>
           <div style={S.badge(li.color)}>{li.name}</div>
           <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 4 }}>{profile.totalPoints} pts ⭐</div>
         </div>
       </div>
+
       <div style={S.wrap}>
+
+        {/* ── VUE HOME ── */}
         {view === "home" && (
           <>
+            {/* Niveau */}
             <div style={{ ...S.card, marginTop: 20, background: `linear-gradient(135deg, ${li.color}22, rgba(255,255,255,0.03))`, border: `1px solid ${li.color}44` }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
                 <div>
@@ -326,19 +389,35 @@ Réponds UNIQUEMENT en JSON valide :
               {li.pointsToNext > 0 && <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 6 }}>{li.pointsToNext} pts pour le prochain niveau</div>}
             </div>
 
+            {/* Génération */}
             <div style={S.card}>
-              <div style={{ fontSize: 14, color: "#94a3b8", marginBottom: 8 }}>🔑 Clé API Anthropic</div>
-              <input
-                type="password"
-                style={{ ...S.input, marginBottom: 14, fontFamily: "monospace", resize: "none" }}
-                placeholder="sk-ant-... (sauvegardée localement sur cet appareil)"
-                value={apiKey}
-                onChange={e => handleApiKeyChange(e.target.value)}
-              />
               <div style={{ fontSize: 14, color: "#94a3b8", marginBottom: 8 }}>📝 Contexte du jour <span style={{ fontSize: 12 }}>(optionnel)</span></div>
               <textarea style={{ ...S.input, marginBottom: 14, minHeight: 65 }}
-                placeholder="La maîtresse a travaillé sur les sons 'oi'... Lucas hésite sur les accords..."
+                placeholder="La maîtresse a travaillé sur les sons 'oi'… Lucas hésite sur les accords…"
                 value={contextNote} onChange={e => setContextNote(e.target.value)} />
+
+              {/* Clé Gemini */}
+              {(!geminiKey.trim() || showKeyInput) ? (
+                <div style={{ marginBottom: 14 }}>
+                  <div style={{ background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.3)", borderRadius: 12, padding: "10px 14px", marginBottom: 8, fontSize: 12, color: "#fcd34d" }}>
+                    🔑 Clé API Gemini — saisie une seule fois, mémorisée sur cet appareil
+                  </div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <input type="password" style={{ ...S.input, fontFamily: "monospace", resize: "none" }}
+                      placeholder="AIza..."
+                      value={geminiKey}
+                      onChange={e => saveGeminiKey(e.target.value)} />
+                    {geminiKey.trim() && (
+                      <button style={{ ...S.btnSm, whiteSpace: "nowrap" }} onClick={() => setShowKeyInput(false)}>OK</button>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
+                  <button style={{ ...S.btnSm, fontSize: 11 }} onClick={() => setShowKeyInput(true)}>🔑 Clé API</button>
+                </div>
+              )}
+
               {profile.weeklyConfig.presetFormat && (
                 <div style={{ background: "rgba(99,102,241,0.1)", border: "1px solid rgba(99,102,241,0.3)", borderRadius: 12, padding: "10px 14px", marginBottom: 14, fontSize: 12, color: "#c7d2fe" }}>
                   <span style={{ fontWeight: 700 }}>📋 Format prédéfini actif</span><br />
@@ -346,10 +425,11 @@ Réponds UNIQUEMENT en JSON valide :
                 </div>
               )}
               <button style={{ ...S.btn, opacity: generating ? 0.65 : 1 }} onClick={generateExercises} disabled={generating}>
-                {generating ? "⏳ Génération en cours…" : "✨ Générer la séance du jour"}
+                {generating ? "⏳ Gemini génère la séance…" : "✨ Générer la séance du jour"}
               </button>
             </div>
 
+            {/* Programme actuel */}
             <div style={S.card}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                 <div style={{ fontWeight: 700 }}>⚙️ Programme actuel</div>
@@ -364,6 +444,7 @@ Réponds UNIQUEMENT en JSON valide :
               {profile.weeklyConfig.focusPoints && <div style={{ marginTop: 8, fontSize: 12, color: "#94a3b8", fontStyle: "italic" }}>🎯 {profile.weeklyConfig.focusPoints}</div>}
             </div>
 
+            {/* Mémoire */}
             {(profile.memory.weakPoints.length > 0 || profile.memory.usedVerbs.length > 0) && (
               <div style={{ ...S.card, border: "1px solid rgba(167,139,250,0.3)" }}>
                 <div style={{ fontWeight: 700, marginBottom: 10 }}>🧠 Mémoire active</div>
@@ -379,6 +460,7 @@ Réponds UNIQUEMENT en JSON valide :
               </div>
             )}
 
+            {/* Graphique */}
             <div style={S.card}>
               <div style={{ fontWeight: 700, marginBottom: 14 }}>📈 Progression récente</div>
               <MiniChart sessions={profile.sessions} />
@@ -386,6 +468,7 @@ Réponds UNIQUEMENT en JSON valide :
           </>
         )}
 
+        {/* ── VUE EXERCICES ── */}
         {view === "exercises" && generatedExercises && (
           <>
             <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "20px 0 12px" }}>
@@ -419,26 +502,27 @@ Réponds UNIQUEMENT en JSON valide :
                 <div style={{ fontWeight: 700, marginBottom: 6 }}>🔍 Observations de fin de séance</div>
                 <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 8 }}>
                   Qu'est-ce qui était difficile ? Quels mots ou règles ont posé problème ?
-                  <br /><span style={{ color: "#a78bfa" }}>Ces notes sont mémorisées et partagées entre les deux parents.</span>
+                  <br /><span style={{ color: "#a78bfa" }}>Ces notes sont mémorisées et partagées entre les deux parents via Supabase.</span>
                 </div>
                 <textarea style={{ ...S.input, minHeight: 80, marginBottom: 16 }}
                   placeholder="Ex: Lucas confond 'ou' et 'où', l'accord avec 'nous' est acquis…"
                   value={insightText} onChange={e => setInsightText(e.target.value)} />
                 <div style={{ fontWeight: 700, marginBottom: 10, textAlign: "center" }}>Comment s'est passée la séance ?</div>
                 <StarRating value={starRating} onChange={setStarRating} />
-                <button style={{ ...S.btn, marginTop: 16 }} onClick={validateSession}>✅ Valider et enregistrer</button>
+                <button style={{ ...S.btn, marginTop: 16 }} onClick={validateSession}>✅ Valider et synchroniser</button>
               </div>
             ) : (
               <div style={{ ...S.card, textAlign: "center", background: "rgba(52,211,153,0.08)", border: "1px solid rgba(52,211,153,0.3)" }}>
                 <div style={{ fontSize: 42, marginBottom: 8 }}>🎉</div>
                 <div style={{ fontSize: 22, fontWeight: 700, color: "#34d399" }}>+{sessionScore.points} points !</div>
-                <div style={{ color: "#94a3b8", marginTop: 4, marginBottom: 16 }}>Séance enregistrée · Mémoire mise à jour</div>
+                <div style={{ color: "#94a3b8", marginTop: 4, marginBottom: 16 }}>Séance enregistrée · Supabase synchronisé</div>
                 <button style={S.btn} onClick={() => { setView("home"); setGeneratedExercises(null); setContextNote(""); }}>🏠 Retour à l'accueil</button>
               </div>
             )}
           </>
         )}
 
+        {/* ── VUE CONFIG ── */}
         {view === "config" && tempConfig && (
           <>
             <div style={{ fontWeight: 700, fontSize: 17, margin: "20px 0 14px" }}>⚙️ Programme de la semaine</div>
@@ -496,6 +580,7 @@ Réponds UNIQUEMENT en JSON valide :
           </>
         )}
 
+        {/* ── VUE STATS ── */}
         {view === "stats" && (
           <>
             <div style={{ fontWeight: 700, fontSize: 17, margin: "20px 0 14px" }}>📊 Suivi de {CHILD_NAME}</div>
@@ -546,6 +631,7 @@ Réponds UNIQUEMENT en JSON valide :
             </div>
           </>
         )}
+
       </div>
 
       <nav style={S.nav}>
