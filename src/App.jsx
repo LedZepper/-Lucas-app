@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 const CHILD_NAME = "Lucas";
 const SUPABASE_URL = "https://enppydwndwwbmnueuuup.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_Gf2rnCwwTS7rfmUQ8K_VmQ_RkC1bJZt";
-const GEMINI_MODEL = "gemini-2.0-flash";
+const GEMINI_MODEL = "gemini-1.5-flash";
 
 // ─── SUPABASE HELPERS ────────────────────────────────────────────────────────
 async function supabaseLoad() {
