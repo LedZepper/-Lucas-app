@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from "react";
 const CHILD_NAME = "Lucas";
 const SUPABASE_URL = "https://enppydwndwwbmnueuuup.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_Gf2rnCwwTS7rfmUQ8K_VmQ_RkC1bJZt";
-const GEMINI_MODEL = "gemini-1.5-flash";
 
 // ─── SUPABASE HELPERS ────────────────────────────────────────────────────────
 async function supabaseLoad() {
@@ -112,7 +111,7 @@ export default function App() {
   const [profile, setProfile] = useState(null);
   const [view, setView] = useState("home");
   const [loading, setLoading] = useState(true);
-  const [syncStatus, setSyncStatus] = useState(""); // "", "saving", "saved", "error"
+  const [syncStatus, setSyncStatus] = useState("");
   const [generating, setGenerating] = useState(false);
   const [generatedExercises, setGeneratedExercises] = useState(null);
   const [sessionScore, setSessionScore] = useState(null);
@@ -122,21 +121,16 @@ export default function App() {
   const [starRating, setStarRating] = useState(0);
   const [insightText, setInsightText] = useState("");
   const [printMode, setPrintMode] = useState(false);
-  // Clé Gemini stockée en localStorage
-  const [geminiKey, setGeminiKey] = useState(() => localStorage.getItem("lucas_gemini_key") || "");
-  const [showKeyInput, setShowKeyInput] = useState(false);
 
   const showToast = (msg, color = "#34d399") => {
     setToast({ msg, color });
     setTimeout(() => setToast(null), 3200);
   };
 
-  // ── Chargement initial depuis Supabase, fallback localStorage
   useEffect(() => {
     async function load() {
       let data = await supabaseLoad();
       if (!data) {
-        // fallback local si Supabase vide ou inaccessible
         try {
           const local = localStorage.getItem("lucas_profile_v4");
           if (local) data = JSON.parse(local);
@@ -148,7 +142,6 @@ export default function App() {
     load();
   }, []);
 
-  // ── Sauvegarde : localStorage immédiat + Supabase async
   const saveProfile = useCallback(async (p) => {
     setProfile(p);
     localStorage.setItem("lucas_profile_v4", JSON.stringify(p));
@@ -163,20 +156,8 @@ export default function App() {
     }
   }, []);
 
-  // ── Sauvegarde clé Gemini en localStorage
-  const saveGeminiKey = (key) => {
-    setGeminiKey(key);
-    localStorage.setItem("lucas_gemini_key", key);
-  };
-
-  // ── Génération via Gemini
   async function generateExercises() {
     if (!profile) return;
-    if (!geminiKey.trim()) {
-      setShowKeyInput(true);
-      showToast("Entre ta clé API Gemini !", "#f59e0b");
-      return;
-    }
     setGenerating(true);
     setGeneratedExercises(null);
     setSessionScore(null);
@@ -229,24 +210,20 @@ Réponds UNIQUEMENT en JSON valide (pas de markdown, pas de backticks) :
 }`;
 
     try {
-      const res = await fetch(
-`/api/generate`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt }),
-    }
-  );
-  const data = await res.json();
-
-  const raw = data?.text || "";
-  const clean = raw.replace(/```json|```/g, "").trim();
-  const parsed = JSON.parse(clean);
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt }),
+      });
+      const data = await res.json();
+      const raw = data?.text || "";
+      const clean = raw.replace(/```json|```/g, "").trim();
+      const parsed = JSON.parse(clean);
       setGeneratedExercises(parsed);
       setView("exercises");
     } catch (err) {
       console.error(err);
-      showToast("Erreur Gemini — vérifie ta clé API", "#f87171");
+      showToast("Erreur de génération — réessaie !", "#f87171");
     }
     setGenerating(false);
   }
@@ -284,7 +261,6 @@ Réponds UNIQUEMENT en JSON valide (pas de markdown, pas de backticks) :
     setView("config");
   };
 
-  // ── Styles
   const S = {
     app: { minHeight: "100vh", background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%)", fontFamily: "Georgia, serif", color: "white", paddingBottom: 80 },
     header: { background: "rgba(255,255,255,0.03)", borderBottom: "1px solid rgba(255,255,255,0.08)", padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", backdropFilter: "blur(10px)", position: "sticky", top: 0, zIndex: 100 },
@@ -299,7 +275,6 @@ Réponds UNIQUEMENT en JSON valide (pas de markdown, pas de backticks) :
     wrap: { padding: "0 16px", maxWidth: 600, margin: "0 auto" },
   };
 
-  // ── Loading
   if (loading) return (
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#0f172a" }}>
       <div style={{ textAlign: "center", color: "white", fontFamily: "Georgia, serif" }}>
@@ -311,7 +286,6 @@ Réponds UNIQUEMENT en JSON valide (pas de markdown, pas de backticks) :
 
   const li = getLevelInfo(profile.totalPoints);
 
-  // ── Mode impression
   if (printMode && generatedExercises) return (
     <div style={{ fontFamily: "Georgia, serif", padding: "20mm", color: "#1e293b", background: "white" }}>
       <div style={{ textAlign: "center", borderBottom: "3px solid #6366f1", paddingBottom: 14, marginBottom: 24 }}>
@@ -340,7 +314,6 @@ Réponds UNIQUEMENT en JSON valide (pas de markdown, pas de backticks) :
     </div>
   );
 
-  // ── Render principal
   return (
     <div style={S.app}>
       {toast && (
@@ -367,10 +340,8 @@ Réponds UNIQUEMENT en JSON valide (pas de markdown, pas de backticks) :
 
       <div style={S.wrap}>
 
-        {/* ── VUE HOME ── */}
         {view === "home" && (
           <>
-            {/* Niveau */}
             <div style={{ ...S.card, marginTop: 20, background: `linear-gradient(135deg, ${li.color}22, rgba(255,255,255,0.03))`, border: `1px solid ${li.color}44` }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
                 <div>
@@ -385,35 +356,11 @@ Réponds UNIQUEMENT en JSON valide (pas de markdown, pas de backticks) :
               {li.pointsToNext > 0 && <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 6 }}>{li.pointsToNext} pts pour le prochain niveau</div>}
             </div>
 
-            {/* Génération */}
             <div style={S.card}>
               <div style={{ fontSize: 14, color: "#94a3b8", marginBottom: 8 }}>📝 Contexte du jour <span style={{ fontSize: 12 }}>(optionnel)</span></div>
               <textarea style={{ ...S.input, marginBottom: 14, minHeight: 65 }}
                 placeholder="La maîtresse a travaillé sur les sons 'oi'… Lucas hésite sur les accords…"
                 value={contextNote} onChange={e => setContextNote(e.target.value)} />
-
-              {/* Clé Gemini */}
-              {(!geminiKey.trim() || showKeyInput) ? (
-                <div style={{ marginBottom: 14 }}>
-                  <div style={{ background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.3)", borderRadius: 12, padding: "10px 14px", marginBottom: 8, fontSize: 12, color: "#fcd34d" }}>
-                    🔑 Clé API Gemini — saisie une seule fois, mémorisée sur cet appareil
-                  </div>
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <input type="password" style={{ ...S.input, fontFamily: "monospace", resize: "none" }}
-                      placeholder="AIza..."
-                      value={geminiKey}
-                      onChange={e => saveGeminiKey(e.target.value)} />
-                    {geminiKey.trim() && (
-                      <button style={{ ...S.btnSm, whiteSpace: "nowrap" }} onClick={() => setShowKeyInput(false)}>OK</button>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
-                  <button style={{ ...S.btnSm, fontSize: 11 }} onClick={() => setShowKeyInput(true)}>🔑 Clé API</button>
-                </div>
-              )}
-
               {profile.weeklyConfig.presetFormat && (
                 <div style={{ background: "rgba(99,102,241,0.1)", border: "1px solid rgba(99,102,241,0.3)", borderRadius: 12, padding: "10px 14px", marginBottom: 14, fontSize: 12, color: "#c7d2fe" }}>
                   <span style={{ fontWeight: 700 }}>📋 Format prédéfini actif</span><br />
@@ -421,11 +368,10 @@ Réponds UNIQUEMENT en JSON valide (pas de markdown, pas de backticks) :
                 </div>
               )}
               <button style={{ ...S.btn, opacity: generating ? 0.65 : 1 }} onClick={generateExercises} disabled={generating}>
-                {generating ? "⏳ Gemini génère la séance…" : "✨ Générer la séance du jour"}
+                {generating ? "⏳ Génération en cours…" : "✨ Générer la séance du jour"}
               </button>
             </div>
 
-            {/* Programme actuel */}
             <div style={S.card}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                 <div style={{ fontWeight: 700 }}>⚙️ Programme actuel</div>
@@ -440,7 +386,6 @@ Réponds UNIQUEMENT en JSON valide (pas de markdown, pas de backticks) :
               {profile.weeklyConfig.focusPoints && <div style={{ marginTop: 8, fontSize: 12, color: "#94a3b8", fontStyle: "italic" }}>🎯 {profile.weeklyConfig.focusPoints}</div>}
             </div>
 
-            {/* Mémoire */}
             {(profile.memory.weakPoints.length > 0 || profile.memory.usedVerbs.length > 0) && (
               <div style={{ ...S.card, border: "1px solid rgba(167,139,250,0.3)" }}>
                 <div style={{ fontWeight: 700, marginBottom: 10 }}>🧠 Mémoire active</div>
@@ -456,7 +401,6 @@ Réponds UNIQUEMENT en JSON valide (pas de markdown, pas de backticks) :
               </div>
             )}
 
-            {/* Graphique */}
             <div style={S.card}>
               <div style={{ fontWeight: 700, marginBottom: 14 }}>📈 Progression récente</div>
               <MiniChart sessions={profile.sessions} />
@@ -464,7 +408,6 @@ Réponds UNIQUEMENT en JSON valide (pas de markdown, pas de backticks) :
           </>
         )}
 
-        {/* ── VUE EXERCICES ── */}
         {view === "exercises" && generatedExercises && (
           <>
             <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "20px 0 12px" }}>
@@ -518,7 +461,6 @@ Réponds UNIQUEMENT en JSON valide (pas de markdown, pas de backticks) :
           </>
         )}
 
-        {/* ── VUE CONFIG ── */}
         {view === "config" && tempConfig && (
           <>
             <div style={{ fontWeight: 700, fontSize: 17, margin: "20px 0 14px" }}>⚙️ Programme de la semaine</div>
@@ -576,7 +518,6 @@ Réponds UNIQUEMENT en JSON valide (pas de markdown, pas de backticks) :
           </>
         )}
 
-        {/* ── VUE STATS ── */}
         {view === "stats" && (
           <>
             <div style={{ fontWeight: 700, fontSize: 17, margin: "20px 0 14px" }}>📊 Suivi de {CHILD_NAME}</div>
