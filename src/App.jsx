@@ -230,22 +230,18 @@ Réponds UNIQUEMENT en JSON valide (pas de markdown, pas de backticks) :
 
     try {
       const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${geminiKey}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { temperature: 0.7, maxOutputTokens: 2048 },
-          }),
-        }
-      );
-      const data = await res.json();
+`/api/generate`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt }),
+    }
+  );
+  const data = await res.json();
 
-      // Gemini renvoie dans candidates[0].content.parts[0].text
-      const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-      const clean = raw.replace(/```json|```/g, "").trim();
-      const parsed = JSON.parse(clean);
+  const raw = data?.text || "";
+  const clean = raw.replace(/```json|```/g, "").trim();
+  const parsed = JSON.parse(clean);
       setGeneratedExercises(parsed);
       setView("exercises");
     } catch (err) {
