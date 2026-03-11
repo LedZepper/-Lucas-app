@@ -218,8 +218,13 @@ Réponds UNIQUEMENT en JSON valide (pas de markdown, pas de backticks) :
       const data = await res.json();
       const raw = data?.text || "";
       const clean = raw.replace(/```json|```/g, "").trim();
-      const jsonMatch = clean.match(/\{[\s\S]*\}/);
-      const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : clean);
+      let parsed;
+      try {
+        parsed = JSON.parse(clean);
+      } catch {
+        const jsonMatch = clean.match(/\{[\s\S]*\}/);
+        parsed = JSON.parse(jsonMatch[0]);
+      }
       setGeneratedExercises(parsed);
       setView("exercises");
     } catch (err) {
