@@ -2,32 +2,34 @@ export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
   const { prompt } = req.body;
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.GROQ_API_KEY;
 
   if (!apiKey) {
-    console.error("GEMINI_API_KEY manquante");
+    console.error("GROQ_API_KEY manquante");
     return res.status(500).json({ error: "Clé API manquante" });
   }
 
   try {
-    const response = await fetch(
-`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.7, maxOutputTokens: 2048 }
-        }),
-      }
-    );
+    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: "llama-3.1-8b-instant",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.7,
+        max_tokens: 2048
+      }),
+    });
     const data = await response.json();
-    console.log("Gemini status:", response.status);
-    console.log("Gemini response:", JSON.stringify(data).slice(0, 500));
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    console.log("Groq status:", response.status);
+    console.log("Groq response:", JSON.stringify(data).slice(0, 300));
+    const text = data.choices?.[0]?.message?.content || "";
     res.status(200).json({ text });
   } catch (e) {
-    console.error("Erreur Gemini:", e.message);
-    res.status(500).json({ error: "Erreur Gemini", detail: e.message });
+    console.error("Erreur Groq:", e.message);
+    res.status(500).json({ error: "Erreur Groq", detail: e.message });
   }
 }
