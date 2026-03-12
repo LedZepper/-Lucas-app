@@ -20,7 +20,7 @@ export default async function handler(req, res) {
         model: "llama-3.1-8b-instant",
         messages: [{ role: "user", content: prompt }],
         temperature: 0.7,
-        max_tokens: 2048
+        max_tokens: 4096
       }),
     });
     const data = await response.json();
