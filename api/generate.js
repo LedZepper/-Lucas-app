@@ -17,10 +17,11 @@ export default async function handler(req, res) {
         "Authorization": `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: "llama-3.1-8b-instant",
+        model: "llama-3.3-70b-versatile",
         messages: [{ role: "user", content: prompt }],
         temperature: 0.7,
-        max_tokens: 4096
+        max_tokens: 4096,
+        response_format: { type: "json_object" }
       }),
     });
     const data = await response.json();
