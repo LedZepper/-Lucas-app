@@ -5,6 +5,7 @@ const CHILD_NAME = "Léo";
 const SUPABASE_URL = "https://enppydwndwwbmnueuuup.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_Gf2rnCwwTS7rfmUQ8K_VmQ_RkC1bJZt";
 const PARENT_SECRET = "leo2024";
+const ADMIN_SECRET = "TTR250";
 
 const DEFAULT_PRESET = `EXERCICE 1 — Conjugaison
 - Verbe MANGER à l'imparfait (tableau toutes les personnes, exemple fourni)
@@ -373,6 +374,9 @@ export default function App() {
   const [insightText, setInsightText] = useState("");
   const [printMode, setPrintMode] = useState(false);
   const [showParentUnlock, setShowParentUnlock] = useState(false);
+  const [showAdmin, setShowAdmin] = useState(false);
+  const [adminCode, setAdminCode] = useState("");
+  const [adminUnlocked, setAdminUnlocked] = useState(false);
   const [parentCode, setParentCode] = useState("");
   const [parentUnlocked, setParentUnlocked] = useState(false);
   const [tempConfig, setTempConfig] = useState(null);
@@ -467,40 +471,57 @@ export default function App() {
 
   async function buildPrompt(mode, corpusText = "") {
     const { memory, weeklyConfig, focus } = profile;
+    const niveauxDetail = {
+      "CE1 debut": "fin CE1 : nombres jusqu a 100, tables x2 x5 x10, accord sujet-verbe basique, present et imparfait 1er groupe",
+      "CE1/CE2": "fin CE1 debut CE2 : nombres jusqu a 1000, toutes les tables, accord sujet-verbe, present imparfait futur des verbes courants, transposition negation",
+      "CE2": "CE2 confirme : multiplication posee, division exacte, fractions simples, passe compose futur simple, analyse sujet verbe COD",
+      "CE2 avance": "CE2 avance proche CM1 : division euclidienne, fractions, grands nombres, tous les temps, complement circonstanciel",
+      "CM1": "CM1 : nombres jusqu a 1 000 000, fractions decimales, problemes multi-etapes, conditionnel, propositions subordonnees"
+    };
+    const niveauExplicite = niveauxDetail[weeklyConfig.difficulty] || `niveau ${weeklyConfig.difficulty}`;
     const focusBlock = [
-      focus?.mots ? `Mots de la semaine : ${focus.mots}` : "",
-      focus?.verbes ? `Verbes en cours : ${focus.verbes}` : "",
-      focus?.remarque ? `Remarque maîtresse : ${focus.remarque}` : "",
+      focus?.mots ? `Mots de la semaine a integrer OBLIGATOIREMENT : ${focus.mots}` : "",
+      focus?.verbes ? `Verbes imposes en classe : ${focus.verbes}` : "",
+      focus?.remarque ? `Remarque maitresse : ${focus.remarque}` : "",
       focus?.priorite ? `Point prioritaire : ${focus.priorite}` : "",
     ].filter(Boolean).join("\n");
     const memCtx = [
-      memory.usedVerbs.length ? `Verbes DÉJÀ utilisés (ne PAS répéter) : ${memory.usedVerbs.slice(-12).join(", ")}` : "",
-      memory.usedWords.length ? `Mots dictée déjà vus : ${memory.usedWords.slice(-12).join(", ")}` : "",
-      memory.weakPoints.length ? `Points faibles : ${memory.weakPoints.slice(-5).join(" | ")}` : "",
+      memory.usedVerbs.length ? `Verbes DEJA utilises (ne PAS repeter) : ${memory.usedVerbs.slice(-12).join(", ")}` : "",
+      memory.usedWords.length ? `Mots dictee deja vus : ${memory.usedWords.slice(-12).join(", ")}` : "",
+      memory.weakPoints.length ? `Points faibles identifies : ${memory.weakPoints.slice(-5).join(" | ")}` : "",
     ].filter(Boolean).join("\n");
     const formatBlock = mode === "programme"
-      ? `⚠️ FORMAT IMPOSÉ STRICTEMENT :\n${weeklyConfig.presetFormat}`
-      : `Exercices demandés (UNIQUEMENT ceux-ci) : ${Object.entries(carteItems).filter(([, v]) => v).map(([k]) => k).join(", ")}`;
+      ? `FORMAT IMPOSE STRICTEMENT exercice par exercice :\n${weeklyConfig.presetFormat}`
+      : `Exercices demandes (UNIQUEMENT ceux-ci, pas d autres) : ${Object.entries(carteItems).filter(([, v]) => v).map(([k]) => k).join(", ")}`;
 
     return `${CORPUS_PEDAGOGIQUE}
-${corpusText ? corpusText : ""}
-=== INSTRUCTION ===
-Tu es un instituteur expert. Génère une fiche pour ${CHILD_NAME}, classe ${weeklyConfig.difficulty}.
-Niveau : ${weeklyConfig.difficulty} · Durée : ${weeklyConfig.duration} min
-${focusBlock ? `FOCUS :\n${focusBlock}` : ""}
-${memCtx ? `MÉMOIRE :\n${memCtx}` : ""}
-${contextNote ? `CONTEXTE : ${contextNote}` : ""}
+${corpusText || ""}
+=== INSTRUCTION DE GENERATION ===
+Tu es un instituteur expert francais. Genere une fiche d exercices pour ${CHILD_NAME}.
+
+NIVEAU EXACT OBLIGATOIRE : ${niveauExplicite}
+IMPORTANT : les exercices doivent correspondre EXACTEMENT a ce niveau. Jamais de contenu trop simple.
+Duree totale : ${weeklyConfig.duration} minutes.
+${focusBlock ? `FOCUS DU MOMENT :\n${focusBlock}` : ""}
+${memCtx ? `MEMOIRE (respecter absolument) :\n${memCtx}` : ""}
+${contextNote ? `CONTEXTE DU JOUR : ${contextNote}` : ""}
+
 ${formatBlock}
-RÈGLES ABSOLUES :
-1. Exemple AVANT chaque exercice — inspire-toi des exemples validés ci-dessus
-2. Tirets longs _______________ pour réponses (min 15 caractères)
-3. Respecter STRICTEMENT les exercices demandés, ni plus ni moins
-4. Ne JAMAIS réutiliser les verbes/mots en mémoire
-5. Ne jamais mélanger contexte parent et contenu exercice
-6. Adapter la difficulté au niveau ${weeklyConfig.difficulty} sans jamais la plafonner
-Réponds UNIQUEMENT en JSON valide :
-{"sessionTitle":"...","exercises":[{"type":"...","title":"...","duration":"X min","emoji":"...","instructions":"...","example":"Exemple : ...","content":"contenu avec _______________","parentNote":"...","verbsUsed":[],"wordsUsed":[]}],"encouragement":"..."}`;
+
+REGLES DE CONSTRUCTION IMPERATIVES :
+1. EXEMPLE OBLIGA TOIRE avant chaque exercice (un exemple complet resolu, comme a l ecole)
+2. Pour les MULTIPLICATIONS : minimum 10 calculs, format 2 colonnes : "3 x 4 = ___    6 x 7 = ___"
+3. Pour la CONJUGAISON : tableau 6 lignes (je/tu/il/nous/vous/ils), 2 verbes en 2 colonnes si possible
+4. Tirets _______________ pour toutes les reponses (minimum 15 caracteres)
+5. Jamais de contenu trop simple ou niveau CP - le niveau est ${weeklyConfig.difficulty}
+6. Ne JAMAIS reutiliser les verbes ou mots listes en memoire
+7. Le champ "content" doit etre l exercice COMPLET pret a imprimer
+8. Respecter STRICTEMENT les exercices demandes, ni plus ni moins
+
+Reponds UNIQUEMENT en JSON valide :
+{"sessionTitle":"...","exercises":[{"type":"...","title":"...","duration":"X min","emoji":"...","instructions":"...","example":"Exemple resolu : ...","content":"exercice complet avec _______________ bien structure","parentNote":"...","verbsUsed":[],"wordsUsed":[]}],"encouragement":"message court pour ${CHILD_NAME}"}`;
   }
+
 
   async function generateExercises(mode) {
     if (!profile) return;
@@ -705,30 +726,59 @@ Réponds UNIQUEMENT en JSON valide :
 
   // ── IMPRESSION ──
   if (printMode && generatedExercises) return (
-    <div style={{ fontFamily: "Georgia, serif", padding: "15mm", color: "#1e293b", background: "white" }}>
-      <div style={{ textAlign: "center", borderBottom: "3px solid #4f46e5", paddingBottom: 14, marginBottom: 24 }}>
-        <h1 style={{ margin: 0, fontSize: 20, color: "#4f46e5" }}>📚 École de {CHILD_NAME}</h1>
-        <p style={{ margin: "4px 0 0", color: "#64748b", fontSize: 12 }}>
-          {new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })} · {profile.weeklyConfig.duration} min · {profile.weeklyConfig.difficulty}
-        </p>
-        <p style={{ margin: "4px 0 0", color: "#4f46e5", fontSize: 14, fontWeight: 700 }}>{generatedExercises.sessionTitle}</p>
-      </div>
-      {generatedExercises.exercises?.map((ex, i) => (
-        <div key={i} style={{ marginBottom: 28, pageBreakInside: "avoid" }}>
-          <div style={{ display: "flex", gap: 10, alignItems: "center", background: "#f8fafc", padding: "8px 14px", borderRadius: 10, borderLeft: "4px solid #4f46e5", marginBottom: 8 }}>
-            <span style={{ fontSize: 18 }}>{ex.emoji}</span>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: 14 }}>Exercice {i + 1} — {ex.title}</div>
-              <div style={{ fontSize: 11, color: "#64748b" }}>{ex.duration}</div>
-            </div>
-          </div>
-          <p style={{ fontStyle: "italic", color: "#475569", margin: "0 0 6px", fontSize: 12 }}>📌 {ex.instructions}</p>
-          {ex.example && <p style={{ background: "#eff6ff", padding: "6px 12px", borderRadius: 8, fontSize: 12, color: "#1d4ed8", margin: "0 0 10px", borderLeft: "3px solid #3b82f6" }}>{ex.example}</p>}
-          <div style={{ whiteSpace: "pre-line", fontSize: 14, lineHeight: 3.2, border: "1px solid #e2e8f0", borderRadius: 8, padding: 14, minHeight: 80 }}>{ex.content}</div>
-          {ex.parentNote && <p style={{ fontSize: 11, color: "#7c3aed", marginTop: 4, fontStyle: "italic" }}>👨‍👩‍👧 {ex.parentNote}</p>}
+    <div style={{ fontFamily: "Arial, sans-serif", padding: "10mm 12mm", color: "#1e293b", background: "white", fontSize: 13 }}>
+      <style>{`
+        @page { size: A4; margin: 10mm 12mm; }
+        @media print {
+          body { margin: 0; }
+          .ex-content { white-space: pre-line; line-height: 2.2; }
+          .ex-content-multi { columns: 2; column-gap: 20px; white-space: pre-line; line-height: 2.2; }
+          .page-break { page-break-before: always; }
+        }
+        .ex-content { white-space: pre-line; line-height: 2.2; }
+        .ex-content-multi { column-count: 2; column-gap: 20px; white-space: pre-line; line-height: 2.2; }
+      `}</style>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", borderBottom: "2px solid #4f46e5", paddingBottom: 8, marginBottom: 14 }}>
+        <div>
+          <div style={{ fontSize: 17, fontWeight: 700, color: "#4f46e5" }}>📚 École de {CHILD_NAME}</div>
+          <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>{generatedExercises.sessionTitle}</div>
         </div>
-      ))}
-      <div style={{ textAlign: "center", padding: 12, background: "#f0fdf4", borderRadius: 10, color: "#166534", fontStyle: "italic", fontSize: 13 }}>
+        <div style={{ textAlign: "right", fontSize: 11, color: "#64748b" }}>
+          <div>{new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</div>
+          <div>{profile.weeklyConfig.duration} min · {profile.weeklyConfig.difficulty}</div>
+        </div>
+      </div>
+      {generatedExercises.exercises?.map((ex, i) => {
+        const isMultiCol = ex.type === "multiplication" || ex.type === "soustraction" || ex.type === "division" || ex.type === "addition" || (ex.content && ex.content.match(/×|÷|\+.*=|−.*=/g)?.length > 4);
+        const isConjugaison = ex.type === "conjugaison";
+        return (
+          <div key={i} style={{ marginBottom: 16, pageBreakInside: "avoid" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#f1f5f9", padding: "5px 10px", borderRadius: 6, borderLeft: "3px solid #4f46e5", marginBottom: 5 }}>
+              <span style={{ fontSize: 15 }}>{ex.emoji}</span>
+              <div style={{ fontWeight: 700, fontSize: 13 }}>Exercice {i + 1} — {ex.title}</div>
+              <div style={{ marginLeft: "auto", fontSize: 10, color: "#94a3b8" }}>{ex.duration}</div>
+            </div>
+            <p style={{ fontStyle: "italic", color: "#475569", margin: "0 0 4px", fontSize: 11 }}>📌 {ex.instructions}</p>
+            {ex.example && (
+              <p style={{ background: "#eff6ff", padding: "4px 10px", borderRadius: 6, fontSize: 11, color: "#1d4ed8", margin: "0 0 6px", borderLeft: "2px solid #3b82f6" }}>
+                {ex.example}
+              </p>
+            )}
+            {isConjugaison ? (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 20px", fontSize: 13, lineHeight: 2.1 }}>
+                <div style={{ whiteSpace: "pre-line" }}>{ex.content.split("\n").slice(0, Math.ceil(ex.content.split("\n").length / 2)).join("\n")}</div>
+                <div style={{ whiteSpace: "pre-line" }}>{ex.content.split("\n").slice(Math.ceil(ex.content.split("\n").length / 2)).join("\n")}</div>
+              </div>
+            ) : isMultiCol ? (
+              <div className="ex-content-multi" style={{ fontSize: 13 }}>{ex.content}</div>
+            ) : (
+              <div className="ex-content" style={{ fontSize: 13 }}>{ex.content}</div>
+            )}
+            {ex.parentNote && <p style={{ fontSize: 10, color: "#7c3aed", marginTop: 3, fontStyle: "italic" }}>👨‍👩‍👧 {ex.parentNote}</p>}
+          </div>
+        );
+      })}
+      <div style={{ textAlign: "center", padding: 8, background: "#f0fdf4", borderRadius: 8, color: "#166534", fontStyle: "italic", fontSize: 12, marginTop: 10 }}>
         💪 {generatedExercises.encouragement}
       </div>
     </div>
@@ -1265,6 +1315,68 @@ Réponds UNIQUEMENT en JSON valide :
                   <div style={{ fontSize: 13, color: "#475569", marginBottom: 8 }}>⏱ {profile.weeklyConfig.duration} min · {profile.weeklyConfig.difficulty}</div>
                   <button style={S.btnSm} onClick={() => setTempConfig({ ...profile.weeklyConfig })}>✏️ Modifier</button>
                 </>
+              )}
+            </div>
+
+            {/* MENU ADMIN */}
+            <div style={S.card}>
+              <div style={{ textAlign: "center" }}>
+                <span style={{ fontSize: 11, color: "#1e293b", cursor: "pointer", userSelect: "none" }}
+                  onClick={() => setShowAdmin(v => !v)}>
+                  ··· administration
+                </span>
+              </div>
+              {showAdmin && (
+                <div style={{ marginTop: 12 }}>
+                  {!adminUnlocked ? (
+                    <>
+                      <div style={{ fontSize: 12, color: "#64748b", marginBottom: 8 }}>Code administrateur :</div>
+                      <input type="password" style={{ ...S.input, marginBottom: 8 }}
+                        placeholder="Code admin"
+                        value={adminCode} onChange={e => setAdminCode(e.target.value)} />
+                      <button style={S.btnSm} onClick={() => {
+                        if (adminCode === ADMIN_SECRET) { setAdminUnlocked(true); showToast("Mode admin activé ✅"); }
+                        else showToast("Code incorrect", "#f87171");
+                      }}>Valider</button>
+                    </>
+                  ) : (
+                    <>
+                      <div style={{ fontSize: 12, color: "#34d399", marginBottom: 14 }}>✅ Mode administrateur activé</div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                        <button style={{ ...S.btnSm, color: "#f87171", borderColor: "#f8717140" }} onClick={async () => {
+                          if (window.confirm("Remettre les points à zéro ?")) {
+                            await saveProfile({ ...profile, totalPoints: 0 });
+                            showToast("Points remis à zéro ✅");
+                          }
+                        }}>🔄 Remettre les points à zéro</button>
+                        <button style={{ ...S.btnSm, color: "#f87171", borderColor: "#f8717140" }} onClick={async () => {
+                          if (window.confirm("Effacer tout l historique des séances ?")) {
+                            await saveProfile({ ...profile, sessions: [] });
+                            showToast("Historique effacé ✅");
+                          }
+                        }}>🗑️ Effacer l historique</button>
+                        <button style={{ ...S.btnSm, color: "#f87171", borderColor: "#f8717140" }} onClick={async () => {
+                          if (window.confirm("Effacer la mémoire (verbes, mots, points faibles) ?")) {
+                            await saveProfile({ ...profile, memory: { usedVerbs: [], usedWords: [], weakPoints: [] } });
+                            showToast("Mémoire effacée ✅");
+                          }
+                        }}>🧠 Effacer la mémoire</button>
+                        <button style={{ ...S.btnSm, color: "#f87171", borderColor: "#f8717140" }} onClick={async () => {
+                          if (window.confirm("Effacer TOUS les items débloqués du raton ?")) {
+                            await saveProfile({ ...profile, unlockedBonusItems: [], equippedItems: [] });
+                            showToast("Items effacés ✅");
+                          }
+                        }}>🦝 Réinitialiser les items de Roki</button>
+                        <button style={{ ...S.btnSm, color: "#f87171", borderColor: "#f8717140" }} onClick={async () => {
+                          if (window.confirm("RESET COMPLET — tout remettre à zéro ?")) {
+                            await saveProfile({ ...DEFAULT_PROFILE });
+                            showToast("Reset complet effectué ✅");
+                          }
+                        }}>⚠️ Reset complet</button>
+                      </div>
+                    </>
+                  )}
+                </div>
               )}
             </div>
           </>
