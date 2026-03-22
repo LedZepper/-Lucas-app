@@ -512,61 +512,70 @@ RÈGLES ABSOLUES :
 
         const reglesTxt = regles.join("\n\n");
 
-        // ── TRANSPOSITION & NÉGATION : Groq génère nouvelles phrases, structure imposée ──
-        if ((isTranspo || isNeg) && modele) {
-          const negType = st.includes("plus") ? "NE...PLUS" : st.includes("jamais") ? "NE...JAMAIS" : "NE...PAS";
-          // Paires de pronoms selon le type de transposition
-          const transpoPaires = st.includes("tu_je")
-            ? [["TU","JE"],["IL","ELLE"],["NOUS","VOUS"],["ELLE","IL"],["ILS","ELLES"]]
-            : st.includes("singulier_pluriel")
-            ? [["LE CHAT","LES CHATS"],["IL","ILS"],["ELLE","ELLES"],["MON AMI","MES AMIS"],["L ENFANT","LES ENFANTS"]]
-            : [["IL","ELLE"],["NOUS","VOUS"],["ELLE","IL"],["TU","VOUS"],["ILS","ELLES"]];
+        // ── TRANSPOSITION : corpus lu directement, Groq génère nouvelles phrases sur le même modèle ──
+        if (isTranspo && modele) {
+          // Extraire l exemple résolu du corpus (ligne après "Exemple :")
+          const lignesModele = modele.split("\n").map(l=>l.trim()).filter(Boolean);
+          const exempleIdx = lignesModele.findIndex(l=>l.startsWith("Exemple"));
+          const exempleResolu = exempleIdx>=0 ? lignesModele[exempleIdx+1] || "" : "";
+          // Extraire les lignes numérotées du corpus comme modèle de structure
+          const lignesNumerotees = lignesModele.filter(l=>/^\d+\./.test(l)).join("\n");
 
-          const exemplesPaires = transpoPaires.map((p,i)=>`${i+1}. ${p[0]} [verbe] [complément]. → ${p[1]} _______________`).join("\n");
-          const exempleResolu = `${transpoPaires[0][0]} mange une pomme. → ${transpoPaires[0][1]} mange une pomme.`;
+          const transpoPrompt = `Tu es instituteur CE1/CE2. Génère 5 nouvelles phrases pour un exercice de transposition, niveau ${niv}.
 
-          const transpoPrompt = isTranspo
-            ? `Tu es instituteur CE1/CE2. Génère un exercice de transposition pour ${CHILD_NAME}, niveau ${niv}.
+MODÈLE EXACT du programme national (reproduis cette structure) :
+${lignesNumerotees}
 
-PRINCIPE : chaque phrase a un sujet source. Léo doit la réécrire avec un nouveau sujet imposé et accorder le verbe.
+PRINCIPE : chaque ligne = une phrase avec un sujet source, une flèche, puis le nouveau sujet imposé suivi de tirets.
+Léo doit réécrire la phrase entière avec le nouveau sujet et accorder le verbe.
 
-FORMAT EXACT à produire dans lignes (5 phrases) :
-${exemplesPaires}
-
-RÈGLES STRICTES :
-- Chaque ligne = "N. SUJET_SOURCE [verbe présent] [complément]. → NOUVEAU_SUJET _______________"
-- Le SUJET_SOURCE et le NOUVEAU_SUJET sont des pronoms ou groupes nominaux DIFFÉRENTS
-- Les paires de sujets à utiliser : ${transpoPaires.map(p=>p[0]+" → "+p[1]).join(", ")}
-- Verbes simples niveau CE1 : manger, jouer, chanter, courir, regarder, dessiner, lire, dormir...
-- Compléments variés et concrets
-- NE PAS écrire la phrase transformée — seulement le nouveau sujet suivi de tirets
+RÈGLES :
+- Garder exactement le même format : "N. SUJET_SOURCE [verbe] [complément]. → NOUVEAU_SUJET _______________"
+- Utiliser les mêmes paires de sujets que dans le modèle
+- Changer uniquement les verbes et compléments (niveau CE1, phrases simples)
+- NE PAS écrire la phrase transformée après les tirets
 
 JSON uniquement :
-{"title":"Transposition — Change le sujet et accorde le verbe","emoji":"✏️","duration":"${dur} min","instructions":"Réécris chaque phrase avec le nouveau sujet indiqué et accorde le verbe","example":"${exempleResolu}","lignes":["1. IL mange une pomme. → ELLE _______________","2. NOUS jouons au foot. → VOUS _______________","3. ELLE chante une chanson. → IL _______________","4. TU lis un livre. → VOUS _______________","5. ILS courent vite. → ELLES _______________"],"parentNote":"Rappeler d accorder le verbe avec le nouveau sujet (singulier/pluriel).","verbsUsed":[],"wordsUsed":[]}`
-            : `Tu es instituteur CE1/CE2. Génère 5 nouvelles phrases pour un exercice de négation avec ${negType}.
-
-MODÈLE DU CORPUS (structure à respecter exactement) :
-1. Elle mange une glace. → _______________
-2. Nous courons vite. → _______________
-3. Tu aimes les légumes. → _______________
-4. Il regarde la télévision. → _______________
-5. Les enfants chantent. → _______________
-
-RÈGLES STRICTES :
-- 5 phrases affirmatives numérotées avec sujets VARIÉS (il, elle, nous, tu, ils, elles, prénom, nom commun)
-- Chaque phrase se termine par " → _______________"
-- Verbes et compléments DIFFÉRENTS du modèle et entre eux
-- NE PAS écrire la phrase négative — l enfant la cherche lui-même
-- Niveau CE1, phrases courtes
-
-JSON uniquement : {"title":"Négation avec ${negType}","emoji":"✏️","duration":"${dur} min","instructions":"Transforme chaque phrase à la forme négative avec ${negType}","example":"Il joue au foot. → Il ne joue ${st.includes("plus")?"plus":st.includes("jamais")?"jamais":"pas"} au foot.","lignes":["1. [sujet] [verbe] [complément]. → _______________","2. [sujet] [verbe] [complément]. → _______________","3. [sujet] [verbe] [complément]. → _______________","4. [sujet] [verbe] [complément]. → _______________","5. [sujet] [verbe] [complément]. → _______________"],"parentNote":"Rappeler que ${negType} encadre le verbe : ne [verbe] ${st.includes("plus")?"plus":st.includes("jamais")?"jamais":"pas"}.","verbsUsed":[],"wordsUsed":[]}`;
+{"title":"Transposition — Change le sujet et accorde le verbe","emoji":"✏️","duration":"${dur} min","instructions":"Réécris chaque phrase avec le nouveau sujet indiqué et accorde bien le verbe","example":"${exempleResolu.replace(/"/g,"'")}","lignes":["1. phrase → SUJET _______________","2. ...","3. ...","4. ...","5. ..."],"parentNote":"Rappeler d accorder le verbe avec le nouveau sujet.","verbsUsed":[],"wordsUsed":[]}`;
 
           try {
             const raw = await callAPI(transpoPrompt, "exercice");
             const clean = raw.replace(/```json|```/g,"").trim();
             const obj = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
             if (obj.title) exercises.push({type:st,...obj});
-          } catch(e) { console.error("Erreur transpo/neg",st,e); }
+          } catch(e) { console.error("Erreur transposition",st,e); }
+          continue;
+        }
+
+        // ── NÉGATION : même principe, corpus comme modèle de structure ──
+        if (isNeg && modele) {
+          const negType = st.includes("plus") ? "NE...PLUS" : st.includes("jamais") ? "NE...JAMAIS" : "NE...PAS";
+          const lignesModele = modele.split("\n").map(l=>l.trim()).filter(Boolean);
+          const lignesNumerotees = lignesModele.filter(l=>/^\d+\./.test(l)).join("\n");
+          const negPas = st.includes("plus")?"plus":st.includes("jamais")?"jamais":"pas";
+
+          const negPrompt = `Tu es instituteur CE1/CE2. Génère 5 nouvelles phrases pour un exercice de négation avec ${negType}, niveau ${niv}.
+
+MODÈLE EXACT du programme national (reproduis cette structure) :
+${lignesNumerotees}
+
+RÈGLES STRICTES :
+- 5 phrases affirmatives numérotées, chacune se termine par " → _______________"
+- Sujets VARIÉS à chaque ligne : il, elle, nous, tu, ils, elles, un prénom, un nom commun
+- Verbes et compléments différents du modèle et entre eux
+- NE PAS écrire la réponse négative — l enfant la cherche lui-même
+- Phrases correctes en français (ex: "Il mange une pomme" → "Il ne mange pas de pomme", PAS "pas une pomme")
+- Niveau CE1, phrases courtes et simples
+
+JSON uniquement :
+{"title":"Négation avec ${negType}","emoji":"✏️","duration":"${dur} min","instructions":"Transforme chaque phrase à la forme négative avec ${negType}","example":"Il joue au foot. → Il ne joue ${negPas} au foot.","lignes":["1. phrase affirmative. → _______________","2. ...","3. ...","4. ...","5. ..."],"parentNote":"Rappeler : NE se place avant le verbe, ${negPas.toUpperCase()} après.","verbsUsed":[],"wordsUsed":[]}`;
+
+          try {
+            const raw = await callAPI(negPrompt, "exercice");
+            const clean = raw.replace(/```json|```/g,"").trim();
+            const obj = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
+            if (obj.title) exercises.push({type:st,...obj});
+          } catch(e) { console.error("Erreur négation",st,e); }
           continue;
         }
 
