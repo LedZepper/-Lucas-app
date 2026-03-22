@@ -3,41 +3,37 @@ export default async function handler(req, res) {
 
   const { prompt, mode } = req.body;
   const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) return res.status(500).json({ error: "Clé API manquante" });
 
-  if (!apiKey) {
-    console.error("GROQ_API_KEY manquante");
-    return res.status(500).json({ error: "Clé API manquante" });
-  }
+  const isChat = mode === "chat";
+  const model  = isChat ? "llama-3.1-8b-instant" : "llama-3.3-70b-versatile";
 
-  // Modèle selon le mode : chat léger avec 8b, exercices avec 70b
-  const model = mode === "chat" ? "llama-3.1-8b-instant" : "llama-3.3-70b-versatile";
+  const messages = isChat
+    ? [
+        { role: "system", content: `Tu es Roki, un raton laveur aventurier rigolo et courageux. Tu parles à Léo, un enfant de 7-8 ans. Règles ABSOLUES : 1) Toujours positif et encourageant. 2) Jamais de violence, de peur ou de contenu inapproprié. 3) Réponses courtes (1-2 phrases max). 4) Style aventure amusante avec émojis. 5) Tu connais le prénom de Léo. 6) Jamais de guillemets autour de tes réponses. 7) Tu es un personnage de jeu, pas une IA.` },
+        { role: "user", content: prompt }
+      ]
+    : [{ role: "user", content: prompt }];
 
   try {
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`
-      },
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
       body: JSON.stringify({
         model,
-        messages: [{ role: "user", content: prompt }],
-        temperature: mode === "chat" ? 0.9 : 0.4,
-        max_tokens: mode === "chat" ? 200 : 4096,
-        response_format: mode === "chat" ? undefined : { type: "json_object" }
+        messages,
+        temperature: isChat ? 0.8 : 0.4,
+        max_tokens: isChat ? 150 : 4096,
+        response_format: isChat ? undefined : { type: "json_object" }
       }),
     });
-
     const data = await response.json();
-    console.log("Groq status:", response.status, "model:", model);
-    if (data.error) {
-      console.error("Groq error:", data.error);
-      return res.status(500).json({ error: data.error.message });
-    }
+    if (data.error) { console.error("Groq error:", data.error); return res.status(500).json({ error: data.error.message }); }
     const text = data.choices?.[0]?.message?.content || "";
+    console.log("Groq OK model:", model, "mode:", mode, "chars:", text.length);
     res.status(200).json({ text });
   } catch (e) {
-    console.error("Erreur Groq:", e.message);
-    res.status(500).json({ error: "Erreur Groq", detail: e.message });
+    console.error("Erreur:", e.message);
+    res.status(500).json({ error: e.message });
   }
 }
