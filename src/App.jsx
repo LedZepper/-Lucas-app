@@ -250,12 +250,16 @@ function ExCard({ ex, dark=true }) {
     const cols = ex.lignes.length >= 9 ? 3 : 2;
     return (
       <div style={{display:"grid",gridTemplateColumns:`repeat(${cols},1fr)`,gap:"8px 20px",marginTop:4}}>
-        {ex.lignes.map((l,i)=>(
-          <div key={i} style={{display:"flex",alignItems:"center",gap:8}}>
-            <span style={{fontWeight:600,minWidth:80,fontSize:dark?14:13,color:tc}}>{l}</span>
-            <span style={{borderBottom:`1px solid ${lc}`,flex:1,minWidth:30}}></span>
-          </div>
-        ))}
+        {ex.lignes.map((l,i)=>{
+          // Nettoyer les tirets et numéros que le modèle ajoute parfois
+          const clean = l.replace(/^\d+\.\s*/,"").replace(/_{2,}/g,"").trimEnd();
+          return (
+            <div key={i} style={{display:"flex",alignItems:"center",gap:6}}>
+              <span style={{fontWeight:600,fontSize:dark?14:13,color:tc,whiteSpace:"nowrap"}}>{clean}</span>
+              <span style={{borderBottom:`1px solid ${lc}`,flex:1,minWidth:25}}></span>
+            </div>
+          );
+        })}
       </div>
     );
   }
@@ -277,11 +281,11 @@ const DEFAULT_PROFILE = {
   name: CHILD_NAME, totalPoints:0, sessions:[], unlockedBonusItems:[], equippedItems:[],
   weeklyConfig:{ duration:25, difficulty:"CE1/CE2",
     programme:[
-      {type:"conjugaison", label:"Conjugaison (2 verbes)"},
-      {type:"transposition", label:"Transposition TU→JE"},
-      {type:"negation", label:"Négation NE...PAS"},
-      {type:"soustraction", label:"Soustractions"},
-      {type:"encadrement", label:"Encadrement dizaines/centaines"},
+      {type:"conjugaison",    label:"Conjugaison (2 verbes)"},
+      {type:"transposition",  label:"Transposition TU→JE"},
+      {type:"negation",       label:"Négation NE...PAS"},
+      {type:"soustraction",   label:"Soustractions (10 calculs)"},
+      {type:"encadrement",    label:"Encadrement nombres"},
     ]
   },
   focus:{ mots:"", verbes:"", remarque:"", notesamaine:0, priorite:"" },
@@ -323,6 +327,10 @@ export default function App() {
     (async()=>{
       let d = await sbLoad();
       if (!d) { try { const l=localStorage.getItem("leo_v4"); if(l) d=JSON.parse(l); } catch {} }
+      // S assurer que le programme existe toujours
+      if (d && (!d.weeklyConfig?.programme || d.weeklyConfig.programme.length === 0)) {
+        d.weeklyConfig = { ...DEFAULT_PROFILE.weeklyConfig, ...d.weeklyConfig, programme: DEFAULT_PROFILE.weeklyConfig.programme };
+      }
       setProfile(d||{...DEFAULT_PROFILE});
       setLoading(false);
     })();
@@ -378,27 +386,53 @@ export default function App() {
         "CM1": "CM1 : grands nombres, fractions, division posée, tous les temps"
       }[niveau] || niveau;
 
-      const prompt = modele
-        ? `Tu es un instituteur expert. Génère un exercice de type "${type}" pour ${CHILD_NAME} niveau ${niveauDesc}.
+      const isConj = type === "conjugaison";
+      const isCalc = ["multiplication","soustraction","addition","division","encadrement","numeration","fractions","mesures"].includes(type);
+      
+      // Pour la conjugaison : pas d exemple avec réponses, juste la structure vide
+      // Pour les calculs : exemple avec réponse montré
+      const exampleRule = isConj
+        ? "- Le champ \"example\" doit montrer UNIQUEMENT la structure vide (ex: \"Conjugue le verbe CHANTER au présent\") SANS donner les réponses"
+        : "- Le champ \"example\" doit montrer UN exemple résolu complet (ex: \"3 × 4 = 12\")";
+      
+      const conjRule = isConj
+        ? `- OBLIGATOIRE : inclure EXACTEMENT 2 verbes différents dans les lignes
+- Format des lignes pour 2 verbes côte à côte : ["VERBE1 — temps", "je", "tu", "il/elle", "nous", "vous", "ils/elles", "VERBE2 — temps", "je", "tu", "il/elle", "nous", "vous", "ils/elles"]
+- Choisir 2 verbes différents non utilisés récemment
+- Ne JAMAIS donner les formes conjuguées dans l example`
+        : "";
 
-MODÈLE À SUIVRE STRICTEMENT (structure et format du programme national français) :
+      const calcRule = isCalc
+        ? `- OBLIGATOIRE : minimum 10 items dans "lignes" pour les calculs
+- Format : ["3 × 7 =", "8 × 4 =", ...] — JUSTE le calcul sans tirets ni réponse, l app ajoute la ligne pour écrire`
+        : "";
+
+      const prompt = modele
+        ? `Tu es un instituteur expert français. Génère un exercice de type "${type}" pour ${CHILD_NAME} niveau ${niveauDesc}.
+
+MODÈLE PÉDAGOGIQUE (programme national) :
 ---
 ${modele.contenu}
 ---
 
-INSTRUCTIONS :
-- Respecte exactement la même structure que le modèle ci-dessus
-- Génère de NOUVELLES valeurs (nouveaux verbes, nouveaux nombres, nouveaux mots) en gardant le même format
-- Adapte la difficulté au niveau ${niveau}
-- Ne pas répéter les valeurs déjà utilisées
-${focusLines ? `\nCONTRAINTES :\n${focusLines}` : ""}
+INSTRUCTIONS STRICTES :
+- Respecte exactement la même structure pédagogique que le modèle
+- Génère de NOUVELLES valeurs (nouveaux verbes, nouveaux nombres, nouveaux mots)
+- Niveau : ${niveau}
+${exampleRule}
+${conjRule}
+${calcRule}
+${focusLines ? `CONTRAINTES :\n${focusLines}` : ""}
 
-Réponds en JSON valide uniquement :
-{"title":"...","emoji":"...","duration":"X min","instructions":"consigne courte","example":"Exemple résolu : ...","lignes":["ligne1","ligne2",...],"parentNote":"...","verbsUsed":[],"wordsUsed":[]}`
-        : `Tu es un instituteur expert. Génère un exercice de type "${type}" pour ${CHILD_NAME} niveau ${niveauDesc}.
-Durée : ${Math.round(weeklyConfig.duration/selectedTypes.length)} minutes.
-${focusLines ? `\nCONTRAINTES :\n${focusLines}` : ""}
-Format JSON : {"title":"...","emoji":"...","duration":"X min","instructions":"consigne courte","example":"Exemple résolu : ...","lignes":["ligne1","ligne2",...],"parentNote":"...","verbsUsed":[],"wordsUsed":[]}`;
+JSON uniquement :
+{"title":"...","emoji":"...","duration":"${Math.round(weeklyConfig.duration/selectedTypes.length)} min","instructions":"consigne courte","example":"...","lignes":[...],"parentNote":"...","verbsUsed":[],"wordsUsed":[]}`
+        : `Tu es un instituteur expert français. Génère un exercice de type "${type}" pour ${CHILD_NAME} niveau ${niveauDesc}.
+${exampleRule}
+${conjRule}
+${calcRule}
+${focusLines ? `CONTRAINTES :\n${focusLines}` : ""}
+JSON uniquement :
+{"title":"...","emoji":"...","duration":"${Math.round(weeklyConfig.duration/selectedTypes.length)} min","instructions":"consigne courte","example":"...","lignes":[...],"parentNote":"...","verbsUsed":[],"wordsUsed":[]}`;
 
       try {
         const res = await fetch("/api/generate", {
@@ -462,12 +496,15 @@ Format JSON : {"title":"...","emoji":"...","duration":"X min","instructions":"co
         method:"POST",
         headers:{"Content-Type":"application/json"},
         body:JSON.stringify({
-          prompt:`Tu t appelles Roki, un raton laveur aventurier courageux. Tu parles à ${CHILD_NAME}, ${profile.totalPoints} points, équipements : ${equip}. Réponds en 1-2 phrases courtes, style aventurier avec émojis. Ne mentionne jamais être une IA. ${CHILD_NAME} dit : "${msg}"`,
+          prompt:`Tu es Roki, raton laveur aventurier courageux qui parle à Léo (7-8 ans). Equipements de Léo : ${equip}. Points : ${profile.totalPoints}. Réponds DIRECTEMENT en 1-2 phrases courtes avec émojis, style aventure. PAS de guillemets. PAS de JSON. PAS d introduction. Léo dit : ${msg}`,
           mode:"chat"
         }),
       });
       const d = await res.json();
-      setChatMsgs(prev=>[...prev,{role:"assistant",text:d.text?.trim()||"Je suis en mission ! Réessaie 🌲"}]);
+      // Nettoyer les guillemets éventuels que le modèle ajoute
+      let reply = (d.text||"").trim().replace(/^["']|["']$/g,"").replace(/^\{.*\}$/s,"").trim();
+      if (!reply) reply = "En avant l aventure ! 🌲🦝";
+      setChatMsgs(prev=>[...prev,{role:"assistant",text:reply}]);
     } catch {
       setChatMsgs(prev=>[...prev,{role:"assistant",text:"Oups, perdu dans la forêt ! 🌲"}]);
     }
