@@ -495,9 +495,11 @@ RÈGLES ABSOLUES :
 
         if (isProbl) {
           regles.push(`TYPE D EXERCICE : PROBLÈME — énoncé en texte avec données chiffrées.`);
-          regles.push(`RÈGLE ABSOLUE PROBLÈME : NE JAMAIS mettre la réponse dans lignes.
-- lignes = ["Énoncé complet avec toutes les données ?","Calcul : ___","Réponse : ___"]
-- example : exemple DIFFÉRENT avec solution complète montrée`);
+          regles.push(`FORMAT PROBLÈME STRICT :
+- "example" = rappel de leçon EN PLUSIEURS LIGNES lisibles avec la solution complète montrée. Format : "Exemple :\nÉnoncé...\nCalcul étape 1 : X - Y = Z\nCalcul étape 2 : Z + W = R\nRéponse : R [unité]"
+- "lignes" = l exercice de Léo avec UNIQUEMENT des blancs à remplir. JAMAIS de réponse pré-remplie.
+  Format lignes : ["Énoncé complet du problème de Léo.", "Calcul : ___ - ___ = ___", "Réponse : ___"]
+- Les chiffres de l énoncé de Léo doivent être DIFFÉRENTS de ceux de l exemple`);
         }
 
         if (isDictee) {
@@ -510,40 +512,62 @@ RÈGLES ABSOLUES :
 
         const reglesTxt = regles.join("\n\n");
 
-        // ── TRANSPOSITION & NÉGATION : corpus utilisé directement, Groq non sollicité ──
+        // ── TRANSPOSITION & NÉGATION : Groq génère nouvelles phrases, structure imposée ──
         if ((isTranspo || isNeg) && modele) {
-          const lignesCorpus = modele
-            .split("\n")
-            .map(l => l.trim())
-            .filter(l => /^\d+\./.test(l))
-            .map(l => l.replace(/→.*$/, "→").trim());
+          const negType = st.includes("plus") ? "NE...PLUS" : st.includes("jamais") ? "NE...JAMAIS" : "NE...PAS";
+          // Paires de pronoms selon le type de transposition
+          const transpoPaires = st.includes("tu_je")
+            ? [["TU","JE"],["IL","ELLE"],["NOUS","VOUS"],["ELLE","IL"],["ILS","ELLES"]]
+            : st.includes("singulier_pluriel")
+            ? [["LE CHAT","LES CHATS"],["IL","ILS"],["ELLE","ELLES"],["MON AMI","MES AMIS"],["L ENFANT","LES ENFANTS"]]
+            : [["IL","ELLE"],["NOUS","VOUS"],["ELLE","IL"],["TU","VOUS"],["ILS","ELLES"]];
 
-          if (lignesCorpus.length >= 4) {
-            const negType = st.includes("plus") ? "NE...PLUS" : st.includes("jamais") ? "NE...JAMAIS" : "NE...PAS";
-            exercises.push({
-              type: st,
-              title: isTranspo
-                ? (st.includes("tu_je") ? "Réécris les phrases en changeant TU par JE" : "Réécris les phrases en changeant le sujet")
-                : `Négation avec ${negType}`,
-              emoji: "✏️",
-              duration: `${dur} min`,
-              instructions: isTranspo
-                ? "Réécris chaque phrase en remplaçant le sujet et en accordant le verbe"
-                : `Transforme chaque phrase à la forme négative avec ${negType}`,
-              example: isTranspo && st.includes("tu_je")
-                ? "TU manges une pomme. → JE mange une pomme."
-                : isNeg
-                  ? `Il joue au foot. → Il ne joue ${st.includes("plus") ? "plus" : st.includes("jamais") ? "jamais" : "pas"} au foot.`
-                  : "",
-              lignes: lignesCorpus,
-              parentNote: isTranspo
-                ? "Rappeler d accorder le verbe avec le nouveau sujet."
-                : `Rappeler que ${negType} encadre toujours le verbe.`,
-              verbsUsed: [],
-              wordsUsed: []
-            });
-            continue;
-          }
+          const exemplesPaires = transpoPaires.map((p,i)=>`${i+1}. ${p[0]} [verbe] [complément]. → ${p[1]} _______________`).join("\n");
+          const exempleResolu = `${transpoPaires[0][0]} mange une pomme. → ${transpoPaires[0][1]} mange une pomme.`;
+
+          const transpoPrompt = isTranspo
+            ? `Tu es instituteur CE1/CE2. Génère un exercice de transposition pour ${CHILD_NAME}, niveau ${niv}.
+
+PRINCIPE : chaque phrase a un sujet source. Léo doit la réécrire avec un nouveau sujet imposé et accorder le verbe.
+
+FORMAT EXACT à produire dans lignes (5 phrases) :
+${exemplesPaires}
+
+RÈGLES STRICTES :
+- Chaque ligne = "N. SUJET_SOURCE [verbe présent] [complément]. → NOUVEAU_SUJET _______________"
+- Le SUJET_SOURCE et le NOUVEAU_SUJET sont des pronoms ou groupes nominaux DIFFÉRENTS
+- Les paires de sujets à utiliser : ${transpoPaires.map(p=>p[0]+" → "+p[1]).join(", ")}
+- Verbes simples niveau CE1 : manger, jouer, chanter, courir, regarder, dessiner, lire, dormir...
+- Compléments variés et concrets
+- NE PAS écrire la phrase transformée — seulement le nouveau sujet suivi de tirets
+
+JSON uniquement :
+{"title":"Transposition — Change le sujet et accorde le verbe","emoji":"✏️","duration":"${dur} min","instructions":"Réécris chaque phrase avec le nouveau sujet indiqué et accorde le verbe","example":"${exempleResolu}","lignes":["1. IL mange une pomme. → ELLE _______________","2. NOUS jouons au foot. → VOUS _______________","3. ELLE chante une chanson. → IL _______________","4. TU lis un livre. → VOUS _______________","5. ILS courent vite. → ELLES _______________"],"parentNote":"Rappeler d accorder le verbe avec le nouveau sujet (singulier/pluriel).","verbsUsed":[],"wordsUsed":[]}`
+            : `Tu es instituteur CE1/CE2. Génère 5 nouvelles phrases pour un exercice de négation avec ${negType}.
+
+MODÈLE DU CORPUS (structure à respecter exactement) :
+1. Elle mange une glace. → _______________
+2. Nous courons vite. → _______________
+3. Tu aimes les légumes. → _______________
+4. Il regarde la télévision. → _______________
+5. Les enfants chantent. → _______________
+
+RÈGLES STRICTES :
+- 5 phrases affirmatives numérotées avec sujets VARIÉS (il, elle, nous, tu, ils, elles, prénom, nom commun)
+- Chaque phrase se termine par " → _______________"
+- Verbes et compléments DIFFÉRENTS du modèle et entre eux
+- NE PAS écrire la phrase négative — l enfant la cherche lui-même
+- Niveau CE1, phrases courtes
+
+JSON uniquement : {"title":"Négation avec ${negType}","emoji":"✏️","duration":"${dur} min","instructions":"Transforme chaque phrase à la forme négative avec ${negType}","example":"Il joue au foot. → Il ne joue ${st.includes("plus")?"plus":st.includes("jamais")?"jamais":"pas"} au foot.","lignes":["1. [sujet] [verbe] [complément]. → _______________","2. [sujet] [verbe] [complément]. → _______________","3. [sujet] [verbe] [complément]. → _______________","4. [sujet] [verbe] [complément]. → _______________","5. [sujet] [verbe] [complément]. → _______________"],"parentNote":"Rappeler que ${negType} encadre le verbe : ne [verbe] ${st.includes("plus")?"plus":st.includes("jamais")?"jamais":"pas"}.","verbsUsed":[],"wordsUsed":[]}`;
+
+          try {
+            const raw = await callAPI(transpoPrompt, "exercice");
+            const clean = raw.replace(/```json|```/g,"").trim();
+            const obj = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
+            if (obj.title) exercises.push({type:st,...obj});
+          } catch(e) { console.error("Erreur transpo/neg",st,e); }
+          continue;
         }
 
         // ── TOUS LES AUTRES TYPES : appel Groq ──
@@ -717,8 +741,8 @@ JSON uniquement :
                   <span style={{fontSize:26}}>{ex.emoji}</span>
                   <div><div style={{fontWeight:700,fontSize:15,color:"#e2e8f0"}}>Exercice {i+1} — {ex.title}</div><div style={{fontSize:12,color:"#475569"}}>⏱ {ex.duration}</div></div>
                 </div>
-                <div style={{background:"rgba(99,102,241,.1)",borderRadius:12,padding:"10px 14px",marginBottom:10,fontSize:13,color:"#a5b4fc",fontStyle:"italic",borderLeft:"2px solid #6366f1"}}>📌 {ex.instructions}</div>
-                {ex.example&&<div style={{background:"rgba(52,211,153,.08)",borderRadius:12,padding:"10px 14px",marginBottom:12,fontSize:13,color:"#6ee7b7",borderLeft:"2px solid #34d399"}}>{ex.example}</div>}
+                {!["present","imparfait","futur","passe","conditionnel"].some(t=>ex.type?.includes(t))&&<div style={{background:"rgba(99,102,241,.1)",borderRadius:12,padding:"10px 14px",marginBottom:10,fontSize:13,color:"#a5b4fc",fontStyle:"italic",borderLeft:"2px solid #6366f1"}}>📌 {ex.instructions}</div>}
+                {ex.example&&!["present","imparfait","futur","passe","conditionnel"].some(t=>ex.type?.includes(t))&&<div style={{background:"rgba(52,211,153,.08)",borderRadius:12,padding:"10px 14px",marginBottom:12,fontSize:13,color:"#6ee7b7",borderLeft:"2px solid #34d399"}}>{ex.example}</div>}
                 <ExCard ex={ex} dark/>
                 {ex.parentNote&&<div style={{marginTop:10,fontSize:12,color:"#7c3aed",fontStyle:"italic"}}>👨‍👩‍👧 {ex.parentNote}</div>}
               </div>
