@@ -269,9 +269,9 @@ function ExCard({ ex, dark=true }) {
           <div key={bi}>
             <div style={{fontWeight:700,fontSize:dark?13:12,color:ac,marginBottom:10,paddingBottom:4,borderBottom:`1px solid ${ac}33`}}>{b.title}</div>
             {PRONOMS.map((p,pi)=>(
-              <div key={pi} style={{marginBottom:dark?14:10}}>
-                <div style={{fontSize:dark?12:11,color:lc,marginBottom:2}}>{p}</div>
-                <div style={{borderBottom:`1.5px solid ${lc}`,width:"100%",height:18}}></div>
+              <div key={pi} style={{display:"flex",alignItems:"center",gap:8,marginBottom:dark?12:9}}>
+                <span style={{fontSize:dark?13:12,color:tc,flexShrink:0,minWidth:62}}>{p}</span>
+                <span style={{flex:1,color:lc,fontSize:dark?14:13,letterSpacing:1}}>{"_".repeat(24)}</span>
               </div>
             ))}
           </div>
@@ -312,12 +312,14 @@ function ExCard({ ex, dark=true }) {
             const apres=trim.slice(arrowIdx+1).trim();
             const estVide=apres===""||apres==="___"||apres==="_______________"||apres==="____";
             return (
-              <div key={i} style={{marginBottom:dark?12:8}}>
-                <div style={{fontSize:dark?13:12,color:tc,marginBottom:3}}>{avant} →</div>
-                {estVide
-                  ? <div style={{borderBottom:`1.5px solid ${lc}`,width:"100%",height:18,marginLeft:8}}></div>
-                  : <div style={{fontSize:dark?13:12,color:ac,marginLeft:8}}>{apres}</div>
-                }
+              <div key={i} style={{marginBottom:dark?14:10}}>
+                <div style={{display:"flex",alignItems:"center",gap:6,fontSize:dark?13:12,color:tc}}>
+                  <span style={{flexShrink:0}}>{avant} →</span>
+                  {estVide
+                    ? <span style={{flex:1,color:lc,letterSpacing:1}}>{"_".repeat(20)}</span>
+                    : <span style={{color:ac}}>{apres}</span>
+                  }
+                </div>
               </div>
             );
           }
@@ -508,6 +510,43 @@ RÈGLES ABSOLUES :
 
         const reglesTxt = regles.join("\n\n");
 
+        // ── TRANSPOSITION & NÉGATION : corpus utilisé directement, Groq non sollicité ──
+        if ((isTranspo || isNeg) && modele) {
+          const lignesCorpus = modele
+            .split("\n")
+            .map(l => l.trim())
+            .filter(l => /^\d+\./.test(l))
+            .map(l => l.replace(/→.*$/, "→").trim());
+
+          if (lignesCorpus.length >= 4) {
+            const negType = st.includes("plus") ? "NE...PLUS" : st.includes("jamais") ? "NE...JAMAIS" : "NE...PAS";
+            exercises.push({
+              type: st,
+              title: isTranspo
+                ? (st.includes("tu_je") ? "Réécris les phrases en changeant TU par JE" : "Réécris les phrases en changeant le sujet")
+                : `Négation avec ${negType}`,
+              emoji: "✏️",
+              duration: `${dur} min`,
+              instructions: isTranspo
+                ? "Réécris chaque phrase en remplaçant le sujet et en accordant le verbe"
+                : `Transforme chaque phrase à la forme négative avec ${negType}`,
+              example: isTranspo && st.includes("tu_je")
+                ? "TU manges une pomme. → JE mange une pomme."
+                : isNeg
+                  ? `Il joue au foot. → Il ne joue ${st.includes("plus") ? "plus" : st.includes("jamais") ? "jamais" : "pas"} au foot.`
+                  : "",
+              lignes: lignesCorpus,
+              parentNote: isTranspo
+                ? "Rappeler d accorder le verbe avec le nouveau sujet."
+                : `Rappeler que ${negType} encadre toujours le verbe.`,
+              verbsUsed: [],
+              wordsUsed: []
+            });
+            continue;
+          }
+        }
+
+        // ── TOUS LES AUTRES TYPES : appel Groq ──
         const prompt = modele
           ? `Tu es un instituteur expert CE1/CE2 en France. Exercice pour ${CHILD_NAME}, niveau ${niv}.
 
@@ -522,7 +561,7 @@ ${reglesTxt}
 ${focStr?`\nCONTRAINTES :\n${focStr}`:""}
 
 JSON uniquement (aucun texte avant ou après) :
-{"title":"titre précis avec type exact","emoji":"...","duration":"${dur} min","instructions":"consigne 1 phrase CE1","example":"...","lignes":[...],"parentNote":"conseil parent court","verbsUsed":[],"wordsUsed":[]}`
+{"title":"titre précis avec type exact","emoji":"...","duration":"${dur} min","instructions":"consigne 1 phrase CE1","example":"${isCalc && st.includes("multiplication") ? "" : "..."}","lignes":[...],"parentNote":"conseil parent court","verbsUsed":[],"wordsUsed":[]}`
 
           : `Tu es un instituteur expert CE1/CE2 en France. Exercice "${st.replace(/_/g," ")}" pour ${CHILD_NAME}, niveau ${niv}.
 
@@ -530,7 +569,7 @@ ${reglesTxt}
 ${focStr?`\nCONTRAINTES :\n${focStr}`:""}
 
 JSON uniquement :
-{"title":"titre précis","emoji":"...","duration":"${dur} min","instructions":"consigne 1 phrase CE1","example":"...","lignes":[...],"parentNote":"conseil parent court","verbsUsed":[],"wordsUsed":[]}`;
+{"title":"titre précis","emoji":"...","duration":"${dur} min","instructions":"consigne 1 phrase CE1","example":"","lignes":[...],"parentNote":"conseil parent court","verbsUsed":[],"wordsUsed":[]}`;
 
         const raw   = await callAPI(prompt,"exercice");
         const clean = raw.replace(/```json|```/g,"").trim();
