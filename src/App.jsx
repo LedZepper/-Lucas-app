@@ -102,118 +102,124 @@ function unlocked(pts,bonus=[]) {
 
 // ─── RATON LAVEUR SVG ─────────────────────────────────────────────────────────
 function Raton({ items=[], size=120, anim=true }) {
-  const bag  = items.find(i=>i.e==="🎒");
-  const hat  = items.find(i=>i.e==="🎩");
-  const torch= items.find(i=>i.e==="🕯️");
-  const leaf = items.find(i=>i.e==="🍁");
+  const bag   = items.find(i=>i.e==="🎒");
+  const hat   = items.find(i=>i.e==="🎩");
+  const torch = items.find(i=>i.e==="🕯️");
+  const scale = size / 100;
   return (
-    <svg width={size} height={size*1.5} viewBox="0 0 120 180" xmlns="http://www.w3.org/2000/svg">
+    <svg width={size} height={size} viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" overflow="visible">
       <style>{`
-        .rb{animation:${anim?"rb 2.2s ease-in-out infinite":"none"};transform-origin:60px 90px}
-        .rtail{animation:${anim?"rtail 1.8s ease-in-out infinite":"none"};transform-origin:60px 140px}
-        .reye{animation:${anim?"reye 5s ease-in-out infinite":"none"}}
-        @keyframes rb{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
-        @keyframes rtail{0%,100%{transform:rotate(-20deg)}50%{transform:rotate(20deg)}}
-        @keyframes reye{0%,88%,100%{transform:scaleY(1)}92%{transform:scaleY(0.05)}}
+        .rB{animation:${anim?"rB 2s ease-in-out infinite":"none"};transform-origin:50px 55px}
+        .rT{animation:${anim?"rT 2s ease-in-out infinite":"none"};transform-origin:72px 72px}
+        .rE{animation:${anim?"rE 4s ease-in-out infinite":"none"};transform-origin:50px 42px}
+        @keyframes rB{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+        @keyframes rT{0%,100%{transform:rotate(-18deg)}50%{transform:rotate(18deg)}}
+        @keyframes rE{0%,90%,100%{transform:scaleY(1)}94%{transform:scaleY(0.06)}}
       `}</style>
 
-      {/* Lueur torche */}
-      {torch&&<ellipse cx="95" cy="100" rx="20" ry="14" fill="#fbbf24" opacity=".1"/>}
+      {/* Halo torche */}
+      {torch&&<ellipse cx="80" cy="62" rx="16" ry="12" fill="#fef08a" opacity=".18"/>}
 
-      {/* QUEUE rayée */}
-      <g className="rtail">
-        <ellipse cx="60" cy="152" rx="18" ry="10" fill="#6b7280"/>
-        <ellipse cx="60" cy="152" rx="14" ry="7" fill="#f3f4f6"/>
-        <ellipse cx="60" cy="148" rx="14" ry="4" fill="#374151" opacity=".4"/>
-        <ellipse cx="60" cy="154" rx="14" ry="4" fill="#374151" opacity=".4"/>
-        <ellipse cx="60" cy="158" rx="14" ry="4" fill="#374151" opacity=".3"/>
+      {/* QUEUE rayée — derrière le corps */}
+      <g className="rT">
+        {/* Queue épaisse */}
+        <ellipse cx="73" cy="72" rx="13" ry="8" fill="#9ca3af" transform="rotate(-30,73,72)"/>
+        {/* Rayures alternées grises foncées */}
+        {[0,1,2,3].map(i=>(
+          <ellipse key={i} cx={73+i*1.5} cy={72+i*1.5} rx={11-i*1.5} ry={6-i*0.8}
+            fill={i%2===0?"#374151":"#d1d5db"} opacity=".55"
+            transform={`rotate(-30,${73+i*1.5},${72+i*1.5})`}/>
+        ))}
+        <ellipse cx="73" cy="72" rx="7" ry="4.5" fill="#f9fafb" transform="rotate(-30,73,72)"/>
       </g>
 
-      <g className="rb">
-        {/* CORPS */}
-        <ellipse cx="60" cy="108" rx="26" ry="30" fill="#9ca3af"/>
-        {/* Ventre blanc */}
-        <ellipse cx="60" cy="112" rx="16" ry="22" fill="#f1f5f9"/>
+      <g className="rB">
+        {/* CORPS rond gris clair */}
+        <ellipse cx="50" cy="66" rx="22" ry="24" fill="#b0b8c1"/>
+        {/* Ventre blanc ivoire */}
+        <ellipse cx="50" cy="69" rx="13" ry="17" fill="#f0f4f8"/>
 
-        {/* SAC À DOS */}
+        {/* SAC */}
         {bag&&<>
-          <rect x="76" y="90" width="16" height="22" rx="5" fill="#92400e"/>
-          <rect x="78" y="88" width="12" height="5" rx="2" fill="#78350f"/>
-          <rect x="80" y="98" width="8" height="2" rx="1" fill="#78350f"/>
-          <line x1="82" y1="93" x2="82" y2="108" stroke="#78350f" strokeWidth="1.5"/>
+          <rect x="67" y="54" width="13" height="18" rx="4" fill="#92400e"/>
+          <rect x="69" y="52" width="9" height="4" rx="2" fill="#78350f"/>
+          <rect x="70" y="61" width="7" height="1.5" rx="1" fill="#78350f"/>
+          <line x1="72" y1="56" x2="72" y2="70" stroke="#78350f" strokeWidth="1.2"/>
         </>}
 
-        {/* PATTES AVANT */}
-        <ellipse cx="38" cy="122" rx="9" ry="6" fill="#6b7280" transform="rotate(-15,38,122)"/>
-        <ellipse cx="82" cy="122" rx="9" ry="6" fill="#6b7280" transform="rotate(15,82,122)"/>
-        {/* Griffes */}
-        {[35,38,41].map(x=><line key={x} x1={x} y1="126" x2={x-1} y2="130" stroke="#374151" strokeWidth="1.2"/>)}
-        {[79,82,85].map(x=><line key={x} x1={x} y1="126" x2={x+1} y2="130" stroke="#374151" strokeWidth="1.2"/>)}
-
-        {/* PATTES ARRIÈRE */}
-        <ellipse cx="44" cy="136" rx="12" ry="6" fill="#6b7280"/>
-        <ellipse cx="76" cy="136" rx="12" ry="6" fill="#6b7280"/>
-
-        {/* TORCHE dans la patte */}
+        {/* TORCHE */}
         {torch&&<>
-          <rect x="28" y="112" width="5" height="14" rx="2" fill="#92400e"/>
-          <ellipse cx="30.5" cy="111" rx="5" ry="6" fill="#fbbf24"/>
-          <ellipse cx="30.5" cy="109" rx="3" ry="4" fill="#fde68a"/>
+          <rect x="27" y="66" width="4" height="11" rx="2" fill="#92400e"/>
+          <ellipse cx="29" cy="65" rx="4.5" ry="5" fill="#fbbf24"/>
+          <ellipse cx="29" cy="63.5" rx="2.5" ry="3" fill="#fde68a"/>
         </>}
 
-        {/* TÊTE */}
-        <ellipse cx="60" cy="68" rx="24" ry="22" fill="#9ca3af"/>
+        {/* BRAS arrondis */}
+        <ellipse cx="31" cy="68" rx="7" ry="5" fill="#9ca3af" transform="rotate(20,31,68)"/>
+        <ellipse cx="69" cy="68" rx="7" ry="5" fill="#9ca3af" transform="rotate(-20,69,68)"/>
 
-        {/* OREILLES */}
-        <ellipse cx="40" cy="48" rx="9" ry="11" fill="#6b7280"/>
-        <ellipse cx="40" cy="49" rx="5" ry="7" fill="#fda4af"/>
-        <ellipse cx="80" cy="48" rx="9" ry="11" fill="#6b7280"/>
-        <ellipse cx="80" cy="49" rx="5" ry="7" fill="#fda4af"/>
+        {/* PATTES */}
+        <ellipse cx="40" cy="87" rx="9" ry="5" fill="#9ca3af"/>
+        <ellipse cx="60" cy="87" rx="9" ry="5" fill="#9ca3af"/>
+        {/* Petits orteils */}
+        {[-3,0,3].map(dx=><circle key={dx} cx={40+dx} cy="91" r="2" fill="#6b7280"/>)}
+        {[-3,0,3].map(dx=><circle key={dx} cx={60+dx} cy="91" r="2" fill="#6b7280"/>)}
+
+        {/* TÊTE ronde */}
+        <circle cx="50" cy="42" r="22" fill="#b0b8c1"/>
+
+        {/* OREILLES rondes avec intérieur rose */}
+        <circle cx="32" cy="24" r="9" fill="#9ca3af"/>
+        <circle cx="32" cy="24" r="5.5" fill="#fecdd3"/>
+        <circle cx="68" cy="24" r="9" fill="#9ca3af"/>
+        <circle cx="68" cy="24" r="5.5" fill="#fecdd3"/>
 
         {/* CHAPEAU */}
         {hat&&<>
-          <ellipse cx="60" cy="49" rx="26" ry="6" fill="#1e3a5f"/>
-          <rect x="46" y="24" width="28" height="26" rx="5" fill="#1e3a5f"/>
-          <rect x="48" y="36" width="24" height="3" rx="1" fill="#f59e0b"/>
+          <ellipse cx="50" cy="23" rx="24" ry="5.5" fill="#1e3a5f"/>
+          <rect x="38" y="2" width="24" height="22" rx="5" fill="#1e3a5f"/>
+          <rect x="40" y="13" width="20" height="3" rx="1.5" fill="#f59e0b"/>
         </>}
 
-        {/* MASQUE YEUX — signature du raton laveur */}
-        <ellipse cx="60" cy="66" rx="20" ry="10" fill="#1f2937"/>
-        {/* Bords blancs du masque */}
-        <ellipse cx="47" cy="64" rx="9" ry="7" fill="#374151"/>
-        <ellipse cx="73" cy="64" rx="9" ry="7" fill="#374151"/>
+        {/* MASQUE raton — bande noire sur les yeux */}
+        <path d="M26 40 Q50 34 74 40 Q74 50 68 52 Q60 55 50 54 Q40 55 32 52 Q26 50 26 40Z" fill="#1f2937"/>
+        {/* Petits arcs blancs au-dessus des yeux */}
+        <ellipse cx="39" cy="40" rx="8" ry="6" fill="#374151"/>
+        <ellipse cx="61" cy="40" rx="8" ry="6" fill="#374151"/>
 
-        {/* YEUX */}
-        <g className="reye">
-          <circle cx="47" cy="64" r="6.5" fill="white"/>
-          <circle cx="73" cy="64" r="6.5" fill="white"/>
-          <circle cx="48" cy="64" r="4" fill="#1e293b"/>
-          <circle cx="74" cy="64" r="4" fill="#1e293b"/>
+        {/* YEUX grands et expressifs */}
+        <g className="rE">
+          <circle cx="39" cy="40" r="7" fill="white"/>
+          <circle cx="61" cy="40" r="7" fill="white"/>
+          <circle cx="40" cy="40" r="4.5" fill="#1c2a3a"/>
+          <circle cx="62" cy="40" r="4.5" fill="#1c2a3a"/>
+          {/* Iris coloré */}
+          <circle cx="40" cy="40" r="3" fill="#2563eb"/>
+          <circle cx="62" cy="40" r="3" fill="#2563eb"/>
+          {/* Pupille */}
+          <circle cx="40" cy="40" r="1.8" fill="#0f172a"/>
+          <circle cx="62" cy="40" r="1.8" fill="#0f172a"/>
           {/* Reflet */}
-          <circle cx="49.5" cy="62.5" r="1.5" fill="white"/>
-          <circle cx="75.5" cy="62.5" r="1.5" fill="white"/>
+          <circle cx="41.5" cy="38.5" r="1.2" fill="white"/>
+          <circle cx="63.5" cy="38.5" r="1.2" fill="white"/>
         </g>
 
-        {/* NEZ */}
-        <ellipse cx="60" cy="72" rx="5" ry="3.5" fill="#1f2937"/>
-        <ellipse cx="58.5" cy="71" rx="2" ry="1.2" fill="#4b5563" opacity=".6"/>
+        {/* NEZ en cœur/triangle */}
+        <ellipse cx="50" cy="48" rx="4.5" ry="3" fill="#1f2937"/>
+        <ellipse cx="48.5" cy="47" rx="1.8" ry="1.2" fill="#374151" opacity=".7"/>
 
-        {/* BOUCHE */}
-        <path d="M54 76 Q60 81 66 76" stroke="#1f2937" strokeWidth="1.8" fill="none" strokeLinecap="round"/>
+        {/* MOUSTACHES */}
+        <line x1="28" y1="49" x2="43" y2="50" stroke="#374151" strokeWidth="0.8" opacity=".6"/>
+        <line x1="28" y1="52" x2="43" y2="51.5" stroke="#374151" strokeWidth="0.8" opacity=".6"/>
+        <line x1="57" y1="50" x2="72" y2="49" stroke="#374151" strokeWidth="0.8" opacity=".6"/>
+        <line x1="57" y1="51.5" x2="72" y2="52" stroke="#374151" strokeWidth="0.8" opacity=".6"/>
 
-        {/* JOUES */}
-        <ellipse cx="44" cy="72" rx="6" ry="4" fill="#fca5a5" opacity=".35"/>
-        <ellipse cx="76" cy="72" rx="6" ry="4" fill="#fca5a5" opacity=".35"/>
+        {/* SOURIRE */}
+        <path d="M44 53 Q50 59 56 53" stroke="#1f2937" strokeWidth="1.6" fill="none" strokeLinecap="round"/>
 
-        {/* Rayures du corps */}
-        <path d="M36 100 Q40 108 38 116" stroke="#6b7280" strokeWidth="2" fill="none" opacity=".5"/>
-        <path d="M84 100 Q80 108 82 116" stroke="#6b7280" strokeWidth="2" fill="none" opacity=".5"/>
-
-        {/* FEUILLE D'ÉRABLE (tenue de départ) */}
-        {leaf&&!hat&&<>
-          <ellipse cx="60" cy="56" rx="10" ry="3" fill="#dc2626" opacity=".8"/>
-          <text x="60" y="58" textAnchor="middle" fontSize="14">🍁</text>
-        </>}
+        {/* JOUES roses */}
+        <circle cx="34" cy="50" r="5" fill="#fda4af" opacity=".4"/>
+        <circle cx="66" cy="50" r="5" fill="#fda4af" opacity=".4"/>
       </g>
     </svg>
   );
@@ -284,27 +290,32 @@ function ExCard({ ex, dark=true }) {
   if (!ex.lignes?.length) return <div style={{fontSize:dark?14:13,color:tc,lineHeight:2.2,whiteSpace:"pre-line"}}>{ex.content||""}</div>;
 
   if (isConj) {
-    // Découper en blocs verbe : titre = ligne toute en majuscule ou contenant "—"
+    // Parser les blocs : chaque bloc commence par un titre (VERBE — temps)
     const blocs=[];
     let cur=null;
+    const PRONOMS_SET=new Set(["je","tu","il/elle","nous","vous","ils/elles","il","elle","ils","elles"]);
     for (const l of ex.lignes) {
       const trim=l.trim();
-      const isTitle=trim.length>0&&(trim===trim.toUpperCase()||trim.includes("—"))&&!["JE","TU","IL/ELLE","NOUS","VOUS","ILS/ELLES"].includes(trim.toUpperCase());
-      if (isTitle) { if(cur)blocs.push(cur); cur={title:trim,rows:[]}; }
-      else if(cur&&trim) cur.rows.push(trim);
-      else if(!cur&&trim) { cur={title:trim,rows:[]}; } // premier titre
+      if(!trim)continue;
+      const low=trim.toLowerCase();
+      const isPronom=PRONOMS_SET.has(low);
+      const isTitle=!isPronom&&(trim.includes("—")||trim.includes("-")||(trim===trim.toUpperCase()&&trim.length>2));
+      if(isTitle){if(cur)blocs.push(cur);cur={title:trim};}
+      // On ne stocke pas les pronoms — on les affiche toujours depuis la liste fixe
     }
     if(cur)blocs.push(cur);
-    // Afficher en 2 colonnes
-    const cols=blocs.length>=2?blocs:([...blocs,...Array(2-blocs.length).fill(null)]);
+    // Garantir 2 blocs minimum (si le modèle n envoie qu un verbe)
+    while(blocs.length<2) blocs.push({title:"— — —"});
+    const show=blocs.slice(0,2);
+    const PRONOMS=["je","tu","il/elle","nous","vous","ils/elles"];
     return (
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 24px"}}>
-        {cols.map((b,bi)=>!b?<div key={bi}/>:(
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 20px"}}>
+        {show.map((b,bi)=>(
           <div key={bi}>
-            <div style={{fontWeight:700,fontSize:dark?13:12,color:ac,marginBottom:8,borderBottom:`1px solid ${ac}30`,paddingBottom:4}}>{b.title}</div>
-            {["je","tu","il/elle","nous","vous","ils/elles"].map((p,pi)=>(
-              <div key={pi} style={{display:"flex",alignItems:"center",gap:6,marginBottom:dark?10:7}}>
-                <span style={{minWidth:72,fontSize:dark?13:12,color:lc,flexShrink:0}}>{p}</span>
+            <div style={{fontWeight:700,fontSize:dark?13:12,color:ac,marginBottom:8,paddingBottom:4,borderBottom:`1px solid ${ac}33`}}>{b.title}</div>
+            {PRONOMS.map((p,pi)=>(
+              <div key={pi} style={{display:"flex",alignItems:"center",gap:6,marginBottom:dark?9:6}}>
+                <span style={{minWidth:70,fontSize:dark?13:12,color:lc,flexShrink:0}}>{p}</span>
                 <span style={{borderBottom:`1px solid ${lc}`,flex:1}}></span>
               </div>
             ))}
@@ -421,14 +432,25 @@ export default function App() {
         const modele=await sbCorpus(st);
         const isConj=st.includes("present")||st.includes("imparfait")||st.includes("futur")||st.includes("passe")||st.includes("conditionnel")||st.includes("identification");
         const isCalc=["multiplication","soustraction","addition","division","encadrement","numeration","calcul"].some(t=>st.includes(t));
+        const isTranspo=st.includes("transposition");
+        const isProbl=st.includes("probleme");
         const exRule=isConj
-          ?"Le champ example NE DOIT PAS contenir les formes conjuguées. Juste la consigne. Ex: 'Conjugue CHANTER au présent'"
-          :"Le champ example doit montrer UN calcul ou UN exemple résolu complet";
+          ?"Le champ example : juste la consigne sans les réponses. Ex: Conjugue CHANTER au présent"
+          :"Le champ example : UN SEUL exemple résolu, pas plus.";
         const conjRule=isConj
-          ?`OBLIGATOIRE : 2 verbes différents. Format lignes EXACT : ["VERBE1 — temps", "je", "tu", "il/elle", "nous", "vous", "ils/elles", "VERBE2 — temps", "je", "tu", "il/elle", "nous", "vous", "ils/elles"]`
+          ?`OBLIGATOIRE conjugaison : exactement 2 verbes différents. Format lignes STRICT : ["VERBE1 — temps", "VERBE2 — temps"] Ne pas inclure les pronoms dans lignes.`
           :"";
-        const calcRule=isCalc?`OBLIGATOIRE : minimum 10 items dans lignes. Format : ["3 × 7 =","8 × 4 ="] SANS tirets ni réponses`:"";
+        const calcRule=isCalc
+          ?`OBLIGATOIRE calculs : minimum 10 items dans lignes. Format : ["3 x 7 =","8 x 4 ="] SANS tirets SANS réponses`
+          :"";
+        const transpoRule=isTranspo
+          ?`OBLIGATOIRE transposition : varier les sujets à chaque phrase. Utiliser des sujets variés : il, elle, nous, vous, ils, elles, je, tu, prénoms, noms communs. PAS le même sujet répété.`
+          :"";
+        const problRule=isProbl
+          ?`OBLIGATOIRE problème : NE JAMAIS inclure la réponse dans les lignes. Format : ["Enoncé complet avec données ?", "Réponse : ___"] uniquement.`
+          :"";
         const dur=Math.max(5,Math.round((weeklyConfig.duration||25)/types.length));
+        const rules=[exRule,conjRule,calcRule,transpoRule,problRule].filter(Boolean).join("\n");
         const prompt=modele
           ?`Instituteur expert français. Exercice type "${st}" pour ${CHILD_NAME} niveau ${niv}.
 MODÈLE DU PROGRAMME NATIONAL :
@@ -436,13 +458,11 @@ MODÈLE DU PROGRAMME NATIONAL :
 ${modele.slice(0,600)}
 ---
 INSTRUCTIONS : même structure pédagogique, nouvelles valeurs.
-${exRule}
-${conjRule}
-${calcRule}
+${rules}
 ${focStr?`CONTRAINTES:\n${focStr}`:""}
 JSON: {"title":"...","emoji":"...","duration":"${dur} min","instructions":"consigne courte","example":"...","lignes":[...],"parentNote":"...","verbsUsed":[],"wordsUsed":[]}`
           :`Instituteur expert français. Exercice "${st}" pour ${CHILD_NAME} niveau ${niv}.
-${exRule}${conjRule}${calcRule}
+${rules}
 ${focStr?`CONTRAINTES:\n${focStr}`:""}
 JSON: {"title":"...","emoji":"...","duration":"${dur} min","instructions":"consigne courte","example":"...","lignes":[...],"parentNote":"...","verbsUsed":[],"wordsUsed":[]}`;
         const raw=await callAPI(prompt,"exercice");
@@ -552,7 +572,7 @@ JSON: {"title":"...","emoji":"...","duration":"${dur} min","instructions":"consi
       <div style={S.hdr}>
         <div style={{display:"flex",alignItems:"center",gap:12}}>
           <div style={{cursor:"pointer"}} onClick={()=>setView("cabane")}>
-            <Raton items={eqp.length?eqp:ulk.slice(0,3)} size={48} anim/>
+            <Raton items={eqp} size={48} anim/>
           </div>
           <div>
             <div style={{fontSize:16,fontWeight:700}}>École de {CHILD_NAME}</div>
@@ -629,7 +649,7 @@ JSON: {"title":"...","emoji":"...","duration":"${dur} min","instructions":"consi
                 {/* Raton + niveau */}
                 <div style={{...S.card,background:`linear-gradient(135deg,rgba(15,23,42,.9),rgba(26,16,58,.9))`,border:`1px solid ${li.color}30`}}>
                   <div style={{display:"flex",gap:16,alignItems:"center"}}>
-                    <Raton items={eqp.length?eqp:ulk.slice(0,3)} size={100} anim/>
+                    <Raton items={eqp} size={100} anim/>
                     <div style={{flex:1}}>
                       <div style={{fontSize:20,fontWeight:700,color:li.color}}>{li.name}</div>
                       <div style={{fontSize:13,color:"#475569",marginBottom:10}}>{prof.totalPoints} pts · {ulk.length} équipements</div>
@@ -752,7 +772,7 @@ JSON: {"title":"...","emoji":"...","duration":"${dur} min","instructions":"consi
             <div style={{borderRadius:20,overflow:"hidden",marginBottom:16,border:"1px solid rgba(99,102,241,.2)"}}>
               <Cabane/>
               <div style={{background:"rgba(15,23,42,.9)",padding:"16px 20px",display:"flex",alignItems:"center",gap:16}}>
-                <Raton items={eqp.length?eqp:ulk.slice(0,3)} size={90} anim/>
+                <Raton items={eqp} size={90} anim/>
                 <div>
                   <div style={{fontWeight:700,color:"#e2e8f0",marginBottom:4}}>Roki l Aventurier</div>
                   <div style={{fontSize:12,color:"#475569"}}>{ulk.length} équipements débloqués</div>
