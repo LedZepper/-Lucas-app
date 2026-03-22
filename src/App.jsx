@@ -241,20 +241,22 @@ function ExCard({ ex, dark=true }) {
   const type=(ex.type||"").toLowerCase();
   const isCalc=["multiplication","soustraction","addition","division","encadrement","numeration","fraction","mesure","calcul"].some(t=>type.includes(t));
   const isConj=type.includes("conjug")||type.includes("present")||type.includes("imparfait")||type.includes("futur")||type.includes("passe")||type.includes("conditionnel");
+  // Exercices avec flèche → à compléter (transposition, négation, accord, etc.)
+  const isArrow = ex.lignes?.some(l=>l.includes("→"));
   const tc=dark?"#cbd5e1":"#1e293b", lc=dark?"#475569":"#94a3b8", ac=dark?"#a5b4fc":"#4f46e5";
 
   if (!ex.lignes?.length) return <div style={{fontSize:dark?14:13,color:tc,lineHeight:2.2,whiteSpace:"pre-line"}}>{ex.content||""}</div>;
 
-  if (isConj) {
+  // ── CONJUGAISON : tableau 2 colonnes avec ligne d'écriture EN BAS du pronom ──
+  if (isConj && !isArrow) {
     const blocs=[];
     let cur=null;
     const PRONOMS_SET=new Set(["je","tu","il/elle","nous","vous","ils/elles","il","elle","ils","elles"]);
     for (const l of ex.lignes) {
       const trim=l.trim();
       if(!trim)continue;
-      const low=trim.toLowerCase();
-      const isPronom=PRONOMS_SET.has(low);
-      const isTitle=!isPronom&&(trim.includes("—")||trim.includes("-")||(trim===trim.toUpperCase()&&trim.length>2));
+      const isPronom=PRONOMS_SET.has(trim.toLowerCase());
+      const isTitle=!isPronom&&(trim.includes("—")||trim.includes("–")||(trim===trim.toUpperCase()&&trim.length>2));
       if(isTitle){if(cur)blocs.push(cur);cur={title:trim};}
     }
     if(cur)blocs.push(cur);
@@ -262,14 +264,14 @@ function ExCard({ ex, dark=true }) {
     const show=blocs.slice(0,2);
     const PRONOMS=["je","tu","il/elle","nous","vous","ils/elles"];
     return (
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 20px"}}>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 24px"}}>
         {show.map((b,bi)=>(
           <div key={bi}>
-            <div style={{fontWeight:700,fontSize:dark?13:12,color:ac,marginBottom:8,paddingBottom:4,borderBottom:`1px solid ${ac}33`}}>{b.title}</div>
+            <div style={{fontWeight:700,fontSize:dark?13:12,color:ac,marginBottom:10,paddingBottom:4,borderBottom:`1px solid ${ac}33`}}>{b.title}</div>
             {PRONOMS.map((p,pi)=>(
-              <div key={pi} style={{display:"flex",alignItems:"center",gap:6,marginBottom:dark?9:6}}>
-                <span style={{minWidth:70,fontSize:dark?13:12,color:lc,flexShrink:0}}>{p}</span>
-                <span style={{borderBottom:`1px solid ${lc}`,flex:1}}></span>
+              <div key={pi} style={{marginBottom:dark?14:10}}>
+                <div style={{fontSize:dark?12:11,color:lc,marginBottom:2}}>{p}</div>
+                <div style={{borderBottom:`1.5px solid ${lc}`,width:"100%",height:18}}></div>
               </div>
             ))}
           </div>
@@ -278,6 +280,7 @@ function ExCard({ ex, dark=true }) {
     );
   }
 
+  // ── CALCULS : grille 2-3 colonnes ──
   if (isCalc) {
     const cols=ex.lignes.length>=9?3:2;
     return (
@@ -295,6 +298,37 @@ function ExCard({ ex, dark=true }) {
     );
   }
 
+  // ── FLÈCHE (transposition, négation, accord) : chaque ligne avec → et espace d'écriture ──
+  if (isArrow) {
+    return (
+      <div>
+        {ex.lignes.map((l,i)=>{
+          const trim=l.trim();
+          if(!trim) return null;
+          // Sépare la partie avant → et la partie après
+          const arrowIdx=trim.indexOf("→");
+          if(arrowIdx>=0){
+            const avant=trim.slice(0,arrowIdx).trim();
+            const apres=trim.slice(arrowIdx+1).trim();
+            const estVide=apres===""||apres==="___"||apres==="_______________"||apres==="____";
+            return (
+              <div key={i} style={{marginBottom:dark?12:8}}>
+                <div style={{fontSize:dark?13:12,color:tc,marginBottom:3}}>{avant} →</div>
+                {estVide
+                  ? <div style={{borderBottom:`1.5px solid ${lc}`,width:"100%",height:18,marginLeft:8}}></div>
+                  : <div style={{fontSize:dark?13:12,color:ac,marginLeft:8}}>{apres}</div>
+                }
+              </div>
+            );
+          }
+          // Ligne normale sans flèche (ex: séparateur ou texte)
+          return <div key={i} style={{fontSize:dark?13:12,color:tc,lineHeight:2,marginBottom:2}}>{trim}</div>;
+        })}
+      </div>
+    );
+  }
+
+  // ── DÉFAUT : lignes simples ──
   return (
     <div>
       {ex.lignes.map((l,i)=>l.trim()===""
@@ -391,6 +425,7 @@ export default function App() {
         const isProbl   = st.includes("probleme");
         const isDictee  = st.includes("dictee");
         const isTranspo = st.includes("transposition");
+        const isNeg     = st.includes("negation");
 
         const dur = Math.max(5, Math.round((weeklyConfig.duration||25)/types.length));
 
@@ -407,9 +442,33 @@ export default function App() {
         }
 
         if (isTranspo) {
-          regles.push(`TYPE D EXERCICE : TRANSPOSITION — réécrire des phrases en changeant le sujet ou le temps.`);
-          regles.push(`RÈGLE TRANSPOSITION : varier OBLIGATOIREMENT les sujets. Utiliser : il, elle, nous, vous, ils, elles, je, tu, prénoms, noms communs. JAMAIS le même sujet répété.
-- lignes = phrases numérotées avec "→ ___" à la fin de chaque ligne`);
+          const transpoType = st.includes("tu_je") ? "remplacer TU par JE (et accorder le verbe)"
+            : st.includes("singulier_pluriel") ? "mettre la phrase au pluriel"
+            : st.includes("il_nous") ? "remplacer IL/ELLE par NOUS"
+            : "changer le sujet ou le temps";
+          regles.push(`TYPE D EXERCICE : TRANSPOSITION — ${transpoType}.
+FORMAT LIGNES EXACT — chaque entrée = une phrase numérotée se terminant par "→" et RIEN d autre :
+["1. TU portes un chapeau. →", "2. TU finis ton repas. →", "3. TU pars à l école. →", "4. TU choisis un livre. →", "5. TU arrives en retard. →"]
+RÈGLES ABSOLUES :
+1. Chaque ligne se termine par "→" — JAMAIS de réponse après la flèche
+2. Phrases avec des VERBES DIFFÉRENTS à chaque ligne
+3. Contextes VARIÉS : école, maison, jardin, repas, sport, animaux...
+4. example = UN seul exemple résolu : "TU manges une pomme. → JE mange une pomme."
+5. NE PAS répéter le même verbe deux fois`);
+        }
+
+        const isNeg = st.includes("negation");
+        if (isNeg) {
+          const negType = st.includes("plus") ? "NE...PLUS" : st.includes("jamais") ? "NE...JAMAIS" : "NE...PAS";
+          regles.push(`TYPE D EXERCICE : NÉGATION avec ${negType}.
+FORMAT LIGNES EXACT — chaque entrée = une phrase affirmative numérotée se terminant par "→" et RIEN d autre :
+["1. Elle mange une glace. →", "2. Nous courons vite. →", "3. Tu aimes les légumes. →", "4. Il regarde la télévision. →", "5. Les enfants chantent. →"]
+RÈGLES ABSOLUES :
+1. Chaque ligne = une phrase AFFIRMATIVE se terminant par "→" — JAMAIS la réponse négative après la flèche
+2. Sujets VARIÉS : il, elle, nous, tu, ils, elles, prénoms, noms communs
+3. Verbes et contextes DIFFÉRENTS à chaque ligne
+4. example = UN seul exemple résolu : "Il joue au foot. → Il ne joue ${negType === "NE...PLUS" ? "plus" : negType === "NE...JAMAIS" ? "jamais" : "pas"} au foot."
+5. NE PAS écrire la réponse dans lignes — l enfant transforme lui-même`);
         }
 
         if (isCalc) {
