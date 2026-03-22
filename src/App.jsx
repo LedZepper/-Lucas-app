@@ -457,7 +457,6 @@ RÈGLES ABSOLUES :
 5. NE PAS répéter le même verbe deux fois`);
         }
 
-        const isNeg = st.includes("negation");
         if (isNeg) {
           const negType = st.includes("plus") ? "NE...PLUS" : st.includes("jamais") ? "NE...JAMAIS" : "NE...PAS";
           regles.push(`TYPE D EXERCICE : NÉGATION avec ${negType}.
