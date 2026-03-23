@@ -54,9 +54,10 @@ async function sbSave(p) {
 }
 async function sbCorpus(sousType) {
   try {
-    const r = await fetch(`${SUPABASE_URL}/rest/v1/corpus?sous_type=eq.${encodeURIComponent(sousType)}&actif=eq.true&select=contenu&limit=1`, { headers: SB_H });
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/corpus?sous_type=eq.${encodeURIComponent(sousType)}&actif=eq.true&select=contenu,format&limit=1`, { headers: SB_H });
     const rows = await r.json();
-    return rows?.[0]?.contenu || null;
+    if (!rows?.[0]) return null;
+    return { contenu: rows[0].contenu, format: rows[0].format || 'libre' };
   } catch { return null; }
 }
 
@@ -238,40 +239,40 @@ function Chart({ sessions }) {
 }
 
 function ExCard({ ex, dark=true }) {
-  const type=(ex.type||"").toLowerCase();
-  const isCalc=["multiplication","soustraction","addition","division","encadrement","numeration","fraction","mesure","calcul"].some(t=>type.includes(t));
-  const isConj=type.includes("conjug")||type.includes("present")||type.includes("imparfait")||type.includes("futur")||type.includes("passe")||type.includes("conditionnel");
-  // Exercices avec flèche → à compléter (transposition, négation, accord, etc.)
-  const isArrow = ex.lignes?.some(l=>l.includes("→"));
-  const tc=dark?"#cbd5e1":"#1e293b", lc=dark?"#475569":"#94a3b8", ac=dark?"#a5b4fc":"#4f46e5";
+  if (!ex) return null;
+  const fmt = ex.format || 'libre';
+  const tc = dark?"#cbd5e1":"#1e293b";
+  const lc = dark?"#475569":"#94a3b8";
+  const ac = dark?"#a5b4fc":"#4f46e5";
+  const lignes = ex.lignes || [];
 
-  if (!ex.lignes?.length) return <div style={{fontSize:dark?14:13,color:tc,lineHeight:2.2,whiteSpace:"pre-line"}}>{ex.content||""}</div>;
-
-  // ── CONJUGAISON : tableau 2 colonnes avec ligne d'écriture EN BAS du pronom ──
-  if (isConj && !isArrow) {
-    const blocs=[];
-    let cur=null;
-    const PRONOMS_SET=new Set(["je","tu","il/elle","nous","vous","ils/elles","il","elle","ils","elles"]);
-    for (const l of ex.lignes) {
-      const trim=l.trim();
-      if(!trim)continue;
-      const isPronom=PRONOMS_SET.has(trim.toLowerCase());
-      const isTitle=!isPronom&&(trim.includes("—")||trim.includes("–")||(trim===trim.toUpperCase()&&trim.length>2));
-      if(isTitle){if(cur)blocs.push(cur);cur={title:trim};}
+  // ── CONJUGAISON : tableau 2 colonnes, pronom à gauche + tiret à droite ──
+  if (fmt === 'conjugaison') {
+    const blocs = [];
+    let cur = null;
+    const PRONOMS_SET = new Set(["je","tu","il/elle","nous","vous","ils/elles","il","elle","ils","elles"]);
+    for (const l of lignes) {
+      const trim = l.trim();
+      if (!trim) continue;
+      const isPronom = PRONOMS_SET.has(trim.toLowerCase());
+      const isTitle = !isPronom && (trim.includes("—") || trim.includes("–") || (trim === trim.toUpperCase() && trim.length > 2));
+      if (isTitle) { if (cur) blocs.push(cur); cur = {title: trim}; }
     }
-    if(cur)blocs.push(cur);
-    while(blocs.length<2) blocs.push({title:"— — —"});
-    const show=blocs.slice(0,2);
-    const PRONOMS=["je","tu","il/elle","nous","vous","ils/elles"];
+    if (cur) blocs.push(cur);
+    while (blocs.length < 2) blocs.push({title:"— — —"});
+    const show = blocs.slice(0, 2);
+    const PRONOMS = ["je","tu","il/elle","nous","vous","ils/elles"];
     return (
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 24px"}}>
-        {show.map((b,bi)=>(
+      <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:"0 24px"}}>
+        {show.map((b,bi) => (
           <div key={bi}>
-            <div style={{fontWeight:700,fontSize:dark?13:12,color:ac,marginBottom:10,paddingBottom:4,borderBottom:`1px solid ${ac}33`}}>{b.title}</div>
-            {PRONOMS.map((p,pi)=>(
-              <div key={pi} style={{display:"flex",alignItems:"center",gap:8,marginBottom:dark?12:9}}>
-                <span style={{fontSize:dark?13:12,color:tc,flexShrink:0,minWidth:62}}>{p}</span>
-                <span style={{flex:1,color:lc,fontSize:dark?14:13,letterSpacing:1}}>{"_".repeat(24)}</span>
+            <div style={{fontWeight:700, fontSize:dark?13:12, color:ac, marginBottom:10, paddingBottom:4, borderBottom:`1px solid ${ac}33`}}>
+              {b.title.replace(/^([A-ZÀÂÉÈÊËÎÏÔÙÛÜÇ]+)/, m => m.charAt(0).toUpperCase() + m.slice(1).toLowerCase())}
+            </div>
+            {PRONOMS.map((p,pi) => (
+              <div key={pi} style={{display:"flex", alignItems:"center", gap:8, marginBottom:dark?12:9}}>
+                <span style={{fontSize:dark?13:12, color:tc, flexShrink:0, minWidth:62}}>{p}</span>
+                <div style={{flex:1, borderBottom:`1.5px solid ${lc}`, height:1, marginTop:8, minWidth:60}}></div>
               </div>
             ))}
           </div>
@@ -280,17 +281,78 @@ function ExCard({ ex, dark=true }) {
     );
   }
 
-  // ── CALCULS : grille 2-3 colonnes ──
-  if (isCalc) {
-    const cols=ex.lignes.length>=9?3:2;
+  // ── FLÈCHE : transposition/négation — phrase source → nouveau sujet + tiret ──
+  if (fmt === 'fleche') {
+    if (!lignes.length) return <div style={{fontSize:14, color:tc}}>{ex.content||""}</div>;
     return (
-      <div style={{display:"grid",gridTemplateColumns:`repeat(${cols},1fr)`,gap:"8px 16px",marginTop:4}}>
-        {ex.lignes.map((l,i)=>{
-          const clean=l.replace(/^\d+[\.\)]\s*/,"").replace(/_{2,}/g,"").trimEnd();
+      <div>
+        {lignes.map((l,i) => {
+          const trim = l.trim();
+          if (!trim) return null;
+          const arrowIdx = trim.indexOf("→");
+          if (arrowIdx >= 0) {
+            const avant = trim.slice(0, arrowIdx).trim();
+            const apres = trim.slice(arrowIdx+1).trim();
+            const estVide = apres === "" || /^_+$/.test(apres);
+            return (
+              <div key={i} style={{marginBottom:dark?14:10}}>
+                <div style={{display:"flex", alignItems:"center", gap:6, flexWrap:"wrap"}}>
+                  <span style={{fontSize:dark?13:12, color:tc}}>{avant} →</span>
+                  {estVide
+                    ? <div style={{flex:1, borderBottom:`1.5px solid ${lc}`, height:1, minWidth:80, marginTop:4}}></div>
+                    : <span style={{fontSize:dark?13:12, color:ac}}>{apres}</span>
+                  }
+                </div>
+              </div>
+            );
+          }
+          return <div key={i} style={{fontSize:dark?13:12, color:tc, lineHeight:2, marginBottom:2}}>{trim}</div>;
+        })}
+      </div>
+    );
+  }
+
+  // ── TROUS : phrases avec ___ à compléter (UN mot) ──
+  if (fmt === 'trous') {
+    if (!lignes.length) return <div style={{fontSize:14, color:tc, whiteSpace:"pre-line"}}>{ex.content||""}</div>;
+    return (
+      <div>
+        {lignes.map((l,i) => {
+          const trim = l.trim();
+          if (!trim) return <div key={i} style={{height:8}}></div>;
+          // Remplacer ___ par une ligne d'écriture inline
+          const parts = trim.split(/_{3,}/);
+          if (parts.length > 1) {
+            return (
+              <div key={i} style={{display:"flex", alignItems:"baseline", flexWrap:"wrap", gap:4, marginBottom:dark?10:7, fontSize:dark?13:12, color:tc, lineHeight:1.8}}>
+                {parts.map((part, pi) => (
+                  <span key={pi} style={{display:"contents"}}>
+                    <span>{part}</span>
+                    {pi < parts.length-1 && <span style={{display:"inline-block", borderBottom:`1.5px solid ${lc}`, minWidth:60, height:1, marginBottom:3, flexShrink:0}}></span>}
+                  </span>
+                ))}
+              </div>
+            );
+          }
+          return <div key={i} style={{fontSize:dark?13:12, color:tc, lineHeight:2, marginBottom:2}}>{trim}</div>;
+        })}
+      </div>
+    );
+  }
+
+  // ── CALCUL : grille 2-3 colonnes ──
+  if (fmt === 'calcul') {
+    if (!lignes.length) return <div style={{fontSize:14, color:tc, whiteSpace:"pre-line"}}>{ex.content||""}</div>;
+    const cols = lignes.length >= 9 ? 3 : 2;
+    return (
+      <div style={{display:"grid", gridTemplateColumns:`repeat(${cols},1fr)`, gap:"10px 16px", marginTop:4}}>
+        {lignes.map((l,i) => {
+          const clean = l.replace(/^\d+[\.\)]\s*/, "").replace(/_{2,}/g, "").trimEnd();
+          if (!clean) return null;
           return (
-            <div key={i} style={{display:"flex",alignItems:"center",gap:6}}>
-              <span style={{fontWeight:600,fontSize:dark?14:13,color:tc,whiteSpace:"nowrap"}}>{clean}</span>
-              <span style={{borderBottom:`1px solid ${lc}`,flex:1,minWidth:20}}></span>
+            <div key={i} style={{display:"flex", alignItems:"center", gap:6}}>
+              <span style={{fontWeight:600, fontSize:dark?14:13, color:tc, whiteSpace:"nowrap"}}>{clean}</span>
+              <div style={{flex:1, borderBottom:`1px solid ${lc}`, height:1, minWidth:20}}></div>
             </div>
           );
         })}
@@ -298,45 +360,73 @@ function ExCard({ ex, dark=true }) {
     );
   }
 
-  // ── FLÈCHE (transposition, négation, accord) : chaque ligne avec → et espace d'écriture ──
-  if (isArrow) {
+  // ── PROBLÈME : énoncé + étapes + réponse ──
+  if (fmt === 'probleme') {
+    if (!lignes.length) return <div style={{fontSize:14, color:tc, whiteSpace:"pre-line"}}>{ex.content||""}</div>;
     return (
       <div>
-        {ex.lignes.map((l,i)=>{
-          const trim=l.trim();
-          if(!trim) return null;
-          // Sépare la partie avant → et la partie après
-          const arrowIdx=trim.indexOf("→");
-          if(arrowIdx>=0){
-            const avant=trim.slice(0,arrowIdx).trim();
-            const apres=trim.slice(arrowIdx+1).trim();
-            const estVide=apres===""||apres==="___"||apres==="_______________"||apres==="____";
+        {lignes.map((l,i) => {
+          const trim = l.trim();
+          if (!trim) return <div key={i} style={{height:6}}></div>;
+          const parts = trim.split(/_{3,}/);
+          if (parts.length > 1) {
             return (
-              <div key={i} style={{marginBottom:dark?14:10}}>
-                <div style={{display:"flex",alignItems:"center",gap:6,fontSize:dark?13:12,color:tc}}>
-                  <span style={{flexShrink:0}}>{avant} →</span>
-                  {estVide
-                    ? <span style={{flex:1,color:lc,letterSpacing:1}}>{"_".repeat(20)}</span>
-                    : <span style={{color:ac}}>{apres}</span>
-                  }
-                </div>
+              <div key={i} style={{display:"flex", alignItems:"baseline", flexWrap:"wrap", gap:4, marginBottom:dark?10:7, fontSize:dark?13:12, color:tc}}>
+                {parts.map((part, pi) => (
+                  <span key={pi} style={{display:"contents"}}>
+                    <span>{part}</span>
+                    {pi < parts.length-1 && <span style={{display:"inline-block", borderBottom:`1.5px solid ${lc}`, minWidth:50, height:1, marginBottom:3}}></span>}
+                  </span>
+                ))}
               </div>
             );
           }
-          // Ligne normale sans flèche (ex: séparateur ou texte)
-          return <div key={i} style={{fontSize:dark?13:12,color:tc,lineHeight:2,marginBottom:2}}>{trim}</div>;
+          return <div key={i} style={{fontSize:dark?13:12, color:tc, lineHeight:1.8, marginBottom:6}}>{trim}</div>;
         })}
       </div>
     );
   }
 
-  // ── DÉFAUT : lignes simples ──
+  // ── DICTÉE : mots à préparer + texte ──
+  if (fmt === 'dictee') {
+    const motsCle = lignes.find(l => l.includes("MOTS À PRÉPARER") || l.includes("MOTS A PREPARER"));
+    const texte = lignes.filter(l => !l.includes("MOTS À PRÉPARER") && !l.includes("MOTS A PREPARER") && l.trim());
+    return (
+      <div>
+        {motsCle && (
+          <div style={{background:dark?"rgba(99,102,241,.1)":"#eff6ff", borderRadius:10, padding:"8px 12px", marginBottom:12, fontSize:dark?12:11, color:dark?"#a5b4fc":"#1d4ed8"}}>
+            {motsCle}
+          </div>
+        )}
+        <div style={{fontSize:dark?13:12, color:tc, lineHeight:2.2}}>
+          {texte.map((l,i) => <div key={i} style={{marginBottom:4}}>{l}</div>)}
+        </div>
+      </div>
+    );
+  }
+
+  // ── LIBRE : texte libre, questions ouvertes ──
+  if (!lignes.length) return <div style={{fontSize:14, color:tc, lineHeight:2, whiteSpace:"pre-line"}}>{ex.content||""}</div>;
   return (
     <div>
-      {ex.lignes.map((l,i)=>l.trim()===""
-        ?<div key={i} style={{borderBottom:`1px solid ${lc}`,margin:"3px 0 9px",height:2}}></div>
-        :<div key={i} style={{fontSize:dark?14:13,color:tc,lineHeight:2.1,marginBottom:2}}>{l}</div>
-      )}
+      {lignes.map((l,i) => {
+        const trim = l.trim();
+        if (!trim) return <div key={i} style={{height:6}}></div>;
+        const parts = trim.split(/_{3,}/);
+        if (parts.length > 1) {
+          return (
+            <div key={i} style={{display:"flex", alignItems:"baseline", flexWrap:"wrap", gap:4, marginBottom:dark?10:7, fontSize:dark?13:12, color:tc, lineHeight:1.8}}>
+              {parts.map((part,pi) => (
+                <span key={pi} style={{display:"contents"}}>
+                  <span>{part}</span>
+                  {pi < parts.length-1 && <span style={{display:"inline-block", borderBottom:`1.5px solid ${lc}`, minWidth:50, height:1, marginBottom:3}}></span>}
+                </span>
+              ))}
+            </div>
+          );
+        }
+        return <div key={i} style={{fontSize:dark?13:12, color:tc, lineHeight:2.1, marginBottom:2}}>{trim}</div>;
+      })}
     </div>
   );
 }
@@ -419,7 +509,9 @@ export default function App() {
 
     for (const st of types) {
       try {
-        const modele = await sbCorpus(st);
+        const corpusData = await sbCorpus(st);
+        const modele = corpusData?.contenu || null;
+        const exFormat = corpusData?.format || 'libre';
 
         const isConj    = st.includes("present")||st.includes("imparfait")||st.includes("futur")||st.includes("passe")||st.includes("conditionnel")||st.includes("identification");
         const isCalc    = ["multiplication","soustraction","addition","division"].some(t=>st.includes(t));
@@ -542,7 +634,7 @@ JSON uniquement :
             const raw = await callAPI(transpoPrompt, "exercice");
             const clean = raw.replace(/```json|```/g,"").trim();
             const obj = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
-            if (obj.title) exercises.push({type:st,...obj});
+            if (obj.title) exercises.push({type:st, format:'fleche', ...obj});
           } catch(e) { console.error("Erreur transposition",st,e); }
           continue;
         }
@@ -574,7 +666,7 @@ JSON uniquement :
             const raw = await callAPI(negPrompt, "exercice");
             const clean = raw.replace(/```json|```/g,"").trim();
             const obj = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
-            if (obj.title) exercises.push({type:st,...obj});
+            if (obj.title) exercises.push({type:st, format:'fleche', ...obj});
           } catch(e) { console.error("Erreur négation",st,e); }
           continue;
         }
@@ -593,8 +685,10 @@ INSTRUCTION : même structure pédagogique que le modèle. Renouvelle uniquement
 ${reglesTxt}
 ${focStr?`\nCONTRAINTES :\n${focStr}`:""}
 
+RÈGLE ABSOLUE ANTI-RÉPONSES : dans "lignes", NE JAMAIS écrire les réponses. Les lignes = uniquement questions et blancs ___ que l enfant remplit.
+
 JSON uniquement (aucun texte avant ou après) :
-{"title":"titre précis avec type exact","emoji":"...","duration":"${dur} min","instructions":"consigne 1 phrase CE1","example":"${isCalc && st.includes("multiplication") ? "" : "..."}","lignes":[...],"parentNote":"conseil parent court","verbsUsed":[],"wordsUsed":[]}`
+{"title":"titre précis avec type exact","emoji":"...","duration":"${dur} min","instructions":"consigne 1 phrase CE1","example":"${isCalc && st.includes("multiplication") ? "" : "exemple résolu court — UNE seule démonstration"}","lignes":[...],"parentNote":"conseil parent court","verbsUsed":[],"wordsUsed":[]}`
 
           : `Tu es un instituteur expert CE1/CE2 en France. Exercice "${st.replace(/_/g," ")}" pour ${CHILD_NAME}, niveau ${niv}.
 
@@ -607,7 +701,7 @@ JSON uniquement :
         const raw   = await callAPI(prompt,"exercice");
         const clean = raw.replace(/```json|```/g,"").trim();
         const obj   = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
-        if(obj.title) exercises.push({type:st,...obj});
+        if(obj.title) exercises.push({type:st, format:exFormat, ...obj});
 
       } catch(e) { console.error("Erreur exercice",st,e); }
     }
@@ -697,7 +791,7 @@ JSON uniquement :
             <div style={{marginLeft:"auto",fontSize:10,color:"#94a3b8"}}>{ex.duration}</div>
           </div>
           <p style={{fontStyle:"italic",color:"#475569",margin:"0 0 4px",fontSize:11}}>📌 {ex.instructions}</p>
-          {ex.example&&<p style={{background:"#eff6ff",padding:"4px 10px",borderRadius:6,fontSize:11,color:"#1d4ed8",margin:"0 0 6px",borderLeft:"2px solid #3b82f6"}}>{ex.example}</p>}
+          {ex.example&&!["present","imparfait","futur","passe","conditionnel","multiplication"].some(t=>ex.type?.includes(t))&&<p style={{background:"#eff6ff",padding:"4px 10px",borderRadius:6,fontSize:11,color:"#1d4ed8",margin:"0 0 6px",borderLeft:"2px solid #3b82f6"}}>{ex.example}</p>}
           <ExCard ex={ex} dark={false}/>
           {ex.parentNote&&<p style={{fontSize:10,color:"#7c3aed",marginTop:3,fontStyle:"italic"}}>👨‍👩‍👧 {ex.parentNote}</p>}
         </div>
@@ -751,7 +845,7 @@ JSON uniquement :
                   <div><div style={{fontWeight:700,fontSize:15,color:"#e2e8f0"}}>Exercice {i+1} — {ex.title}</div><div style={{fontSize:12,color:"#475569"}}>⏱ {ex.duration}</div></div>
                 </div>
                 {!["present","imparfait","futur","passe","conditionnel"].some(t=>ex.type?.includes(t))&&<div style={{background:"rgba(99,102,241,.1)",borderRadius:12,padding:"10px 14px",marginBottom:10,fontSize:13,color:"#a5b4fc",fontStyle:"italic",borderLeft:"2px solid #6366f1"}}>📌 {ex.instructions}</div>}
-                {ex.example&&!["present","imparfait","futur","passe","conditionnel"].some(t=>ex.type?.includes(t))&&<div style={{background:"rgba(52,211,153,.08)",borderRadius:12,padding:"10px 14px",marginBottom:12,fontSize:13,color:"#6ee7b7",borderLeft:"2px solid #34d399"}}>{ex.example}</div>}
+                {ex.example&&!["present","imparfait","futur","passe","conditionnel","multiplication"].some(t=>ex.type?.includes(t))&&<div style={{background:"rgba(52,211,153,.08)",borderRadius:12,padding:"10px 14px",marginBottom:12,fontSize:13,color:"#6ee7b7",borderLeft:"2px solid #34d399"}}>{ex.example}</div>}
                 <ExCard ex={ex} dark/>
                 {ex.parentNote&&<div style={{marginTop:10,fontSize:12,color:"#7c3aed",fontStyle:"italic"}}>👨‍👩‍👧 {ex.parentNote}</div>}
               </div>
