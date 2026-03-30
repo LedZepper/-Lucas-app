@@ -1,4 +1,4 @@
-# 📚 École de Lucas
+# 📚 École de Léo
 
 App de suivi scolaire CE1 — génération d'exercices personnalisés avec Claude AI.
 
