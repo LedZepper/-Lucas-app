@@ -15,7 +15,7 @@ const CATEGORIES = {
   "Dictée": ["dictee_sons_simples","dictee_homophones","dictee_avancee"],
   "Vocabulaire": ["familles_de_mots","familles_de_mots_avancees","synonymes","antonymes","sens_contexte","prefixes_suffixes","niveaux_de_langue"],
   "Lecture": ["comprehension_texte_court","comprehension_inference","comprehension_avancee","remise_en_ordre","resume_texte"],
-  "Multiplication": ["multiplication_table_2_5","multiplication_table_3_4","multiplication_table_6_9","multiplication_posee_1chiffre","multiplication_posee_2chiffres"],
+  "Multiplication": ["tables_melange","multiplication_posee_1chiffre","multiplication_posee_2chiffres"],
   "Soustraction": ["soustraction_retenue","soustraction_grands_nombres","soustraction_cm1"],
   "Addition": ["addition_retenue","addition_grands_nombres","addition_cm1"],
   "Division": ["division_exacte","division_euclidienne","division_posee"],
@@ -28,8 +28,8 @@ const CATEGORIES = {
 
 const AUTO_TYPES = {
   "CE1 debut":  ["present_1er_groupe","soustraction_retenue","sons_ou_on","transposition_tu_je","numeration_encadrement"],
-  "CE1/CE2":    ["imparfait_1er_groupe","soustraction_retenue","multiplication_table_2_5","transposition_tu_je","negation_ne_pas"],
-  "CE2":        ["futur_simple_1er_groupe","soustraction_grands_nombres","multiplication_table_6_9","negation_ne_plus","fractions_representation"],
+  "CE1/CE2":    ["imparfait_1er_groupe","soustraction_retenue","tables_melange","transposition_tu_je","negation_ne_pas"],
+  "CE2":        ["futur_simple_1er_groupe","soustraction_grands_nombres","tables_melange","negation_ne_plus","fractions_representation"],
   "CE2 avance": ["passe_compose_avoir","soustraction_grands_nombres","multiplication_posee_1chiffre","accord_sujet_verbe","fractions_ecriture"],
   "CM1":        ["passe_compose_etre","division_posee","multiplication_posee_2chiffres","complement_circonstanciel","fractions_operations"],
 };
@@ -340,25 +340,41 @@ function ExCard({ ex, dark=true }) {
     );
   }
 
-  // ── CALCUL : grille 2-3 colonnes ──
+  // ── CALCUL : exemple à gauche + grille 4 colonnes × 5 rangées à droite ──
   if (fmt === 'calcul') {
     if (!lignes.length) return <div style={{fontSize:14, color:tc, whiteSpace:"pre-line"}}>{ex.content||""}</div>;
-    const cols = lignes.length >= 9 ? 3 : 2;
+    const isMulti = ex.type?.includes("multiplication") || ex.type?.includes("tables") || ex.title?.toLowerCase().includes("multiplication") || ex.title?.toLowerCase().includes("table");
+    const calcItems = lignes
+      .map(l => l.replace(/^\d+[\.\)]\s*/, "").replace(/_{2,}/g, "").trimEnd())
+      .filter(Boolean)
+      .slice(0, 20);
     return (
-      <div style={{display:"grid", gridTemplateColumns:`repeat(${cols},1fr)`, gap:"10px 16px", marginTop:4}}>
-        {lignes.map((l,i) => {
-          const clean = l.replace(/^\d+[\.\)]\s*/, "").replace(/_{2,}/g, "").trimEnd();
-          if (!clean) return null;
-          return (
-            <div key={i} style={{display:"flex", alignItems:"center", gap:6}}>
-              <span style={{fontWeight:600, fontSize:dark?14:13, color:tc, whiteSpace:"nowrap"}}>{clean}</span>
-              <div style={{flex:1, borderBottom:`1px solid ${lc}`, height:1, minWidth:20}}></div>
+      <div>
+        {isMulti && (
+          <div style={{fontWeight:700, fontSize:dark?13:12, color:ac, marginBottom:10}}>
+            Multiplication — Tables de 1 à 10 ⏱ Chronométré 3 min
+          </div>
+        )}
+        <div style={{display:"flex", gap:16, alignItems:"flex-start"}}>
+          {ex.example && !isMulti && (
+            <div style={{flexShrink:0, minWidth:80, background:dark?"rgba(99,102,241,.08)":"#eff6ff", borderRadius:10, padding:"10px 14px", border:`1px solid ${ac}22`}}>
+              <div style={{fontSize:10, color:ac, fontWeight:700, marginBottom:6, textTransform:"uppercase", letterSpacing:.5}}>Exemple</div>
+              <div style={{fontSize:dark?13:12, color:tc, whiteSpace:"pre-line", lineHeight:1.8}}>{ex.example}</div>
             </div>
-          );
-        })}
+          )}
+          <div style={{flex:1, display:"grid", gridTemplateColumns:"repeat(4, 1fr)", gap:"10px 12px"}}>
+            {calcItems.map((item, i) => (
+              <div key={i} style={{display:"flex", alignItems:"center", gap:5}}>
+                <span style={{fontWeight:600, fontSize:dark?13:12, color:tc, whiteSpace:"nowrap"}}>{item}</span>
+                <div style={{flex:1, borderBottom:`1px solid ${lc}`, height:1, minWidth:16}}></div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
+
 
   // ── PROBLÈME : énoncé + étapes + réponse ──
   if (fmt === 'probleme') {
