@@ -860,10 +860,10 @@ JSON uniquement :
                   <span style={{fontSize:26}}>{ex.emoji}</span>
                   <div><div style={{fontWeight:700,fontSize:15,color:"#e2e8f0"}}>Exercice {i+1} — {ex.title}</div><div style={{fontSize:12,color:"#475569"}}>⏱ {ex.duration}</div></div>
                 </div>
-                {!["present","imparfait","futur","passe","conditionnel"].some(t=>ex.type?.includes(t))&&<div style={{background:"rgba(99,102,241,.1)",borderRadius:12,padding:"10px 14px",marginBottom:10,fontSize:13,color:"#a5b4fc",fontStyle:"italic",borderLeft:"2px solid #6366f1"}}>📌 {ex.instructions}</div>}
-                {ex.example&&!["present","imparfait","futur","passe","conditionnel","multiplication"].some(t=>ex.type?.includes(t))&&<div style={{background:"rgba(52,211,153,.08)",borderRadius:12,padding:"10px 14px",marginBottom:12,fontSize:13,color:"#6ee7b7",borderLeft:"2px solid #34d399"}}>{ex.example}</div>}
-                <ExCard ex={ex} dark/>
-                {ex.parentNote&&<div style={{marginTop:10,fontSize:12,color:"#7c3aed",fontStyle:"italic"}}>👨‍👩‍👧 {ex.parentNote}</div>}
+                {!["present","imparfait","futur","passe","conditionnel","multiplication","soustraction","addition","division","tables"].some(t=>ex.type?.includes(t))&&<div style={{background:"rgba(99,102,241,.1)",borderRadius:12,padding:"10px 14px",marginBottom:10,fontSize:13,color:"#a5b4fc",fontStyle:"italic",borderLeft:"2px solid #6366f1"}}>📌 {ex.instructions}</div>}
+{ex.example&&!["present","imparfait","futur","passe","conditionnel","multiplication","soustraction","addition","division","tables"].some(t=>ex.type?.includes(t))&&<p style={{background:"#eff6ff",padding:"4px 10px",borderRadius:6,fontSize:11,color:"#1d4ed8",margin:"0 0 6px",borderLeft:"2px solid #3b82f6"}}>{ex.example}</p>}
+<ExCard ex={ex} dark/>
+{ex.parentNote&&!["present","imparfait","futur","passe","conditionnel","multiplication","soustraction","addition","division","tables"].some(t=>ex.type?.includes(t))&&<div style={{marginTop:10,fontSize:12,color:"#7c3aed",fontStyle:"italic"}}>👨‍👩‍👧 {ex.parentNote}</div>}
               </div>
             ))}
             {!score?(
