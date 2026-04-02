@@ -7,7 +7,6 @@ const PARENT_CODE  = "leo2024";
 const ADMIN_CODE   = "TTR250";
 const SB_H = { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` };
 
-// ─── MAPPING CORPUS ──────────────────────────────────────────────────────────
 const CATEGORIES = {
   "Conjugaison": ["present_etre","present_avoir","present_aller","present_faire","present_1er_groupe","present_1er_groupe_2","present_2eme_groupe","present_venir","present_prendre","present_pouvoir_vouloir","present_voir_savoir","imparfait_etre_avoir","imparfait_1er_groupe","imparfait_1er_groupe_2","imparfait_2eme_groupe","imparfait_irreguliers","futur_simple_1er_groupe","futur_simple_etre_avoir","futur_simple_irreguliers","passe_compose_avoir","passe_compose_etre","identification_temps","conditionnel_present","imparfait_vs_passe_compose"],
   "Grammaire": ["transposition_tu_je","transposition_il_nous","transposition_elle_ils","transposition_singulier_pluriel","negation_ne_pas","negation_ne_plus","negation_ne_jamais_rien","accord_sujet_verbe","accord_sujet_verbe_eloigne","classes_de_mots","nature_des_mots","fonctions_sujet_verbe_cod","complement_circonstanciel","expansion_gn","phrase_syntaxe","types_de_phrases","ponctuation","propositions_cm1"],
@@ -34,7 +33,6 @@ const AUTO_TYPES = {
   "CM1":        ["passe_compose_etre","division_posee","multiplication_posee_2chiffres","complement_circonstanciel","fractions_operations"],
 };
 
-// ─── SUPABASE ─────────────────────────────────────────────────────────────────
 async function sbLoad() {
   try {
     const r = await fetch(`${SUPABASE_URL}/rest/v1/lucas_data?id=eq.lucas&select=data`, { headers: SB_H });
@@ -74,7 +72,6 @@ async function callAPI(prompt, mode = "exercice") {
   return d.text || "";
 }
 
-// ─── GAMIFICATION ─────────────────────────────────────────────────────────────
 const ITEMS = [
   { pts:0,   e:"🍁", l:"Feuille d érable",      d:"Le début de l aventure !" },
   { pts:5,   e:"🎒", l:"Sac à dos",             d:"Pour transporter ses trésors." },
@@ -101,7 +98,6 @@ function unlocked(pts, bonus=[]) {
   const all=[...a]; b.forEach(x=>{if(!all.find(a=>a.e===x.e))all.push(x);}); return all;
 }
 
-// ─── RATON LAVEUR SVG ─────────────────────────────────────────────────────────
 function Raton({ items=[], size=120, anim=true }) {
   const bag   = items.find(i=>i.e==="🎒");
   const hat   = items.find(i=>i.e==="🎩");
@@ -119,27 +115,14 @@ function Raton({ items=[], size=120, anim=true }) {
       {torch&&<ellipse cx="80" cy="62" rx="16" ry="12" fill="#fef08a" opacity=".18"/>}
       <g className="rT">
         <ellipse cx="73" cy="72" rx="13" ry="8" fill="#9ca3af" transform="rotate(-30,73,72)"/>
-        {[0,1,2,3].map(i=>(
-          <ellipse key={i} cx={73+i*1.5} cy={72+i*1.5} rx={11-i*1.5} ry={6-i*0.8}
-            fill={i%2===0?"#374151":"#d1d5db"} opacity=".55"
-            transform={`rotate(-30,${73+i*1.5},${72+i*1.5})`}/>
-        ))}
+        {[0,1,2,3].map(i=>(<ellipse key={i} cx={73+i*1.5} cy={72+i*1.5} rx={11-i*1.5} ry={6-i*0.8} fill={i%2===0?"#374151":"#d1d5db"} opacity=".55" transform={`rotate(-30,${73+i*1.5},${72+i*1.5})`}/>))}
         <ellipse cx="73" cy="72" rx="7" ry="4.5" fill="#f9fafb" transform="rotate(-30,73,72)"/>
       </g>
       <g className="rB">
         <ellipse cx="50" cy="66" rx="22" ry="24" fill="#b0b8c1"/>
         <ellipse cx="50" cy="69" rx="13" ry="17" fill="#f0f4f8"/>
-        {bag&&<>
-          <rect x="67" y="54" width="13" height="18" rx="4" fill="#92400e"/>
-          <rect x="69" y="52" width="9" height="4" rx="2" fill="#78350f"/>
-          <rect x="70" y="61" width="7" height="1.5" rx="1" fill="#78350f"/>
-          <line x1="72" y1="56" x2="72" y2="70" stroke="#78350f" strokeWidth="1.2"/>
-        </>}
-        {torch&&<>
-          <rect x="27" y="66" width="4" height="11" rx="2" fill="#92400e"/>
-          <ellipse cx="29" cy="65" rx="4.5" ry="5" fill="#fbbf24"/>
-          <ellipse cx="29" cy="63.5" rx="2.5" ry="3" fill="#fde68a"/>
-        </>}
+        {bag&&<><rect x="67" y="54" width="13" height="18" rx="4" fill="#92400e"/><rect x="69" y="52" width="9" height="4" rx="2" fill="#78350f"/><rect x="70" y="61" width="7" height="1.5" rx="1" fill="#78350f"/><line x1="72" y1="56" x2="72" y2="70" stroke="#78350f" strokeWidth="1.2"/></>}
+        {torch&&<><rect x="27" y="66" width="4" height="11" rx="2" fill="#92400e"/><ellipse cx="29" cy="65" rx="4.5" ry="5" fill="#fbbf24"/><ellipse cx="29" cy="63.5" rx="2.5" ry="3" fill="#fde68a"/></>}
         <ellipse cx="31" cy="68" rx="7" ry="5" fill="#9ca3af" transform="rotate(20,31,68)"/>
         <ellipse cx="69" cy="68" rx="7" ry="5" fill="#9ca3af" transform="rotate(-20,69,68)"/>
         <ellipse cx="40" cy="87" rx="9" ry="5" fill="#9ca3af"/>
@@ -147,29 +130,18 @@ function Raton({ items=[], size=120, anim=true }) {
         {[-3,0,3].map(dx=><circle key={dx} cx={40+dx} cy="91" r="2" fill="#6b7280"/>)}
         {[-3,0,3].map(dx=><circle key={dx} cx={60+dx} cy="91" r="2" fill="#6b7280"/>)}
         <circle cx="50" cy="42" r="22" fill="#b0b8c1"/>
-        <circle cx="32" cy="24" r="9" fill="#9ca3af"/>
-        <circle cx="32" cy="24" r="5.5" fill="#fecdd3"/>
-        <circle cx="68" cy="24" r="9" fill="#9ca3af"/>
-        <circle cx="68" cy="24" r="5.5" fill="#fecdd3"/>
-        {hat&&<>
-          <ellipse cx="50" cy="23" rx="24" ry="5.5" fill="#1e3a5f"/>
-          <rect x="38" y="2" width="24" height="22" rx="5" fill="#1e3a5f"/>
-          <rect x="40" y="13" width="20" height="3" rx="1.5" fill="#f59e0b"/>
-        </>}
+        <circle cx="32" cy="24" r="9" fill="#9ca3af"/><circle cx="32" cy="24" r="5.5" fill="#fecdd3"/>
+        <circle cx="68" cy="24" r="9" fill="#9ca3af"/><circle cx="68" cy="24" r="5.5" fill="#fecdd3"/>
+        {hat&&<><ellipse cx="50" cy="23" rx="24" ry="5.5" fill="#1e3a5f"/><rect x="38" y="2" width="24" height="22" rx="5" fill="#1e3a5f"/><rect x="40" y="13" width="20" height="3" rx="1.5" fill="#f59e0b"/></>}
         <path d="M26 40 Q50 34 74 40 Q74 50 68 52 Q60 55 50 54 Q40 55 32 52 Q26 50 26 40Z" fill="#1f2937"/>
         <ellipse cx="39" cy="40" rx="8" ry="6" fill="#374151"/>
         <ellipse cx="61" cy="40" rx="8" ry="6" fill="#374151"/>
         <g className="rE">
-          <circle cx="39" cy="40" r="7" fill="white"/>
-          <circle cx="61" cy="40" r="7" fill="white"/>
-          <circle cx="40" cy="40" r="4.5" fill="#1c2a3a"/>
-          <circle cx="62" cy="40" r="4.5" fill="#1c2a3a"/>
-          <circle cx="40" cy="40" r="3" fill="#2563eb"/>
-          <circle cx="62" cy="40" r="3" fill="#2563eb"/>
-          <circle cx="40" cy="40" r="1.8" fill="#0f172a"/>
-          <circle cx="62" cy="40" r="1.8" fill="#0f172a"/>
-          <circle cx="41.5" cy="38.5" r="1.2" fill="white"/>
-          <circle cx="63.5" cy="38.5" r="1.2" fill="white"/>
+          <circle cx="39" cy="40" r="7" fill="white"/><circle cx="61" cy="40" r="7" fill="white"/>
+          <circle cx="40" cy="40" r="4.5" fill="#1c2a3a"/><circle cx="62" cy="40" r="4.5" fill="#1c2a3a"/>
+          <circle cx="40" cy="40" r="3" fill="#2563eb"/><circle cx="62" cy="40" r="3" fill="#2563eb"/>
+          <circle cx="40" cy="40" r="1.8" fill="#0f172a"/><circle cx="62" cy="40" r="1.8" fill="#0f172a"/>
+          <circle cx="41.5" cy="38.5" r="1.2" fill="white"/><circle cx="63.5" cy="38.5" r="1.2" fill="white"/>
         </g>
         <ellipse cx="50" cy="48" rx="4.5" ry="3" fill="#1f2937"/>
         <ellipse cx="48.5" cy="47" rx="1.8" ry="1.2" fill="#374151" opacity=".7"/>
@@ -185,7 +157,6 @@ function Raton({ items=[], size=120, anim=true }) {
   );
 }
 
-// ─── CABANE SVG ───────────────────────────────────────────────────────────────
 function Cabane() {
   return (
     <svg width="100%" height="180" viewBox="0 0 320 180" xmlns="http://www.w3.org/2000/svg">
@@ -209,7 +180,6 @@ function Cabane() {
   );
 }
 
-// ─── UI ───────────────────────────────────────────────────────────────────────
 function Stars({ value, onChange, size=32 }) {
   return (
     <div style={{display:"flex",gap:8,justifyContent:"center"}}>
@@ -239,6 +209,17 @@ function Chart({ sessions }) {
     </div>
   );
 }
+
+// ─── HELPERS visibilité ───────────────────────────────────────────────────────
+const MATH_TYPES  = ["multiplication","soustraction","addition","division","tables"];
+const CONJ_TYPES  = ["present","imparfait","futur","passe","conditionnel"];
+const VOCAB_TYPES = ["familles_de_mots","synonymes","antonymes","sens_contexte","prefixes_suffixes","niveaux_de_langue"];
+const isMath  = t => MATH_TYPES.some(x => t?.includes(x));
+const isConj  = t => CONJ_TYPES.some(x => t?.includes(x));
+const isVocab = t => VOCAB_TYPES.some(x => t?.includes(x));
+const hideInstructions = t => isMath(t) || isConj(t);
+const hideExample      = t => isMath(t) || isConj(t);
+const hideParentNote   = t => isMath(t) || isConj(t) || isVocab(t);
 
 function ExCard({ ex, dark=true }) {
   if (!ex) return null;
@@ -338,13 +319,14 @@ function ExCard({ ex, dark=true }) {
     );
   }
 
+  // ── CALCUL : exemple EN LARGEUR au-dessus, grille 3 colonnes × 5, tirets longs ──
   if (fmt === 'calcul') {
     if (!lignes.length) return <div style={{fontSize:14, color:tc, whiteSpace:"pre-line"}}>{ex.content||""}</div>;
     const isMulti = ex.type?.includes("multiplication") || ex.type?.includes("tables") || ex.title?.toLowerCase().includes("multiplication") || ex.title?.toLowerCase().includes("table");
     const calcItems = lignes
       .map(l => l.replace(/^\d+[\.\)]\s*/, "").replace(/_{2,}/g, "").trimEnd())
       .filter(Boolean)
-      .slice(0, 20);
+      .slice(0, 15);
     return (
       <div>
         {isMulti && (
@@ -352,21 +334,19 @@ function ExCard({ ex, dark=true }) {
             Multiplication — Tables de 1 à 10 ⏱ Chronométré 3 min
           </div>
         )}
-        <div style={{display:"flex", gap:16, alignItems:"flex-start"}}>
-          {ex.example && !isMulti && (
-            <div style={{flexShrink:0, minWidth:80, background:dark?"rgba(99,102,241,.08)":"#eff6ff", borderRadius:10, padding:"10px 14px", border:`1px solid ${ac}22`}}>
-              <div style={{fontSize:10, color:ac, fontWeight:700, marginBottom:6, textTransform:"uppercase", letterSpacing:.5}}>Exemple</div>
-              <div style={{fontSize:dark?13:12, color:tc, whiteSpace:"pre-line", lineHeight:1.8}}>{ex.example}</div>
-            </div>
-          )}
-          <div style={{flex:1, display:"grid", gridTemplateColumns:"repeat(4, 1fr)", gap:"10px 12px"}}>
-            {calcItems.map((item, i) => (
-              <div key={i} style={{display:"flex", alignItems:"baseline", gap:5}}>
-                <span style={{fontWeight:600, fontSize:dark?13:12, color:tc, whiteSpace:"nowrap"}}>{item}</span>
-                <div style={{flex:1, borderBottom:`1.5px solid ${lc}`, minWidth:24, marginBottom:2}}></div>
-              </div>
-            ))}
+        {ex.example && !isMulti && (
+          <div style={{background:dark?"rgba(99,102,241,.08)":"#eff6ff", borderRadius:10, padding:"10px 14px", marginBottom:14, border:`1px solid ${ac}22`}}>
+            <div style={{fontSize:10, color:ac, fontWeight:700, marginBottom:4, textTransform:"uppercase", letterSpacing:.5}}>Exemple</div>
+            <div style={{fontSize:dark?13:12, color:tc, whiteSpace:"pre-line", lineHeight:1.8}}>{ex.example}</div>
           </div>
+        )}
+        <div style={{display:"grid", gridTemplateColumns:"repeat(3, 1fr)", gap:"14px 16px"}}>
+          {calcItems.map((item, i) => (
+            <div key={i} style={{display:"flex", alignItems:"baseline", gap:6}}>
+              <span style={{fontWeight:600, fontSize:dark?13:12, color:tc, whiteSpace:"nowrap"}}>{item}</span>
+              <div style={{flex:1, borderBottom:`1.5px solid ${lc}`, minWidth:44, marginBottom:2}}></div>
+            </div>
+          ))}
         </div>
       </div>
     );
@@ -440,7 +420,6 @@ function ExCard({ ex, dark=true }) {
   );
 }
 
-// ─── PROFIL PAR DÉFAUT ────────────────────────────────────────────────────────
 const DEF = {
   name:CHILD_NAME, totalPoints:0, sessions:[], unlockedBonusItems:[], equippedItems:[],
   weeklyConfig:{ duration:25, difficulty:"CE1/CE2" },
@@ -448,7 +427,6 @@ const DEF = {
   memory:{ usedVerbs:[], usedWords:[], weakPoints:[] },
 };
 
-// ─── APP ──────────────────────────────────────────────────────────────────────
 export default function App() {
   const [prof, setProf]        = useState(null);
   const [view, setView]        = useState("home");
@@ -498,7 +476,6 @@ export default function App() {
     catch{setSync("error");setTimeout(()=>setSync(""),3000);}
   },[]);
 
-  // ── GÉNÉRATION ──────────────────────────────────────────────────────────────
   async function generate(types) {
     if(!types||types.length===0){toast$("Sélectionne au moins un exercice !","#f59e0b");return;}
     setGen(true); setSession(null); setScore(null); setStars(0); setObs("");
@@ -507,11 +484,11 @@ export default function App() {
     const { memory, weeklyConfig, focus } = prof;
 
     const focStr = [
-      focus?.mots      ? `Mots de la semaine à utiliser en priorité : ${focus.mots}` : "",
+      focus?.mots      ? `Mots de la semaine : ${focus.mots}` : "",
       focus?.verbes    ? `Verbes imposés : ${focus.verbes}` : "",
       ctx              ? `Contexte du jour : ${ctx}` : "",
-      memory.usedVerbs?.length  ? `Verbes déjà vus récemment — NE PAS répéter : ${memory.usedVerbs.slice(-10).join(", ")}` : "",
-      memory.weakPoints?.length ? `Points faibles de Léo à retravailler : ${memory.weakPoints.slice(-3).join(" | ")}` : "",
+      memory.usedVerbs?.length  ? `Verbes déjà vus — NE PAS répéter : ${memory.usedVerbs.slice(-10).join(", ")}` : "",
+      memory.weakPoints?.length ? `Points faibles : ${memory.weakPoints.slice(-3).join(" | ")}` : "",
     ].filter(Boolean).join("\n");
 
     const exercises = [];
@@ -524,93 +501,88 @@ export default function App() {
         const modele = corpusData?.contenu || null;
         const exFormat = corpusData?.format || 'libre';
 
-        const isConj    = st.includes("present")||st.includes("imparfait")||st.includes("futur")||st.includes("passe")||st.includes("conditionnel")||st.includes("identification");
-        const isCalc    = ["multiplication","soustraction","addition","division"].some(t=>st.includes(t));
-        const isEncadr  = st.includes("encadrement")||st.includes("numeration")||st.includes("calcul_mental");
-        const isProbl   = st.includes("probleme");
-        const isDictee  = st.includes("dictee");
-        const isTranspo = st.includes("transposition");
-        const isNeg     = st.includes("negation");
+        const isConjType  = st.includes("present")||st.includes("imparfait")||st.includes("futur")||st.includes("passe")||st.includes("conditionnel")||st.includes("identification");
+        const isCalcType  = ["multiplication","soustraction","addition","division"].some(t=>st.includes(t));
+        const isEncadr    = st.includes("encadrement")||st.includes("numeration")||st.includes("calcul_mental");
+        const isProbl     = st.includes("probleme");
+        const isDictee    = st.includes("dictee");
+        const isTranspo   = st.includes("transposition");
+        const isNeg       = st.includes("negation");
+        const isNature    = st.includes("nature_des_mots") || st.includes("classes_de_mots");
+        const isVocabType = VOCAB_TYPES.some(t=>st.includes(t));
 
         const dur = Math.max(5, Math.round((weeklyConfig.duration||25)/types.length));
-
         const regles = [];
 
-        if (isConj && !isTranspo) {
+        if (isConjType && !isTranspo) {
           const temps = st.includes("present")?"présent":st.includes("imparfait")?"imparfait":st.includes("futur")?"futur":"passé composé";
-          regles.push(`TYPE D EXERCICE : CONJUGAISON — conjuguer des VERBES uniquement, pas de calculs.`);
-          regles.push(`FORMAT TABLEAU 2 COLONNES OBLIGATOIRE :
-- Exactement 2 verbes différents
-- lignes = ["VERBE1 — ${temps}", "VERBE2 — ${temps}"]
-- NE PAS inclure les pronoms dans lignes (affichés automatiquement par l app)
-- example : juste la consigne sans les réponses. Ex: "Conjugue CHANTER au ${temps}"`);
+          regles.push(`TYPE : CONJUGAISON.
+FORMAT OBLIGATOIRE :
+- lignes = ["VERBE1 — ${temps}", "VERBE2 — ${temps}"] (2 verbes uniquement)
+- NE PAS inclure les pronoms dans lignes
+- example = consigne sans réponses`);
         }
 
         if (isTranspo) {
-          const transpoType = st.includes("tu_je") ? "remplacer TU par JE (et accorder le verbe)"
-            : st.includes("singulier_pluriel") ? "mettre la phrase au pluriel"
-            : st.includes("il_nous") ? "remplacer IL/ELLE par NOUS"
-            : "changer le sujet ou le temps";
-          regles.push(`TYPE D EXERCICE : TRANSPOSITION — ${transpoType}.
-FORMAT LIGNES EXACT — chaque entrée = une phrase numérotée se terminant par "→" et RIEN d autre :
-["1. TU portes un chapeau. →", "2. TU finis ton repas. →", "3. TU pars à l école. →", "4. TU choisis un livre. →", "5. TU arrives en retard. →"]
-RÈGLES ABSOLUES :
-1. Chaque ligne se termine par "→" — JAMAIS de réponse après la flèche
-2. Phrases avec des VERBES DIFFÉRENTS à chaque ligne
-3. Contextes VARIÉS : école, maison, jardin, repas, sport, animaux...
-4. example = UN seul exemple résolu : "TU manges une pomme. → JE mange une pomme."
-5. NE PAS répéter le même verbe deux fois`);
+          const transpoType = st.includes("tu_je")?"remplacer TU par JE":st.includes("singulier_pluriel")?"mettre au pluriel":st.includes("il_nous")?"remplacer IL/ELLE par NOUS":"changer le sujet";
+          regles.push(`TYPE : TRANSPOSITION — ${transpoType}.
+- Chaque ligne = phrase numérotée se terminant par "→" UNIQUEMENT, jamais de réponse après
+- example = UN exemple résolu`);
         }
 
         if (isNeg) {
-          const negType = st.includes("plus") ? "NE...PLUS" : st.includes("jamais") ? "NE...JAMAIS" : "NE...PAS";
-          regles.push(`TYPE D EXERCICE : NÉGATION avec ${negType}.
-FORMAT LIGNES EXACT — chaque entrée = une phrase affirmative numérotée se terminant par "→" et RIEN d autre :
-["1. Elle mange une glace. →", "2. Nous courons vite. →", "3. Tu aimes les légumes. →", "4. Il regarde la télévision. →", "5. Les enfants chantent. →"]
-RÈGLES ABSOLUES :
-1. Chaque ligne = une phrase AFFIRMATIVE se terminant par "→" — JAMAIS la réponse négative après la flèche
-2. Sujets VARIÉS : il, elle, nous, tu, ils, elles, prénoms, noms communs
-3. Verbes et contextes DIFFÉRENTS à chaque ligne
-4. example = UN seul exemple résolu : "Il joue au foot. → Il ne joue ${negType === "NE...PLUS" ? "plus" : negType === "NE...JAMAIS" ? "jamais" : "pas"} au foot."
-5. NE PAS écrire la réponse dans lignes — l enfant transforme lui-même`);
+          const negType = st.includes("plus")?"NE...PLUS":st.includes("jamais")?"NE...JAMAIS":"NE...PAS";
+          const negPas  = st.includes("plus")?"plus":st.includes("jamais")?"jamais":"pas";
+          regles.push(`TYPE : NÉGATION avec ${negType}.
+- Chaque ligne = phrase AFFIRMATIVE numérotée se terminant par "→", jamais la réponse après
+- Sujets variés (il, elle, nous, tu, ils, prénom...)
+- example = "Il joue au foot. → Il ne joue ${negPas} au foot."`);
         }
 
-        if (isCalc) {
-          const calcType = st.includes("multiplication") ? "MULTIPLICATION (× uniquement)"
-                         : st.includes("soustraction")   ? "SOUSTRACTION (− uniquement)"
-                         : st.includes("addition")       ? "ADDITION (+ uniquement)"
-                         : "DIVISION (÷ uniquement)";
-          const calcEx = st.includes("multiplication") ? `["4 × 6 =","7 × 8 =","3 × 9 ="]`
-                       : st.includes("soustraction")   ? `["85 − 47 =","63 − 28 =","91 − 54 ="]`
-                       : st.includes("addition")       ? `["43 + 29 =","67 + 35 =","58 + 26 ="]`
-                       : `["24 ÷ 4 =","36 ÷ 6 =","45 ÷ 9 ="]`;
-          regles.push(`TYPE D EXERCICE : ${calcType} — UNIQUEMENT ce type d opération. JAMAIS mélanger.`);
-          regles.push(`FORMAT CALCULS STRICT :
-- Minimum 10 items dans lignes
-- Format exact : ${calcEx}
-- SANS tirets de réponse dans lignes
-- example : UN SEUL exemple résolu avec la méthode complète`);
+        if (isCalcType) {
+          const calcType = st.includes("multiplication")?"MULTIPLICATION (× uniquement)":st.includes("soustraction")?"SOUSTRACTION (− uniquement)":st.includes("addition")?"ADDITION (+ uniquement)":"DIVISION (÷ uniquement)";
+          const calcEx   = st.includes("multiplication")?`["4 × 6 =","7 × 8 =","3 × 9 ="]`:st.includes("soustraction")?`["85 − 47 =","63 − 28 =","91 − 54 ="]`:st.includes("addition")?`["43 + 29 =","67 + 35 =","58 + 26 ="]`:`["24 ÷ 4 =","36 ÷ 6 =","45 ÷ 9 ="]`;
+          regles.push(`TYPE : ${calcType} — UNIQUEMENT ce type, jamais mélanger.
+- Exactement 15 items dans lignes (3 colonnes × 5)
+- Format : ${calcEx}
+- Sans tirets dans lignes
+- example = UN exemple résolu avec méthode complète`);
         }
 
-        if (isEncadr) {
-          regles.push(`TYPE D EXERCICE : NUMÉRATION — exercices sur les nombres. Minimum 6 items dans lignes.`);
-        }
+        if (isEncadr) regles.push(`TYPE : NUMÉRATION. Minimum 6 items dans lignes.`);
 
         if (isProbl) {
-          regles.push(`TYPE D EXERCICE : PROBLÈME — énoncé en texte avec données chiffrées.`);
-          regles.push(`FORMAT PROBLÈME STRICT :
-- "example" = rappel de leçon EN PLUSIEURS LIGNES lisibles avec la solution complète montrée. Format : "Exemple :\nÉnoncé...\nCalcul étape 1 : X - Y = Z\nCalcul étape 2 : Z + W = R\nRéponse : R [unité]"
-- "lignes" = l exercice de Léo avec UNIQUEMENT des blancs à remplir. JAMAIS de réponse pré-remplie.
-  Format lignes : ["Énoncé complet du problème de Léo.", "Calcul : ___ - ___ = ___", "Réponse : ___"]
-- Les chiffres de l énoncé de Léo doivent être DIFFÉRENTS de ceux de l exemple`);
+          regles.push(`TYPE : PROBLÈME.
+- example = solution complète multi-lignes avec calculs détaillés
+- lignes = énoncé de Léo avec blancs ___ uniquement, JAMAIS les réponses
+- Chiffres différents de l example`);
         }
 
         if (isDictee) {
-          regles.push(`TYPE D EXERCICE : DICTÉE — texte court à dicter.`);
-          regles.push(`FORMAT DICTÉE :
+          regles.push(`TYPE : DICTÉE.
 - lignes[0] = "MOTS À PRÉPARER : mot1 | mot2 | mot3 | mot4 | mot5"
-- lignes[1..n] = phrases du texte (3-5 phrases CE1, 5-7 phrases CE2)
-- parentNote : méthode (lire → apprendre → dicter phrase par phrase)`);
+- lignes[1..n] = phrases du texte`);
+        }
+
+        // ── NATURE DES MOTS : consigne explicite + liste des natures ──
+        if (isNature) {
+          regles.push(`TYPE : NATURE DES MOTS.
+RÈGLES ABSOLUES :
+1. instructions = "Le mot EN MAJUSCULES dans chaque phrase est à identifier. Natures possibles : nom, verbe, adjectif qualificatif, adverbe, pronom, déterminant, préposition."
+2. Chaque ligne = une phrase avec UN SEUL mot en MAJUSCULES + " →" à la fin
+3. example = "Le PETIT chat dort. → petit = adjectif qualificatif"
+4. Les mots en majuscules dans lignes doivent être DIFFÉRENTS du mot de l example
+5. Varier les natures : nom, verbe, adjectif, adverbe, pronom, déterminant — pas que des adjectifs
+6. JAMAIS mettre la réponse dans lignes`);
+        }
+
+        // ── VOCABULAIRE : interdire mots de l exemple dans l exercice ──
+        if (isVocabType) {
+          regles.push(`TYPE : VOCABULAIRE.
+RÈGLES ABSOLUES :
+1. Les mots utilisés dans "example" NE DOIVENT PAS apparaître dans "lignes" — sinon l enfant a la réponse
+2. lignes = uniquement questions/mots à compléter, sans réponses
+3. parentNote = "" (vide)`);
         }
 
         const reglesTxt = regles.join("\n\n");
@@ -620,24 +592,10 @@ RÈGLES ABSOLUES :
           const exempleIdx = lignesModele.findIndex(l=>l.startsWith("Exemple"));
           const exempleResolu = exempleIdx>=0 ? lignesModele[exempleIdx+1] || "" : "";
           const lignesNumerotees = lignesModele.filter(l=>/^\d+\./.test(l)).join("\n");
-
-          const transpoPrompt = `Tu es instituteur CE1/CE2. Génère 5 nouvelles phrases pour un exercice de transposition, niveau ${niv}.
-
-MODÈLE EXACT du programme national (reproduis cette structure) :
-${lignesNumerotees}
-
-PRINCIPE : chaque ligne = une phrase avec un sujet source, une flèche, puis le nouveau sujet imposé suivi de tirets.
-Léo doit réécrire la phrase entière avec le nouveau sujet et accorder le verbe.
-
-RÈGLES :
-- Garder exactement le même format : "N. SUJET_SOURCE [verbe] [complément]. → NOUVEAU_SUJET _______________"
-- Utiliser les mêmes paires de sujets que dans le modèle
-- Changer uniquement les verbes et compléments (niveau CE1, phrases simples)
-- NE PAS écrire la phrase transformée après les tirets
-
-JSON uniquement :
-{"title":"Transposition — Change le sujet et accorde le verbe","emoji":"✏️","duration":"${dur} min","instructions":"Réécris chaque phrase avec le nouveau sujet indiqué et accorde bien le verbe","example":"${exempleResolu.replace(/"/g,"'")}","lignes":["1. phrase → SUJET _______________","2. ...","3. ...","4. ...","5. ..."],"parentNote":"Rappeler d accorder le verbe avec le nouveau sujet.","verbsUsed":[],"wordsUsed":[]}`;
-
+          const transpoPrompt = `Tu es instituteur CE1/CE2. Génère 5 nouvelles phrases transposition niveau ${niv}.
+MODÈLE : ${lignesNumerotees}
+RÈGLES : même format "N. SUJET [verbe] [complément]. → NOUVEAU_SUJET ___", verbes différents, NE PAS écrire la réponse.
+JSON : {"title":"Transposition — Change le sujet","emoji":"✏️","duration":"${dur} min","instructions":"Réécris chaque phrase avec le nouveau sujet et accorde le verbe","example":"${exempleResolu.replace(/"/g,"'")}","lignes":["1. ...","2. ...","3. ...","4. ...","5. ..."],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
           try {
             const raw = await callAPI(transpoPrompt, "exercice");
             const clean = raw.replace(/```json|```/g,"").trim();
@@ -648,27 +606,14 @@ JSON uniquement :
         }
 
         if (isNeg && modele) {
-          const negType = st.includes("plus") ? "NE...PLUS" : st.includes("jamais") ? "NE...JAMAIS" : "NE...PAS";
+          const negType = st.includes("plus")?"NE...PLUS":st.includes("jamais")?"NE...JAMAIS":"NE...PAS";
+          const negPas  = st.includes("plus")?"plus":st.includes("jamais")?"jamais":"pas";
           const lignesModele = modele.split("\n").map(l=>l.trim()).filter(Boolean);
           const lignesNumerotees = lignesModele.filter(l=>/^\d+\./.test(l)).join("\n");
-          const negPas = st.includes("plus")?"plus":st.includes("jamais")?"jamais":"pas";
-
-          const negPrompt = `Tu es instituteur CE1/CE2. Génère 5 nouvelles phrases pour un exercice de négation avec ${negType}, niveau ${niv}.
-
-MODÈLE EXACT du programme national (reproduis cette structure) :
-${lignesNumerotees}
-
-RÈGLES STRICTES :
-- 5 phrases affirmatives numérotées, chacune se termine par " → _______________"
-- Sujets VARIÉS à chaque ligne : il, elle, nous, tu, ils, elles, un prénom, un nom commun
-- Verbes et compléments différents du modèle et entre eux
-- NE PAS écrire la réponse négative — l enfant la cherche lui-même
-- Phrases correctes en français (ex: "Il mange une pomme" → "Il ne mange pas de pomme", PAS "pas une pomme")
-- Niveau CE1, phrases courtes et simples
-
-JSON uniquement :
-{"title":"Négation avec ${negType}","emoji":"✏️","duration":"${dur} min","instructions":"Transforme chaque phrase à la forme négative avec ${negType}","example":"Il joue au foot. → Il ne joue ${negPas} au foot.","lignes":["1. phrase affirmative. → _______________","2. ...","3. ...","4. ...","5. ..."],"parentNote":"Rappeler : NE se place avant le verbe, ${negPas.toUpperCase()} après.","verbsUsed":[],"wordsUsed":[]}`;
-
+          const negPrompt = `Tu es instituteur CE1/CE2. Génère 5 phrases négation ${negType} niveau ${niv}.
+MODÈLE : ${lignesNumerotees}
+RÈGLES : phrases affirmatives numérotées se terminant par "→", sujets variés, NE PAS écrire la réponse.
+JSON : {"title":"Négation avec ${negType}","emoji":"✏️","duration":"${dur} min","instructions":"Transforme chaque phrase à la forme négative avec ${negType}","example":"Il joue au foot. → Il ne joue ${negPas} au foot.","lignes":["1. ...","2. ...","3. ...","4. ...","5. ..."],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
           try {
             const raw = await callAPI(negPrompt, "exercice");
             const clean = raw.replace(/```json|```/g,"").trim();
@@ -679,30 +624,22 @@ JSON uniquement :
         }
 
         const prompt = modele
-          ? `Tu es un instituteur expert CE1/CE2 en France. Exercice pour ${CHILD_NAME}, niveau ${niv}.
-
-MODÈLE OFFICIEL DU PROGRAMME NATIONAL :
+          ? `Tu es instituteur CE1/CE2 expert. Exercice pour ${CHILD_NAME}, niveau ${niv}.
+MODÈLE PROGRAMME NATIONAL :
 ---
-${modele.slice(0,700)}
+${modele.slice(0,600)}
 ---
-
-INSTRUCTION : même structure pédagogique que le modèle. Renouvelle uniquement les valeurs (chiffres, verbes, mots).
-
+Même structure, renouvelle uniquement les valeurs.
 ${reglesTxt}
-${focStr?`\nCONTRAINTES :\n${focStr}`:""}
-
-RÈGLE ABSOLUE ANTI-RÉPONSES : dans "lignes", NE JAMAIS écrire les réponses. Les lignes = uniquement questions et blancs ___ que l enfant remplit.
-
-JSON uniquement (aucun texte avant ou après) :
-{"title":"titre précis avec type exact","emoji":"...","duration":"${dur} min","instructions":"consigne 1 phrase CE1","example":"${isCalc && st.includes("multiplication") ? "" : "exemple résolu court — UNE seule démonstration"}","lignes":[...],"parentNote":"conseil parent court","verbsUsed":[],"wordsUsed":[]}`
-
-          : `Tu es un instituteur expert CE1/CE2 en France. Exercice "${st.replace(/_/g," ")}" pour ${CHILD_NAME}, niveau ${niv}.
-
-${reglesTxt}
-${focStr?`\nCONTRAINTES :\n${focStr}`:""}
-
+${focStr?`CONTRAINTES :\n${focStr}`:""}
+RÈGLE ANTI-RÉPONSES : dans "lignes", jamais les réponses — uniquement questions et blancs ___.
 JSON uniquement :
-{"title":"titre précis","emoji":"...","duration":"${dur} min","instructions":"consigne 1 phrase CE1","example":"","lignes":[...],"parentNote":"conseil parent court","verbsUsed":[],"wordsUsed":[]}`;
+{"title":"titre précis","emoji":"...","duration":"${dur} min","instructions":"consigne claire CE1 — précise le mot à identifier si nature des mots","example":"exemple résolu","lignes":[...],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`
+          : `Tu es instituteur CE1/CE2 expert. Exercice "${st.replace(/_/g," ")}" pour ${CHILD_NAME}, niveau ${niv}.
+${reglesTxt}
+${focStr?`CONTRAINTES :\n${focStr}`:""}
+JSON uniquement :
+{"title":"titre précis","emoji":"...","duration":"${dur} min","instructions":"consigne claire CE1","example":"","lignes":[...],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
 
         const raw   = await callAPI(prompt,"exercice");
         const clean = raw.replace(/```json|```/g,"").trim();
@@ -724,15 +661,8 @@ JSON uniquement :
     setGen(false);
   }
 
-  function genRapide(){
-    const niv=prof.weeklyConfig.difficulty||"CE1/CE2";
-    generate(AUTO_TYPES[niv]||AUTO_TYPES["CE1/CE2"]);
-  }
-
-  function genMesure(){
-    if(mesure.length===0){toast$("Sélectionne au moins un exercice !","#f59e0b");return;}
-    generate(mesure);
-  }
+  function genRapide(){ const niv=prof.weeklyConfig.difficulty||"CE1/CE2"; generate(AUTO_TYPES[niv]||AUTO_TYPES["CE1/CE2"]); }
+  function genMesure(){ if(mesure.length===0){toast$("Sélectionne au moins un exercice !","#f59e0b");return;} generate(mesure); }
 
   async function validate(){
     if(stars===0){toast$("Donne une note !","#f59e0b");return;}
@@ -753,13 +683,12 @@ JSON uniquement :
     setMsgs(p=>[...p,{r:"u",t:msg}]); setChatIn(""); setChatBusy(true);
     try{
       const eq=unlocked(prof.totalPoints,prof.unlockedBonusItems||[]).map(i=>i.l).join(", ");
-      const raw=await callAPI(`Léo a ${prof.totalPoints} points. Ses équipements : ${eq}. Léo dit : ${msg}`,"chat");
+      const raw=await callAPI(`Léo a ${prof.totalPoints} points. Équipements : ${eq}. Léo dit : ${msg}`,"chat");
       setMsgs(p=>[...p,{r:"a",t:raw.replace(/^["']|["']$/g,"").trim()||"En avant l aventure ! 🌲"}]);
     }catch{setMsgs(p=>[...p,{r:"a",t:"Oups ! Réessaie 🌲"}]);}
     setChatBusy(false);
   }
 
-  // ── STYLES ────────────────────────────────────────────────────────────────
   const S={
     app:{minHeight:"100vh",background:"linear-gradient(160deg,#020817 0%,#0f172a 40%,#1a103a 70%,#0c1220 100%)",fontFamily:"Georgia,serif",color:"white",paddingBottom:90},
     hdr:{background:"rgba(2,8,23,.9)",borderBottom:"1px solid rgba(99,102,241,.2)",padding:"14px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",backdropFilter:"blur(20px)",position:"sticky",top:0,zIndex:100,boxShadow:"0 4px 30px rgba(0,0,0,.5)"},
@@ -781,28 +710,20 @@ JSON uniquement :
   const ulk = unlocked(prof.totalPoints,prof.unlockedBonusItems||[]);
   const eqp = (prof.equippedItems||[]).map(e=>ITEMS.find(i=>i.e===e)).filter(Boolean);
 
-  // ── ÉCRAN CHARGEMENT GÉNÉRATION ── (juste ici, avant impression)
   if(gen) return(
     <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"linear-gradient(160deg,#020817 0%,#0f172a 40%,#1a103a 70%,#0c1220 100%)"}}>
       <div style={{textAlign:"center",padding:"0 32px"}}>
         <Raton items={eqp} size={120} anim/>
-        <div style={{marginTop:24,fontSize:18,fontWeight:700,color:"#a5b4fc",fontFamily:"Georgia,serif"}}>
-          Roki prépare ta séance…
-        </div>
-        <div style={{marginTop:8,fontSize:13,color:"#475569",fontFamily:"Georgia,serif"}}>
-          Génération en cours, ça peut prendre 20–30 secondes
-        </div>
+        <div style={{marginTop:24,fontSize:18,fontWeight:700,color:"#a5b4fc",fontFamily:"Georgia,serif"}}>Roki prépare ta séance…</div>
+        <div style={{marginTop:8,fontSize:13,color:"#475569",fontFamily:"Georgia,serif"}}>Génération en cours, ça peut prendre 20–30 secondes</div>
         <div style={{marginTop:24,display:"flex",justifyContent:"center",gap:8}}>
-          {[0,1,2].map(i=>(
-            <div key={i} style={{width:10,height:10,borderRadius:"50%",background:"#6366f1",animation:"pulse 1.2s ease-in-out infinite",animationDelay:`${i*0.3}s`}}/>
-          ))}
+          {[0,1,2].map(i=>(<div key={i} style={{width:10,height:10,borderRadius:"50%",background:"#6366f1",animation:"pulse 1.2s ease-in-out infinite",animationDelay:`${i*0.3}s`}}/>))}
         </div>
       </div>
       <style>{`@keyframes pulse{0%,100%{opacity:.2;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}`}</style>
     </div>
   );
 
-  // ── IMPRESSION ──
   if(print&&session)return(
     <div style={{fontFamily:"Arial,sans-serif",padding:"10mm 12mm",color:"#1e293b",background:"white"}}>
       <style>{`@page{size:A4;margin:10mm 12mm;}@media print{body{margin:0;}}`}</style>
@@ -818,9 +739,9 @@ JSON uniquement :
             <div style={{marginLeft:"auto",fontSize:10,color:"#94a3b8"}}>{ex.duration}</div>
           </div>
           <p style={{fontStyle:"italic",color:"#475569",margin:"0 0 4px",fontSize:11}}>📌 {ex.instructions}</p>
-          {ex.example&&!["present","imparfait","futur","passe","conditionnel","multiplication","soustraction","addition","division","tables"].some(t=>ex.type?.includes(t))&&<p style={{background:"#eff6ff",padding:"4px 10px",borderRadius:6,fontSize:11,color:"#1d4ed8",margin:"0 0 6px",borderLeft:"2px solid #3b82f6"}}>{ex.example}</p>}
+          {ex.example&&!hideExample(ex.type)&&<p style={{background:"#eff6ff",padding:"4px 10px",borderRadius:6,fontSize:11,color:"#1d4ed8",margin:"0 0 6px",borderLeft:"2px solid #3b82f6"}}>{ex.example}</p>}
           <ExCard ex={ex} dark={false}/>
-          {ex.parentNote&&<p style={{fontSize:10,color:"#7c3aed",marginTop:3,fontStyle:"italic"}}>👨‍👩‍👧 {ex.parentNote}</p>}
+          {ex.parentNote&&!hideParentNote(ex.type)&&<p style={{fontSize:10,color:"#7c3aed",marginTop:3,fontStyle:"italic"}}>👨‍👩‍👧 {ex.parentNote}</p>}
         </div>
       ))}
       <div style={{textAlign:"center",padding:8,background:"#f0fdf4",borderRadius:8,color:"#166534",fontStyle:"italic",fontSize:12,marginTop:10}}>💪 Bravo {CHILD_NAME} !</div>
@@ -837,9 +758,7 @@ JSON uniquement :
 
       <div style={S.hdr}>
         <div style={{display:"flex",alignItems:"center",gap:12}}>
-          <div style={{cursor:"pointer"}} onClick={()=>setView("cabane")}>
-            <Raton items={eqp} size={48} anim/>
-          </div>
+          <div style={{cursor:"pointer"}} onClick={()=>setView("cabane")}><Raton items={eqp} size={48} anim/></div>
           <div>
             <div style={{fontSize:16,fontWeight:700}}>École de {CHILD_NAME}</div>
             <div style={{fontSize:11,color:"#475569",display:"flex",alignItems:"center",gap:6}}>
@@ -857,7 +776,6 @@ JSON uniquement :
 
       <div style={{...S.wrap,position:"relative",zIndex:1}}>
 
-        {/* ══ EXERCICES ══ */}
         {view==="exercises"&&session&&(
           <>
             <div style={{display:"flex",alignItems:"center",gap:10,padding:"20px 0 12px"}}>
@@ -871,10 +789,10 @@ JSON uniquement :
                   <span style={{fontSize:26}}>{ex.emoji}</span>
                   <div><div style={{fontWeight:700,fontSize:15,color:"#e2e8f0"}}>Exercice {i+1} — {ex.title}</div><div style={{fontSize:12,color:"#475569"}}>⏱ {ex.duration}</div></div>
                 </div>
-                {!["present","imparfait","futur","passe","conditionnel","multiplication","soustraction","addition","division","tables"].some(t=>ex.type?.includes(t))&&<div style={{background:"rgba(99,102,241,.1)",borderRadius:12,padding:"10px 14px",marginBottom:10,fontSize:13,color:"#a5b4fc",fontStyle:"italic",borderLeft:"2px solid #6366f1"}}>📌 {ex.instructions}</div>}
-                {ex.example&&!["present","imparfait","futur","passe","conditionnel","multiplication","soustraction","addition","division","tables"].some(t=>ex.type?.includes(t))&&<div style={{background:"rgba(52,211,153,.08)",borderRadius:12,padding:"10px 14px",marginBottom:12,fontSize:13,color:"#6ee7b7",borderLeft:"2px solid #34d399"}}>{ex.example}</div>}
+                {!hideInstructions(ex.type)&&<div style={{background:"rgba(99,102,241,.1)",borderRadius:12,padding:"10px 14px",marginBottom:10,fontSize:13,color:"#a5b4fc",fontStyle:"italic",borderLeft:"2px solid #6366f1"}}>📌 {ex.instructions}</div>}
+                {ex.example&&!hideExample(ex.type)&&<div style={{background:"rgba(52,211,153,.08)",borderRadius:12,padding:"10px 14px",marginBottom:12,fontSize:13,color:"#6ee7b7",borderLeft:"2px solid #34d399"}}>{ex.example}</div>}
                 <ExCard ex={ex} dark/>
-                {ex.parentNote&&!["present","imparfait","futur","passe","conditionnel","multiplication","soustraction","addition","division","tables"].some(t=>ex.type?.includes(t))&&<div style={{marginTop:10,fontSize:12,color:"#7c3aed",fontStyle:"italic"}}>👨‍👩‍👧 {ex.parentNote}</div>}
+                {ex.parentNote&&!hideParentNote(ex.type)&&<div style={{marginTop:10,fontSize:12,color:"#7c3aed",fontStyle:"italic"}}>👨‍👩‍👧 {ex.parentNote}</div>}
               </div>
             ))}
             {!score?(
@@ -897,7 +815,6 @@ JSON uniquement :
           </>
         )}
 
-        {/* ══ HOME ══ */}
         {view==="home"&&(
           <>
             <div style={{display:"flex",borderBottom:"1px solid rgba(99,102,241,.15)",marginTop:16,marginBottom:20}}>
@@ -942,13 +859,10 @@ JSON uniquement :
                     </div>
                   )}
                 </div>
-
                 <div style={S.card}>
                   <div style={{fontSize:13,color:"#64748b",marginBottom:4}}>💬 Note pour la séance <span style={{fontSize:11}}>(optionnel)</span></div>
                   <textarea style={{...S.inp,marginBottom:14,minHeight:60}} placeholder="Léo a eu du mal avec les accords… la maîtresse a demandé de revoir les tables de 7…" value={ctx} onChange={e=>setCtx(e.target.value)}/>
-                  <div style={{fontSize:12,color:"#475569",marginBottom:10}}>
-                    ⚡ L app génère automatiquement 5 exercices adaptés au niveau <strong style={{color:"#a5b4fc"}}>{prof.weeklyConfig?.difficulty}</strong>
-                  </div>
+                  <div style={{fontSize:12,color:"#475569",marginBottom:10}}>⚡ L app génère automatiquement 5 exercices adaptés au niveau <strong style={{color:"#a5b4fc"}}>{prof.weeklyConfig?.difficulty}</strong></div>
                   <button style={{...S.btn,opacity:gen?0.65:1}} onClick={genRapide} disabled={gen}
                     onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 8px 30px rgba(99,102,241,.5)";}}
                     onMouseLeave={e=>{e.currentTarget.style.transform="translateY(0)";e.currentTarget.style.boxShadow="0 4px 20px rgba(99,102,241,.4)";}}>
@@ -965,14 +879,12 @@ JSON uniquement :
                   <div style={{fontWeight:700,marginBottom:6,color:"#e2e8f0"}}>🎯 Composition de la séance sur mesure</div>
                   <div style={{fontSize:12,color:"#475569",marginBottom:16}}>Choisis la catégorie puis le type d exercice exact du programme national.</div>
                   <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
-                    <select style={{...S.inp,flex:1,padding:"10px 12px"}}
-                      value={selCat} onChange={e=>{setSelCat(e.target.value);setSelSub("");}}>
+                    <select style={{...S.inp,flex:1,padding:"10px 12px"}} value={selCat} onChange={e=>{setSelCat(e.target.value);setSelSub("");}}>
                       <option value="">— Catégorie —</option>
                       {Object.keys(CATEGORIES).map(c=><option key={c} value={c}>{c}</option>)}
                     </select>
                     {selCat&&(
-                      <select style={{...S.inp,flex:2,padding:"10px 12px"}}
-                        value={selSub} onChange={e=>setSelSub(e.target.value)}>
+                      <select style={{...S.inp,flex:2,padding:"10px 12px"}} value={selSub} onChange={e=>setSelSub(e.target.value)}>
                         <option value="">— Type d exercice —</option>
                         {CATEGORIES[selCat].map(s=><option key={s} value={s}>{s.replace(/_/g," ")}</option>)}
                       </select>
@@ -999,9 +911,7 @@ JSON uniquement :
                   )}
                   <div style={{fontSize:13,color:"#64748b",marginBottom:8}}>💬 Note pour la séance</div>
                   <textarea style={{...S.inp,marginBottom:14,minHeight:60}} placeholder="Focus sur les tables de 7… revoir les homophones a/à…" value={ctx} onChange={e=>setCtx(e.target.value)}/>
-                  <button style={{...S.btn,opacity:gen?0.65:1}} onClick={genMesure} disabled={gen}>
-                    🎯 Générer la séance sur mesure
-                  </button>
+                  <button style={{...S.btn,opacity:gen?0.65:1}} onClick={genMesure} disabled={gen}>🎯 Générer la séance sur mesure</button>
                 </div>
                 {prof.memory.weakPoints?.length>0&&<div style={S.card}><div style={{fontWeight:700,marginBottom:10,color:"#e2e8f0"}}>🧠 Mémoire</div>{prof.memory.weakPoints.slice(-3).map((w,i)=><div key={i} style={{fontSize:12,color:"#64748b",marginBottom:4}}>· {w}</div>)}</div>}
               </>
@@ -1018,7 +928,6 @@ JSON uniquement :
           </>
         )}
 
-        {/* ══ CABANE ══ */}
         {view==="cabane"&&(
           <>
             <div style={{fontWeight:700,fontSize:17,margin:"20px 0 4px",color:"#e2e8f0"}}>🌲 La cabane de Roki</div>
@@ -1073,7 +982,6 @@ JSON uniquement :
           </>
         )}
 
-        {/* ══ SUIVI ══ */}
         {view==="stats"&&(
           <>
             <div style={{fontWeight:700,fontSize:17,margin:"20px 0 14px",color:"#e2e8f0"}}>📊 Suivi de {CHILD_NAME}</div>
@@ -1102,7 +1010,6 @@ JSON uniquement :
           </>
         )}
 
-        {/* ══ PARAMÈTRES ══ */}
         {view==="settings"&&(
           <>
             <div style={{fontWeight:700,fontSize:17,margin:"20px 0 14px",color:"#e2e8f0"}}>⚙️ Paramètres</div>
