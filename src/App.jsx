@@ -248,7 +248,6 @@ function ExCard({ ex, dark=true }) {
   const ac = dark?"#a5b4fc":"#4f46e5";
   const lignes = ex.lignes || [];
 
-  // ── CONJUGAISON : tableau 2 colonnes, pronom à gauche + tiret à droite ──
   if (fmt === 'conjugaison') {
     const blocs = [];
     let cur = null;
@@ -283,7 +282,6 @@ function ExCard({ ex, dark=true }) {
     );
   }
 
-  // ── FLÈCHE : transposition/négation — phrase source → nouveau sujet + tiret ──
   if (fmt === 'fleche') {
     if (!lignes.length) return <div style={{fontSize:14, color:tc}}>{ex.content||""}</div>;
     return (
@@ -314,7 +312,6 @@ function ExCard({ ex, dark=true }) {
     );
   }
 
-  // ── TROUS : phrases avec ___ à compléter (UN mot) ──
   if (fmt === 'trous') {
     if (!lignes.length) return <div style={{fontSize:14, color:tc, whiteSpace:"pre-line"}}>{ex.content||""}</div>;
     return (
@@ -322,7 +319,6 @@ function ExCard({ ex, dark=true }) {
         {lignes.map((l,i) => {
           const trim = l.trim();
           if (!trim) return <div key={i} style={{height:8}}></div>;
-          // Remplacer ___ par une ligne d'écriture inline
           const parts = trim.split(/_{3,}/);
           if (parts.length > 1) {
             return (
@@ -342,7 +338,6 @@ function ExCard({ ex, dark=true }) {
     );
   }
 
-  // ── CALCUL : exemple à gauche + grille 4 colonnes × 5 rangées à droite ──
   if (fmt === 'calcul') {
     if (!lignes.length) return <div style={{fontSize:14, color:tc, whiteSpace:"pre-line"}}>{ex.content||""}</div>;
     const isMulti = ex.type?.includes("multiplication") || ex.type?.includes("tables") || ex.title?.toLowerCase().includes("multiplication") || ex.title?.toLowerCase().includes("table");
@@ -366,10 +361,10 @@ function ExCard({ ex, dark=true }) {
           )}
           <div style={{flex:1, display:"grid", gridTemplateColumns:"repeat(4, 1fr)", gap:"10px 12px"}}>
             {calcItems.map((item, i) => (
-          <div key={i} style={{display:"flex", alignItems:"baseline", gap:5}}>
-            <span style={{fontWeight:600, fontSize:dark?13:12, color:tc, whiteSpace:"nowrap"}}>{item}</span>
-            <div style={{flex:1, borderBottom:`1.5px solid ${lc}`, minWidth:24, marginBottom:2}}></div>
-          </div>
+              <div key={i} style={{display:"flex", alignItems:"baseline", gap:5}}>
+                <span style={{fontWeight:600, fontSize:dark?13:12, color:tc, whiteSpace:"nowrap"}}>{item}</span>
+                <div style={{flex:1, borderBottom:`1.5px solid ${lc}`, minWidth:24, marginBottom:2}}></div>
+              </div>
             ))}
           </div>
         </div>
@@ -377,8 +372,6 @@ function ExCard({ ex, dark=true }) {
     );
   }
 
-
-  // ── PROBLÈME : énoncé + étapes + réponse ──
   if (fmt === 'probleme') {
     if (!lignes.length) return <div style={{fontSize:14, color:tc, whiteSpace:"pre-line"}}>{ex.content||""}</div>;
     return (
@@ -405,7 +398,6 @@ function ExCard({ ex, dark=true }) {
     );
   }
 
-  // ── DICTÉE : mots à préparer + texte ──
   if (fmt === 'dictee') {
     const motsCle = lignes.find(l => l.includes("MOTS À PRÉPARER") || l.includes("MOTS A PREPARER"));
     const texte = lignes.filter(l => !l.includes("MOTS À PRÉPARER") && !l.includes("MOTS A PREPARER") && l.trim());
@@ -423,7 +415,6 @@ function ExCard({ ex, dark=true }) {
     );
   }
 
-  // ── LIBRE : texte libre, questions ouvertes ──
   if (!lignes.length) return <div style={{fontSize:14, color:tc, lineHeight:2, whiteSpace:"pre-line"}}>{ex.content||""}</div>;
   return (
     <div>
@@ -624,13 +615,10 @@ RÈGLES ABSOLUES :
 
         const reglesTxt = regles.join("\n\n");
 
-        // ── TRANSPOSITION : corpus lu directement, Groq génère nouvelles phrases sur le même modèle ──
         if (isTranspo && modele) {
-          // Extraire l exemple résolu du corpus (ligne après "Exemple :")
           const lignesModele = modele.split("\n").map(l=>l.trim()).filter(Boolean);
           const exempleIdx = lignesModele.findIndex(l=>l.startsWith("Exemple"));
           const exempleResolu = exempleIdx>=0 ? lignesModele[exempleIdx+1] || "" : "";
-          // Extraire les lignes numérotées du corpus comme modèle de structure
           const lignesNumerotees = lignesModele.filter(l=>/^\d+\./.test(l)).join("\n");
 
           const transpoPrompt = `Tu es instituteur CE1/CE2. Génère 5 nouvelles phrases pour un exercice de transposition, niveau ${niv}.
@@ -659,7 +647,6 @@ JSON uniquement :
           continue;
         }
 
-        // ── NÉGATION : même principe, corpus comme modèle de structure ──
         if (isNeg && modele) {
           const negType = st.includes("plus") ? "NE...PLUS" : st.includes("jamais") ? "NE...JAMAIS" : "NE...PAS";
           const lignesModele = modele.split("\n").map(l=>l.trim()).filter(Boolean);
@@ -691,7 +678,6 @@ JSON uniquement :
           continue;
         }
 
-        // ── TOUS LES AUTRES TYPES : appel Groq ──
         const prompt = modele
           ? `Tu es un instituteur expert CE1/CE2 en France. Exercice pour ${CHILD_NAME}, niveau ${niv}.
 
@@ -795,6 +781,27 @@ JSON uniquement :
   const ulk = unlocked(prof.totalPoints,prof.unlockedBonusItems||[]);
   const eqp = (prof.equippedItems||[]).map(e=>ITEMS.find(i=>i.e===e)).filter(Boolean);
 
+  // ── ÉCRAN CHARGEMENT GÉNÉRATION ── (juste ici, avant impression)
+  if(gen) return(
+    <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"linear-gradient(160deg,#020817 0%,#0f172a 40%,#1a103a 70%,#0c1220 100%)"}}>
+      <div style={{textAlign:"center",padding:"0 32px"}}>
+        <Raton items={eqp} size={120} anim/>
+        <div style={{marginTop:24,fontSize:18,fontWeight:700,color:"#a5b4fc",fontFamily:"Georgia,serif"}}>
+          Roki prépare ta séance…
+        </div>
+        <div style={{marginTop:8,fontSize:13,color:"#475569",fontFamily:"Georgia,serif"}}>
+          Génération en cours, ça peut prendre 20–30 secondes
+        </div>
+        <div style={{marginTop:24,display:"flex",justifyContent:"center",gap:8}}>
+          {[0,1,2].map(i=>(
+            <div key={i} style={{width:10,height:10,borderRadius:"50%",background:"#6366f1",animation:"pulse 1.2s ease-in-out infinite",animationDelay:`${i*0.3}s`}}/>
+          ))}
+        </div>
+      </div>
+      <style>{`@keyframes pulse{0%,100%{opacity:.2;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}`}</style>
+    </div>
+  );
+
   // ── IMPRESSION ──
   if(print&&session)return(
     <div style={{fontFamily:"Arial,sans-serif",padding:"10mm 12mm",color:"#1e293b",background:"white"}}>
@@ -811,7 +818,7 @@ JSON uniquement :
             <div style={{marginLeft:"auto",fontSize:10,color:"#94a3b8"}}>{ex.duration}</div>
           </div>
           <p style={{fontStyle:"italic",color:"#475569",margin:"0 0 4px",fontSize:11}}>📌 {ex.instructions}</p>
-          {ex.example&&!["present","imparfait","futur","passe","conditionnel","multiplication"].some(t=>ex.type?.includes(t))&&<p style={{background:"#eff6ff",padding:"4px 10px",borderRadius:6,fontSize:11,color:"#1d4ed8",margin:"0 0 6px",borderLeft:"2px solid #3b82f6"}}>{ex.example}</p>}
+          {ex.example&&!["present","imparfait","futur","passe","conditionnel","multiplication","soustraction","addition","division","tables"].some(t=>ex.type?.includes(t))&&<p style={{background:"#eff6ff",padding:"4px 10px",borderRadius:6,fontSize:11,color:"#1d4ed8",margin:"0 0 6px",borderLeft:"2px solid #3b82f6"}}>{ex.example}</p>}
           <ExCard ex={ex} dark={false}/>
           {ex.parentNote&&<p style={{fontSize:10,color:"#7c3aed",marginTop:3,fontStyle:"italic"}}>👨‍👩‍👧 {ex.parentNote}</p>}
         </div>
@@ -865,9 +872,9 @@ JSON uniquement :
                   <div><div style={{fontWeight:700,fontSize:15,color:"#e2e8f0"}}>Exercice {i+1} — {ex.title}</div><div style={{fontSize:12,color:"#475569"}}>⏱ {ex.duration}</div></div>
                 </div>
                 {!["present","imparfait","futur","passe","conditionnel","multiplication","soustraction","addition","division","tables"].some(t=>ex.type?.includes(t))&&<div style={{background:"rgba(99,102,241,.1)",borderRadius:12,padding:"10px 14px",marginBottom:10,fontSize:13,color:"#a5b4fc",fontStyle:"italic",borderLeft:"2px solid #6366f1"}}>📌 {ex.instructions}</div>}
-{ex.example&&!["present","imparfait","futur","passe","conditionnel","multiplication","soustraction","addition","division","tables"].some(t=>ex.type?.includes(t))&&<p style={{background:"#eff6ff",padding:"4px 10px",borderRadius:6,fontSize:11,color:"#1d4ed8",margin:"0 0 6px",borderLeft:"2px solid #3b82f6"}}>{ex.example}</p>}
-<ExCard ex={ex} dark/>
-{ex.parentNote&&!["present","imparfait","futur","passe","conditionnel","multiplication","soustraction","addition","division","tables"].some(t=>ex.type?.includes(t))&&<div style={{marginTop:10,fontSize:12,color:"#7c3aed",fontStyle:"italic"}}>👨‍👩‍👧 {ex.parentNote}</div>}
+                {ex.example&&!["present","imparfait","futur","passe","conditionnel","multiplication","soustraction","addition","division","tables"].some(t=>ex.type?.includes(t))&&<div style={{background:"rgba(52,211,153,.08)",borderRadius:12,padding:"10px 14px",marginBottom:12,fontSize:13,color:"#6ee7b7",borderLeft:"2px solid #34d399"}}>{ex.example}</div>}
+                <ExCard ex={ex} dark/>
+                {ex.parentNote&&!["present","imparfait","futur","passe","conditionnel","multiplication","soustraction","addition","division","tables"].some(t=>ex.type?.includes(t))&&<div style={{marginTop:10,fontSize:12,color:"#7c3aed",fontStyle:"italic"}}>👨‍👩‍👧 {ex.parentNote}</div>}
               </div>
             ))}
             {!score?(
@@ -942,29 +949,10 @@ JSON uniquement :
                   <div style={{fontSize:12,color:"#475569",marginBottom:10}}>
                     ⚡ L app génère automatiquement 5 exercices adaptés au niveau <strong style={{color:"#a5b4fc"}}>{prof.weeklyConfig?.difficulty}</strong>
                   </div>
-                  <button style={{...S.btn,opacity:gen?.65:1}} onClick={genRapide} disabled={gen}
+                  <button style={{...S.btn,opacity:gen?0.65:1}} onClick={genRapide} disabled={gen}
                     onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 8px 30px rgba(99,102,241,.5)";}}
                     onMouseLeave={e=>{e.currentTarget.style.transform="translateY(0)";e.currentTarget.style.boxShadow="0 4px 20px rgba(99,102,241,.4)";}}>
-                    {gen?"⏳ Génération en cours…":"⚡ Générer une séance rapide"}
-                  if(gen) return(
-  <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"linear-gradient(160deg,#020817 0%,#0f172a 40%,#1a103a 70%,#0c1220 100%)"}}>
-    <div style={{textAlign:"center",padding:"0 32px"}}>
-      <Raton items={eqp} size={120} anim/>
-      <div style={{marginTop:24,fontSize:18,fontWeight:700,color:"#a5b4fc",fontFamily:"Georgia,serif"}}>
-        Roki prépare ta séance…
-      </div>
-      <div style={{marginTop:8,fontSize:13,color:"#475569",fontFamily:"Georgia,serif"}}>
-        Génération en cours, ça peut prendre 20–30 secondes
-      </div>
-      <div style={{marginTop:24,display:"flex",justifyContent:"center",gap:8}}>
-        {[0,1,2].map(i=>(
-          <div key={i} style={{width:10,height:10,borderRadius:"50%",background:"#6366f1",animation:"pulse 1.2s ease-in-out infinite",animationDelay:`${i*0.3}s`}}/>
-        ))}
-      </div>
-    </div>
-    <style>{`@keyframes pulse{0%,100%{opacity:.2;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}`}</style>
-  </div>
-);
+                    ⚡ Générer une séance rapide
                   </button>
                 </div>
                 <div style={S.card}><div style={{fontWeight:700,marginBottom:14,color:"#e2e8f0"}}>📈 Progression récente</div><Chart sessions={prof.sessions}/></div>
@@ -1011,27 +999,8 @@ JSON uniquement :
                   )}
                   <div style={{fontSize:13,color:"#64748b",marginBottom:8}}>💬 Note pour la séance</div>
                   <textarea style={{...S.inp,marginBottom:14,minHeight:60}} placeholder="Focus sur les tables de 7… revoir les homophones a/à…" value={ctx} onChange={e=>setCtx(e.target.value)}/>
-                  <button style={{...S.btn,opacity:gen?.65:1}} onClick={genMesure} disabled={gen}>
-                    {gen?"⏳ Génération en cours…":"🎯 Générer la séance sur mesure"}
-                  if(gen) return(
-  <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"linear-gradient(160deg,#020817 0%,#0f172a 40%,#1a103a 70%,#0c1220 100%)"}}>
-    <div style={{textAlign:"center",padding:"0 32px"}}>
-      <Raton items={eqp} size={120} anim/>
-      <div style={{marginTop:24,fontSize:18,fontWeight:700,color:"#a5b4fc",fontFamily:"Georgia,serif"}}>
-        Roki prépare ta séance…
-      </div>
-      <div style={{marginTop:8,fontSize:13,color:"#475569",fontFamily:"Georgia,serif"}}>
-        Génération en cours, ça peut prendre 20–30 secondes
-      </div>
-      <div style={{marginTop:24,display:"flex",justifyContent:"center",gap:8}}>
-        {[0,1,2].map(i=>(
-          <div key={i} style={{width:10,height:10,borderRadius:"50%",background:"#6366f1",animation:"pulse 1.2s ease-in-out infinite",animationDelay:`${i*0.3}s`}}/>
-        ))}
-      </div>
-    </div>
-    <style>{`@keyframes pulse{0%,100%{opacity:.2;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}`}</style>
-  </div>
-);
+                  <button style={{...S.btn,opacity:gen?0.65:1}} onClick={genMesure} disabled={gen}>
+                    🎯 Générer la séance sur mesure
                   </button>
                 </div>
                 {prof.memory.weakPoints?.length>0&&<div style={S.card}><div style={{fontWeight:700,marginBottom:10,color:"#e2e8f0"}}>🧠 Mémoire</div>{prof.memory.weakPoints.slice(-3).map((w,i)=><div key={i} style={{fontSize:12,color:"#64748b",marginBottom:4}}>· {w}</div>)}</div>}
