@@ -23,7 +23,7 @@ export default async function handler(req, res) {
         model,
         messages,
         temperature: isChat ? 0.8 : 0.4,
-        max_tokens: isChat ? 150 : 4096,
+        max_tokens: isChat ? 150 : 1200,
         response_format: isChat ? undefined : { type: "json_object" }
       }),
     });
