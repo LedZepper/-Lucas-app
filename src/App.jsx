@@ -61,6 +61,8 @@ async function sbCorpus(sousType) {
   } catch { return null; }
 }
 
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
 async function callAPI(prompt, mode = "exercice") {
   const r = await fetch("/api/generate", {
     method: "POST",
@@ -523,7 +525,9 @@ export default function App() {
 
     const exercises = [];
 
-    for (const st of types) {
+    for (let idx = 0; idx < types.length; idx++) {
+      const st = types[idx];
+      if (idx > 0) await sleep(6000);
       try {
         const corpusData = await sbCorpus(st);
         const modele = corpusData?.contenu || null;
@@ -942,6 +946,25 @@ JSON uniquement :
                     onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 8px 30px rgba(99,102,241,.5)";}}
                     onMouseLeave={e=>{e.currentTarget.style.transform="translateY(0)";e.currentTarget.style.boxShadow="0 4px 20px rgba(99,102,241,.4)";}}>
                     {gen?"⏳ Génération en cours…":"⚡ Générer une séance rapide"}
+                  if(gen) return(
+  <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"linear-gradient(160deg,#020817 0%,#0f172a 40%,#1a103a 70%,#0c1220 100%)"}}>
+    <div style={{textAlign:"center",padding:"0 32px"}}>
+      <Raton items={eqp} size={120} anim/>
+      <div style={{marginTop:24,fontSize:18,fontWeight:700,color:"#a5b4fc",fontFamily:"Georgia,serif"}}>
+        Roki prépare ta séance…
+      </div>
+      <div style={{marginTop:8,fontSize:13,color:"#475569",fontFamily:"Georgia,serif"}}>
+        Génération en cours, ça peut prendre 20–30 secondes
+      </div>
+      <div style={{marginTop:24,display:"flex",justifyContent:"center",gap:8}}>
+        {[0,1,2].map(i=>(
+          <div key={i} style={{width:10,height:10,borderRadius:"50%",background:"#6366f1",animation:"pulse 1.2s ease-in-out infinite",animationDelay:`${i*0.3}s`}}/>
+        ))}
+      </div>
+    </div>
+    <style>{`@keyframes pulse{0%,100%{opacity:.2;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}`}</style>
+  </div>
+);
                   </button>
                 </div>
                 <div style={S.card}><div style={{fontWeight:700,marginBottom:14,color:"#e2e8f0"}}>📈 Progression récente</div><Chart sessions={prof.sessions}/></div>
@@ -990,6 +1013,25 @@ JSON uniquement :
                   <textarea style={{...S.inp,marginBottom:14,minHeight:60}} placeholder="Focus sur les tables de 7… revoir les homophones a/à…" value={ctx} onChange={e=>setCtx(e.target.value)}/>
                   <button style={{...S.btn,opacity:gen?.65:1}} onClick={genMesure} disabled={gen}>
                     {gen?"⏳ Génération en cours…":"🎯 Générer la séance sur mesure"}
+                  if(gen) return(
+  <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"linear-gradient(160deg,#020817 0%,#0f172a 40%,#1a103a 70%,#0c1220 100%)"}}>
+    <div style={{textAlign:"center",padding:"0 32px"}}>
+      <Raton items={eqp} size={120} anim/>
+      <div style={{marginTop:24,fontSize:18,fontWeight:700,color:"#a5b4fc",fontFamily:"Georgia,serif"}}>
+        Roki prépare ta séance…
+      </div>
+      <div style={{marginTop:8,fontSize:13,color:"#475569",fontFamily:"Georgia,serif"}}>
+        Génération en cours, ça peut prendre 20–30 secondes
+      </div>
+      <div style={{marginTop:24,display:"flex",justifyContent:"center",gap:8}}>
+        {[0,1,2].map(i=>(
+          <div key={i} style={{width:10,height:10,borderRadius:"50%",background:"#6366f1",animation:"pulse 1.2s ease-in-out infinite",animationDelay:`${i*0.3}s`}}/>
+        ))}
+      </div>
+    </div>
+    <style>{`@keyframes pulse{0%,100%{opacity:.2;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}`}</style>
+  </div>
+);
                   </button>
                 </div>
                 {prof.memory.weakPoints?.length>0&&<div style={S.card}><div style={{fontWeight:700,marginBottom:10,color:"#e2e8f0"}}>🧠 Mémoire</div>{prof.memory.weakPoints.slice(-3).map((w,i)=><div key={i} style={{fontSize:12,color:"#64748b",marginBottom:4}}>· {w}</div>)}</div>}
