@@ -364,10 +364,10 @@ function ExCard({ ex, dark=true }) {
           )}
           <div style={{flex:1, display:"grid", gridTemplateColumns:"repeat(4, 1fr)", gap:"10px 12px"}}>
             {calcItems.map((item, i) => (
-              <div key={i} style={{display:"flex", alignItems:"center", gap:5}}>
-                <span style={{fontWeight:600, fontSize:dark?13:12, color:tc, whiteSpace:"nowrap"}}>{item}</span>
-                <div style={{flex:1, borderBottom:`1px solid ${lc}`, height:1, minWidth:16}}></div>
-              </div>
+          <div key={i} style={{display:"flex", alignItems:"baseline", gap:5}}>
+            <span style={{fontWeight:600, fontSize:dark?13:12, color:tc, whiteSpace:"nowrap"}}>{item}</span>
+            <div style={{flex:1, borderBottom:`1.5px solid ${lc}`, minWidth:24, marginBottom:2}}></div>
+          </div>
             ))}
           </div>
         </div>
