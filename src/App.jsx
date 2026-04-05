@@ -218,7 +218,8 @@ const isConj  = t => CONJ_TYPES.some(x => t?.includes(x));
 const isVocab = t => VOCAB_TYPES.some(x => t?.includes(x));
 const hideInstructions = t => isMath(t) || isConj(t);
 const hideExample      = t => isMath(t) || isConj(t);
-const hideParentNote   = t => isMath(t) || isConj(t) || isVocab(t);
+// parentNote masqué partout — on ne l'affiche plus nulle part
+const hideParentNote   = () => true;
 
 function ExCard({ ex, dark=true }) {
   if (!ex) return null;
@@ -324,7 +325,7 @@ function ExCard({ ex, dark=true }) {
     const calcItems = lignes
       .map(l => l.replace(/^\d+[\.\)]\s*/, "").replace(/_{2,}/g, "").trimEnd())
       .filter(Boolean)
-      .slice(0, 15);
+      .slice(0, 18);
     return (
       <div>
         {isMulti && (
@@ -501,6 +502,7 @@ export default function App() {
 
         const isConjType  = st.includes("present")||st.includes("imparfait")||st.includes("futur")||st.includes("passe")||st.includes("conditionnel")||st.includes("identification");
         const isCalcType  = ["multiplication","soustraction","addition","division"].some(t=>st.includes(t));
+        const isTablesType = st.includes("tables_melange");
         const isEncadr    = st.includes("encadrement")||st.includes("numeration")||st.includes("calcul_mental");
         const isProbl     = st.includes("probleme");
         const isDictee    = st.includes("dictee");
@@ -538,7 +540,14 @@ FORMAT OBLIGATOIRE :
 - example = "Il joue au foot. → Il ne joue ${negPas} au foot."`);
         }
 
-        if (isCalcType) {
+        if (isTablesType) {
+          regles.push(`TYPE : MULTIPLICATION — Tables mélangées de 1 à 10.
+- Exactement 18 items dans lignes (3 colonnes × 6)
+- Format lignes : ["4 × 6 =","7 × 8 =","3 × 9 =", ...]
+- Sans tirets dans lignes
+- Mélange varié de toutes les tables de 1 à 10
+- example = "" (vide)`);
+        } else if (isCalcType) {
           const calcType = st.includes("multiplication")?"MULTIPLICATION (× uniquement)":st.includes("soustraction")?"SOUSTRACTION (− uniquement)":st.includes("addition")?"ADDITION (+ uniquement)":"DIVISION (÷ uniquement)";
           const calcEx   = st.includes("multiplication")?`["4 × 6 =","7 × 8 =","3 × 9 ="]`:st.includes("soustraction")?`["85 − 47 =","63 − 28 =","91 − 54 ="]`:st.includes("addition")?`["43 + 29 =","67 + 35 =","58 + 26 ="]`:`["24 ÷ 4 =","36 ÷ 6 =","45 ÷ 9 ="]`;
           const calcExemple = st.includes("multiplication")?"4 × 6 = 24 (car 6 × 4 = 24)":st.includes("soustraction")?"85 − 47 = 38 (on pose et on soustrait colonne par colonne)":st.includes("addition")?"43 + 29 = 72 (on pose et on additionne colonne par colonne)":"48 ÷ 6 = 8 (car 6 × 8 = 48)";
@@ -581,7 +590,9 @@ RÈGLES ABSOLUES :
 RÈGLES ABSOLUES :
 1. instructions = "Trouve des mots de la même famille que le mot en majuscules."
 2. example = "MER → marin, maritime, amerrir" (mot racine en majuscules → exemples de mots dérivés)
-3. lignes = 5 lignes format exact : ["1. TERRE →", "2. FEU →", "3. PORT →", "4. JARDIN →", "5. FORÊT →"]
+3. lignes = 5 lignes format exact avec des mots simples que les enfants de CE1/CE2 connaissent bien.
+   Choisis parmi ces mots racines adaptés à l age : PAIN, LAIT, FLEUR, BOIS, MAISON, MAIN, DENT, NUIT, JOUR, NEIGE, PLUIE, VENT, HERBE, CHAMP, SOLEIL, TERRE, EAU, FEU, CHAT, CHIEN
+   Format : ["1. MOT →", "2. MOT →", "3. MOT →", "4. MOT →", "5. MOT →"]
 4. Les mots racines dans lignes doivent être DIFFÉRENTS de MER (le mot de l example)
 5. JAMAIS écrire les mots dérivés dans lignes — l enfant les trouve lui-même
 6. parentNote = "" (vide)`);
@@ -749,7 +760,6 @@ JSON uniquement :
           <p style={{fontStyle:"italic",color:"#475569",margin:"0 0 4px",fontSize:11}}>📌 {ex.instructions}</p>
           {ex.example&&!hideExample(ex.type)&&<p style={{background:"#eff6ff",padding:"4px 10px",borderRadius:6,fontSize:11,color:"#1d4ed8",margin:"0 0 6px",borderLeft:"2px solid #3b82f6"}}>{ex.example}</p>}
           <ExCard ex={ex} dark={false}/>
-          {ex.parentNote&&!hideParentNote(ex.type)&&<p style={{fontSize:10,color:"#7c3aed",marginTop:3,fontStyle:"italic"}}>👨‍👩‍👧 {ex.parentNote}</p>}
         </div>
       ))}
       <div style={{textAlign:"center",padding:8,background:"#f0fdf4",borderRadius:8,color:"#166534",fontStyle:"italic",fontSize:12,marginTop:10}}>💪 Bravo {CHILD_NAME} !</div>
@@ -800,7 +810,6 @@ JSON uniquement :
                 {!hideInstructions(ex.type)&&<div style={{background:"rgba(99,102,241,.1)",borderRadius:12,padding:"10px 14px",marginBottom:10,fontSize:13,color:"#a5b4fc",fontStyle:"italic",borderLeft:"2px solid #6366f1"}}>📌 {ex.instructions}</div>}
                 {ex.example&&!hideExample(ex.type)&&<div style={{background:"rgba(52,211,153,.08)",borderRadius:12,padding:"10px 14px",marginBottom:12,fontSize:13,color:"#6ee7b7",borderLeft:"2px solid #34d399"}}>{ex.example}</div>}
                 <ExCard ex={ex} dark/>
-                {ex.parentNote&&!hideParentNote(ex.type)&&<div style={{marginTop:10,fontSize:12,color:"#7c3aed",fontStyle:"italic"}}>👨‍👩‍👧 {ex.parentNote}</div>}
               </div>
             ))}
             {!score?(
