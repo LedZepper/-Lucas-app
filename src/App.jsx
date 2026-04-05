@@ -210,7 +210,6 @@ function Chart({ sessions }) {
   );
 }
 
-// ─── HELPERS visibilité ───────────────────────────────────────────────────────
 const MATH_TYPES  = ["multiplication","soustraction","addition","division","tables"];
 const CONJ_TYPES  = ["present","imparfait","futur","passe","conditionnel"];
 const VOCAB_TYPES = ["familles_de_mots","synonymes","antonymes","sens_contexte","prefixes_suffixes","niveaux_de_langue"];
@@ -319,7 +318,6 @@ function ExCard({ ex, dark=true }) {
     );
   }
 
-  // ── CALCUL : exemple EN LARGEUR au-dessus, grille 3 colonnes × 5, tirets longs ──
   if (fmt === 'calcul') {
     if (!lignes.length) return <div style={{fontSize:14, color:tc, whiteSpace:"pre-line"}}>{ex.content||""}</div>;
     const isMulti = ex.type?.includes("multiplication") || ex.type?.includes("tables") || ex.title?.toLowerCase().includes("multiplication") || ex.title?.toLowerCase().includes("table");
@@ -510,6 +508,7 @@ export default function App() {
         const isNeg       = st.includes("negation");
         const isNature    = st.includes("nature_des_mots") || st.includes("classes_de_mots");
         const isVocabType = VOCAB_TYPES.some(t=>st.includes(t));
+        const isFamilles  = st.includes("familles_de_mots");
 
         const dur = Math.max(5, Math.round((weeklyConfig.duration||25)/types.length));
         const regles = [];
@@ -542,11 +541,12 @@ FORMAT OBLIGATOIRE :
         if (isCalcType) {
           const calcType = st.includes("multiplication")?"MULTIPLICATION (× uniquement)":st.includes("soustraction")?"SOUSTRACTION (− uniquement)":st.includes("addition")?"ADDITION (+ uniquement)":"DIVISION (÷ uniquement)";
           const calcEx   = st.includes("multiplication")?`["4 × 6 =","7 × 8 =","3 × 9 ="]`:st.includes("soustraction")?`["85 − 47 =","63 − 28 =","91 − 54 ="]`:st.includes("addition")?`["43 + 29 =","67 + 35 =","58 + 26 ="]`:`["24 ÷ 4 =","36 ÷ 6 =","45 ÷ 9 ="]`;
+          const calcExemple = st.includes("multiplication")?"4 × 6 = 24 (car 6 × 4 = 24)":st.includes("soustraction")?"85 − 47 = 38 (on pose et on soustrait colonne par colonne)":st.includes("addition")?"43 + 29 = 72 (on pose et on additionne colonne par colonne)":"48 ÷ 6 = 8 (car 6 × 8 = 48)";
           regles.push(`TYPE : ${calcType} — UNIQUEMENT ce type, jamais mélanger.
 - Exactement 15 items dans lignes (3 colonnes × 5)
 - Format : ${calcEx}
 - Sans tirets dans lignes
-- example = UN exemple résolu avec méthode complète`);
+- example = "${calcExemple}" — UNE SEULE ligne claire, format : opération = résultat (explication courte)`);
         }
 
         if (isEncadr) regles.push(`TYPE : NUMÉRATION. Minimum 6 items dans lignes.`);
@@ -564,23 +564,31 @@ FORMAT OBLIGATOIRE :
 - lignes[1..n] = phrases du texte`);
         }
 
-        // ── NATURE DES MOTS : consigne explicite + liste des natures ──
         if (isNature) {
           regles.push(`TYPE : NATURE DES MOTS.
 RÈGLES ABSOLUES :
-1. instructions = "Le mot EN MAJUSCULES dans chaque phrase est à identifier. Natures possibles : nom, verbe, adjectif qualificatif, adverbe, pronom, déterminant, préposition."
-2. Chaque ligne = une phrase avec UN SEUL mot en MAJUSCULES + " →" à la fin
+1. instructions = "Identifie la nature du mot EN MAJUSCULES dans chaque phrase. Natures possibles : nom, verbe, adjectif qualificatif, adverbe, pronom, déterminant, préposition."
+2. Chaque ligne = une phrase courte avec UN SEUL mot en MAJUSCULES + " →" à la fin
 3. example = "Le PETIT chat dort. → petit = adjectif qualificatif"
-4. Les mots en majuscules dans lignes doivent être DIFFÉRENTS du mot de l example
-5. Varier les natures : nom, verbe, adjectif, adverbe, pronom, déterminant — pas que des adjectifs
-6. JAMAIS mettre la réponse dans lignes`);
+4. Les mots en majuscules dans lignes doivent être DIFFÉRENTS de PETIT (le mot de l example)
+5. Varier les natures sur les phrases : inclure au moins 1 nom, 1 verbe, 1 adjectif, 1 adverbe
+6. JAMAIS mettre la réponse après "→" dans lignes
+7. parentNote = "" (vide)`);
         }
 
-        // ── VOCABULAIRE : interdire mots de l exemple dans l exercice ──
-        if (isVocabType) {
+        if (isFamilles) {
+          regles.push(`TYPE : FAMILLES DE MOTS.
+RÈGLES ABSOLUES :
+1. instructions = "Trouve des mots de la même famille que le mot en majuscules."
+2. example = "MER → marin, maritime, amerrir" (mot racine en majuscules → exemples de mots dérivés)
+3. lignes = 5 lignes format exact : ["1. TERRE →", "2. FEU →", "3. PORT →", "4. JARDIN →", "5. FORÊT →"]
+4. Les mots racines dans lignes doivent être DIFFÉRENTS de MER (le mot de l example)
+5. JAMAIS écrire les mots dérivés dans lignes — l enfant les trouve lui-même
+6. parentNote = "" (vide)`);
+        } else if (isVocabType) {
           regles.push(`TYPE : VOCABULAIRE.
 RÈGLES ABSOLUES :
-1. Les mots utilisés dans "example" NE DOIVENT PAS apparaître dans "lignes" — sinon l enfant a la réponse
+1. Les mots utilisés dans "example" NE DOIVENT PAS apparaître dans "lignes"
 2. lignes = uniquement questions/mots à compléter, sans réponses
 3. parentNote = "" (vide)`);
         }
@@ -634,7 +642,7 @@ ${reglesTxt}
 ${focStr?`CONTRAINTES :\n${focStr}`:""}
 RÈGLE ANTI-RÉPONSES : dans "lignes", jamais les réponses — uniquement questions et blancs ___.
 JSON uniquement :
-{"title":"titre précis","emoji":"...","duration":"${dur} min","instructions":"consigne claire CE1 — précise le mot à identifier si nature des mots","example":"exemple résolu","lignes":[...],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`
+{"title":"titre précis","emoji":"...","duration":"${dur} min","instructions":"consigne claire CE1","example":"exemple résolu","lignes":[...],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`
           : `Tu es instituteur CE1/CE2 expert. Exercice "${st.replace(/_/g," ")}" pour ${CHILD_NAME}, niveau ${niv}.
 ${reglesTxt}
 ${focStr?`CONTRAINTES :\n${focStr}`:""}
