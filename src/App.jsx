@@ -9,7 +9,7 @@ const SB_H = { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`
 
 const CATEGORIES = {
   "Conjugaison": ["present_etre","present_avoir","present_aller","present_faire","present_1er_groupe","present_1er_groupe_2","present_2eme_groupe","present_venir","present_prendre","present_pouvoir_vouloir","present_voir_savoir","imparfait_etre_avoir","imparfait_1er_groupe","imparfait_1er_groupe_2","imparfait_2eme_groupe","imparfait_irreguliers","futur_simple_1er_groupe","futur_simple_etre_avoir","futur_simple_irreguliers","passe_compose_avoir","passe_compose_etre","identification_temps","conditionnel_present","imparfait_vs_passe_compose"],
-  "Grammaire": ["transposition_tu_je","transposition_il_nous","transposition_elle_ils","transposition_singulier_pluriel","negation_ne_pas","negation_ne_plus","negation_ne_jamais_rien","accord_sujet_verbe","accord_sujet_verbe_eloigne","classes_de_mots","nature_des_mots","fonctions_sujet_verbe_cod","complement_circonstanciel","expansion_gn","phrase_syntaxe","types_de_phrases","ponctuation","propositions_cm1"],
+  "Grammaire": ["transposition","negation_ne_pas","negation_ne_plus","negation_ne_jamais_rien","accord_sujet_verbe","accord_sujet_verbe_eloigne","classes_de_mots","nature_des_mots","fonctions_sujet_verbe_cod","complement_circonstanciel","expansion_gn","phrase_syntaxe","types_de_phrases","ponctuation","propositions_cm1"],
   "Orthographe": ["sons_ou_on","sons_an_en","sons_in_ain","sons_oi","sons_eau_au","sons_ill_gn","homophones_a_a","homophones_et_est","homophones_son_sont","homophones_ou_ou","homophones_ces_ses","homophones_on_ont","homophones_ma_ma","accord_adjectif","accord_participe_passe","mots_invariables"],
   "Dictée": ["dictee_sons_simples","dictee_homophones","dictee_avancee"],
   "Vocabulaire": ["familles_de_mots","familles_de_mots_avancees","synonymes","antonymes","sens_contexte","prefixes_suffixes","niveaux_de_langue"],
@@ -26,8 +26,8 @@ const CATEGORIES = {
 };
 
 const AUTO_TYPES = {
-  "CE1 debut":  ["present_1er_groupe","soustraction_retenue","sons_ou_on","transposition_tu_je","numeration_encadrement"],
-  "CE1/CE2":    ["imparfait_1er_groupe","soustraction_retenue","tables_melange","transposition_tu_je","negation_ne_pas"],
+  "CE1 debut":  ["present_1er_groupe","soustraction_retenue","sons_ou_on","transposition","numeration_encadrement"],
+  "CE1/CE2":    ["imparfait_1er_groupe","soustraction_retenue","tables_melange","transposition","negation_ne_pas"],
   "CE2":        ["futur_simple_1er_groupe","soustraction_grands_nombres","tables_melange","negation_ne_plus","fractions_representation"],
   "CE2 avance": ["passe_compose_avoir","soustraction_grands_nombres","multiplication_posee_1chiffre","accord_sujet_verbe","fractions_ecriture"],
   "CM1":        ["passe_compose_etre","division_posee","multiplication_posee_2chiffres","complement_circonstanciel","fractions_operations"],
@@ -506,7 +506,7 @@ export default function App() {
         const isEncadr    = st.includes("encadrement")||st.includes("numeration")||st.includes("calcul_mental");
         const isProbl     = st.includes("probleme");
         const isDictee    = st.includes("dictee");
-        const isTranspo   = st.includes("transposition");
+        const isTranspo   = st === "transposition" || st.includes("transposition_");
         const isNeg       = st.includes("negation");
         const isNature    = st.includes("nature_des_mots") || st.includes("classes_de_mots");
         const isVocabType = VOCAB_TYPES.some(t=>st.includes(t));
@@ -525,10 +525,7 @@ FORMAT OBLIGATOIRE :
         }
 
         if (isTranspo) {
-          const transpoType = st.includes("tu_je")?"remplacer TU par JE":st.includes("singulier_pluriel")?"mettre au pluriel":st.includes("il_nous")?"remplacer IL/ELLE par NOUS":"changer le sujet";
-          regles.push(`TYPE : TRANSPOSITION — ${transpoType}.
-- Chaque ligne = phrase numérotée se terminant par "→" UNIQUEMENT, jamais de réponse après
-- example = UN exemple résolu`);
+          // géré par prompt dédié plus bas — pas de règle générique
         }
 
         if (isNeg) {
@@ -606,15 +603,22 @@ RÈGLES ABSOLUES :
 
         const reglesTxt = regles.join("\n\n");
 
-        if (isTranspo && modele) {
-          const lignesModele = modele.split("\n").map(l=>l.trim()).filter(Boolean);
-          const exempleIdx = lignesModele.findIndex(l=>l.startsWith("Exemple"));
-          const exempleResolu = exempleIdx>=0 ? lignesModele[exempleIdx+1] || "" : "";
-          const lignesNumerotees = lignesModele.filter(l=>/^\d+\./.test(l)).join("\n");
-          const transpoPrompt = `Tu es instituteur CE1/CE2. Génère 5 nouvelles phrases transposition niveau ${niv}.
-MODÈLE : ${lignesNumerotees}
-RÈGLES : même format "N. SUJET [verbe] [complément]. → NOUVEAU_SUJET ___", verbes différents, NE PAS écrire la réponse.
-JSON : {"title":"Transposition — Change le sujet","emoji":"✏️","duration":"${dur} min","instructions":"Réécris chaque phrase avec le nouveau sujet et accorde le verbe","example":"${exempleResolu.replace(/"/g,"'")}","lignes":["1. ...","2. ...","3. ...","4. ...","5. ..."],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+        if (isTranspo) {
+          const transpoPrompt = `Tu es instituteur CE1/CE2. Génère un exercice de transposition MÉLANGÉ niveau ${niv}.
+L exercice contient 5 phrases, chacune avec un TYPE DIFFÉRENT de transposition :
+- Type A : remplacer IL par ELLE (ou ELLE par IL)
+- Type B : remplacer TU par JE (ou JE par TU)
+- Type C : remplacer IL/ELLE par ILS/ELLES (singulier → pluriel)
+- Type D : remplacer NOUS par ILS/ELLES
+- Type E : remplacer un prénom singulier par un prénom pluriel (ex: "Léa joue" → "Léa et Tom jouent")
+RÈGLES ABSOLUES :
+1. Chaque ligne = "N. [phrase originale] → [nouveau sujet] _______________" — les underscores représentent l espace pour écrire la suite
+2. JAMAIS écrire la réponse complète après la flèche — seulement le nouveau sujet + underscores
+3. example = UN exemple résolu complet : "IL mange une pomme. → ELLE mange une pomme."
+4. Les 5 lignes doivent avoir 5 types différents parmi A B C D E
+5. Phrases courtes, verbes simples, vocabulaire CE1
+JSON uniquement :
+{"title":"Transposition — Change le sujet","emoji":"✏️","duration":"${dur} min","instructions":"Réécris chaque phrase en changeant le sujet indiqué. Accorde bien le verbe !","example":"IL mange une pomme. → ELLE mange une pomme.","lignes":["1. ELLE dessine un chat. → IL _______________","2. TU chantes bien. → JE _______________","3. IL court vite. → ILS _______________","4. NOUS mangeons. → ILS _______________","5. Léa rit. → Léa et Tom _______________"],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
           try {
             const raw = await callAPI(transpoPrompt, "exercice");
             const clean = raw.replace(/```json|```/g,"").trim();
