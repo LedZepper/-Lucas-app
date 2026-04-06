@@ -624,15 +624,17 @@ JSON : {"title":"Transposition — Change le sujet","emoji":"✏️","duration":
           continue;
         }
 
-        if (isNeg && modele) {
+        if (isNeg) {
           const negType = st.includes("plus")?"NE...PLUS":st.includes("jamais")?"NE...JAMAIS":"NE...PAS";
           const negPas  = st.includes("plus")?"plus":st.includes("jamais")?"jamais":"pas";
-          const lignesModele = modele.split("\n").map(l=>l.trim()).filter(Boolean);
-          const lignesNumerotees = lignesModele.filter(l=>/^\d+\./.test(l)).join("\n");
-          const negPrompt = `Tu es instituteur CE1/CE2. Génère 5 phrases négation ${negType} niveau ${niv}.
-MODÈLE : ${lignesNumerotees}
-RÈGLES : phrases affirmatives numérotées se terminant par "→", sujets variés, NE PAS écrire la réponse.
-JSON : {"title":"Négation avec ${negType}","emoji":"✏️","duration":"${dur} min","instructions":"Transforme chaque phrase à la forme négative avec ${negType}","example":"Il joue au foot. → Il ne joue ${negPas} au foot.","lignes":["1. ...","2. ...","3. ...","4. ...","5. ..."],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+          const negPrompt = `Tu es instituteur CE1/CE2. Génère 5 phrases de négation ${negType} niveau ${niv}.
+RÈGLES ABSOLUES :
+- lignes = 5 phrases AFFIRMATIVES numérotées, chacune se terminant par " →" UNIQUEMENT
+- JAMAIS écrire la forme négative dans lignes — l enfant le fait lui-même
+- Sujets variés : il, elle, nous, tu, ils, prénom d enfant
+- Phrases courtes et simples, vocabulaire CE1/CE2
+- example = UN exemple résolu : phrase affirmative → forme négative complète
+JSON uniquement : {"title":"Négation avec ${negType}","emoji":"✏️","duration":"${dur} min","instructions":"Transforme chaque phrase à la forme négative avec ${negType}","example":"Il joue au foot. → Il ne joue ${negPas} au foot.","lignes":["1. Elle mange une pomme. →","2. Nous courons vite. →","3. Tu lis un livre. →","4. Il regarde la télévision. →","5. Elles jouent dans le jardin. →"],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
           try {
             const raw = await callAPI(negPrompt, "exercice");
             const clean = raw.replace(/```json|```/g,"").trim();
