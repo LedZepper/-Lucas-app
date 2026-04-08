@@ -295,6 +295,28 @@ function ExCard({ ex, dark=true }) {
 
   if (fmt === 'trous') {
     if (!lignes.length) return <div style={{fontSize:14, color:tc, whiteSpace:"pre-line"}}>{ex.content||""}</div>;
+    const isComprehension = ex.type?.includes("comprehension");
+    if (isComprehension) {
+      // lignes[0] = texte en paragraphe, lignes[1] = vide, lignes[2..] = questions
+      const texte = lignes[0] || "";
+      const questions = lignes.slice(2).filter(l => l.trim());
+      return (
+        <div>
+          <div style={{fontSize:dark?14:13, color:tc, lineHeight:1.9, marginBottom:20, padding:"12px 14px", background:dark?"rgba(255,255,255,.04)":"#f8fafc", borderRadius:10, borderLeft:`3px solid ${ac}`}}>
+            {texte}
+          </div>
+          <div style={{borderTop:`1px solid ${lc}30`, paddingTop:14}}>
+            {questions.map((q,i) => (
+              <div key={i} style={{marginBottom:dark?16:12}}>
+                <div style={{fontSize:dark?13:12, color:tc, fontWeight:600, marginBottom:6}}>{q}</div>
+                <div style={{borderBottom:`1.5px solid ${lc}`, height:1, marginBottom:4}}></div>
+                <div style={{borderBottom:`1.5px solid ${lc}`, height:1}}></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
     return (
       <div>
         {lignes.map((l,i) => {
@@ -572,6 +594,18 @@ RÈGLES ABSOLUES :
 4. Format problemes : phrase courte avec ___ a la fin
 5. Tout doit tenir en une ligne courte — pas de phrases longues
 6. Utilise des montants realistes CE1/CE2 (max 10€)`);
+        }
+
+        const isLecture = st.includes("comprehension");
+        if (isLecture) {
+          regles.push(`TYPE : COMPRÉHENSION DE TEXTE.
+RÈGLES ABSOLUES :
+1. lignes = UN SEUL bloc texte suivi de 4 questions numérotées
+2. lignes[0] = texte narratif complet EN UNE SEULE CHAÎNE (phrases séparées par des espaces, pas de retours à la ligne) — 6 à 8 phrases simples, niveau CE1/CE2
+3. lignes[1] = "" (ligne vide séparatrice)
+4. lignes[2] à lignes[5] = les 4 questions : "1. Qui sont les personnages ?", "2. Où se passe l histoire ?", "3. Que se passe-t-il ?", "4. Comment se termine l histoire ?"
+5. example = "" (vide)
+6. instructions = "Lis attentivement le texte puis réponds aux questions par des phrases complètes."`);
         }
 
         if (isProbl) {
