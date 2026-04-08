@@ -217,7 +217,7 @@ const isMath  = t => MATH_TYPES.some(x => t?.includes(x));
 const isConj  = t => CONJ_TYPES.some(x => t?.includes(x));
 const isVocab = t => VOCAB_TYPES.some(x => t?.includes(x));
 const hideInstructions = t => isMath(t) || isConj(t);
-const hideExample      = t => isMath(t) || isConj(t);
+const hideExample      = t => isMath(t) || isConj(t) || t?.includes("addition") || t?.includes("soustraction") || t?.includes("comprehension");
 // parentNote masqué partout — on ne l'affiche plus nulle part
 const hideParentNote   = () => true;
 
@@ -248,8 +248,8 @@ function ExCard({ ex, dark=true }) {
       <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:"0 24px"}}>
         {show.map((b,bi) => (
           <div key={bi}>
-            <div style={{fontWeight:700, fontSize:dark?13:12, color:ac, marginBottom:10, paddingBottom:4, borderBottom:`1px solid ${ac}33`}}>
-              {b.title.replace(/^([A-ZÀÂÉÈÊËÎÏÔÙÛÜÇ]+)/, m => m.charAt(0).toUpperCase() + m.slice(1).toLowerCase())}
+            <div style={{fontWeight:700, fontSize:dark?13:12, color:ac, marginBottom:10, paddingBottom:4, }}>
+              {b.title.toUpperCase()}
             </div>
             {PRONOMS.map((p,pi) => (
               <div key={pi} style={{display:"flex", alignItems:"center", gap:8, marginBottom:dark?12:9}}>
@@ -566,7 +566,7 @@ FORMAT OBLIGATOIRE :
         if (isMonnaie) {
           regles.push(`TYPE : MESURES MONNAIE.
 RÈGLES ABSOLUES :
-1. example = "" (vide — NE PAS mettre d exemple, il est deja dans le corpus)
+1. example = "" (vide absolument)
 2. lignes = 6 items : 3 calculs simples (additions de pieces/billets) + 3 problemes courts avec ___
 3. Format calculs : "2€ + 1€ + 50c = ___"
 4. Format problemes : phrase courte avec ___ a la fin
@@ -686,7 +686,7 @@ JSON uniquement :
         const raw   = await callAPI(prompt,"exercice");
         const clean = raw.replace(/```json|```/g,"").trim();
         const obj   = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
-        if(obj.title) exercises.push({type:st, format:exFormat, ...obj});
+        if(obj.title) exercises.push({type:st, format: st.includes('monnaie') ? 'trous' : exFormat, ...obj});
 
       } catch(e) { console.error("Erreur exercice",st,e); }
     }
@@ -732,21 +732,21 @@ JSON uniquement :
   }
 
   const S={
-    app:{minHeight:"100vh",background:"linear-gradient(160deg,#020817 0%,#0f172a 40%,#1a103a 70%,#0c1220 100%)",fontFamily:"Georgia,serif",color:"white",paddingBottom:90},
+    app:{minHeight:"100vh",background:"linear-gradient(160deg,#020817 0%,#0f172a 40%,#1a103a 70%,#0c1220 100%)",fontFamily:"system-ui,-apple-system,sans-serif",color:"white",paddingBottom:90},
     hdr:{background:"rgba(2,8,23,.9)",borderBottom:"1px solid rgba(99,102,241,.2)",padding:"14px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",backdropFilter:"blur(20px)",position:"sticky",top:0,zIndex:100,boxShadow:"0 4px 30px rgba(0,0,0,.5)"},
     card:{background:"rgba(15,23,42,.7)",border:"1px solid rgba(99,102,241,.15)",borderRadius:20,padding:20,marginBottom:16,backdropFilter:"blur(10px)",boxShadow:"0 8px 32px rgba(0,0,0,.3)"},
-    btn:{background:"linear-gradient(135deg,#4f46e5,#7c3aed)",border:"none",borderRadius:16,padding:"15px 24px",color:"white",fontFamily:"Georgia,serif",fontSize:15,fontWeight:700,cursor:"pointer",width:"100%",boxShadow:"0 4px 20px rgba(99,102,241,.4)",transition:"transform .15s,box-shadow .15s"},
-    btnSm:{background:"rgba(99,102,241,.15)",border:"1px solid rgba(99,102,241,.3)",borderRadius:12,padding:"8px 16px",color:"#a5b4fc",fontFamily:"Georgia,serif",fontSize:13,cursor:"pointer"},
-    tog:(on)=>({background:on?"linear-gradient(135deg,#4f46e5,#7c3aed)":"rgba(15,23,42,.6)",border:`1px solid ${on?"#6366f1":"rgba(99,102,241,.2)"}`,borderRadius:14,padding:"10px 16px",color:on?"white":"#64748b",fontFamily:"Georgia,serif",fontSize:13,fontWeight:on?700:400,cursor:"pointer",transition:"all .2s",boxShadow:on?"0 4px 15px rgba(99,102,241,.3)":"none"}),
+    btn:{background:"linear-gradient(135deg,#4f46e5,#7c3aed)",border:"none",borderRadius:16,padding:"15px 24px",color:"white",fontFamily:"system-ui,-apple-system,sans-serif",fontSize:15,fontWeight:700,cursor:"pointer",width:"100%",boxShadow:"0 4px 20px rgba(99,102,241,.4)",transition:"transform .15s,box-shadow .15s"},
+    btnSm:{background:"rgba(99,102,241,.15)",border:"1px solid rgba(99,102,241,.3)",borderRadius:12,padding:"8px 16px",color:"#a5b4fc",fontFamily:"system-ui,-apple-system,sans-serif",fontSize:13,cursor:"pointer"},
+    tog:(on)=>({background:on?"linear-gradient(135deg,#4f46e5,#7c3aed)":"rgba(15,23,42,.6)",border:`1px solid ${on?"#6366f1":"rgba(99,102,241,.2)"}`,borderRadius:14,padding:"10px 16px",color:on?"white":"#64748b",fontFamily:"system-ui,-apple-system,sans-serif",fontSize:13,fontWeight:on?700:400,cursor:"pointer",transition:"all .2s",boxShadow:on?"0 4px 15px rgba(99,102,241,.3)":"none"}),
     tab:(on)=>({flex:1,padding:"14px 4px 10px",background:on?"rgba(99,102,241,.15)":"transparent",border:"none",borderBottom:on?"2px solid #818cf8":"2px solid transparent",color:on?"#a5b4fc":"#475569",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:4,transition:"all .2s"}),
     nav:{position:"fixed",bottom:0,left:0,right:0,background:"rgba(2,8,23,.97)",borderTop:"1px solid rgba(99,102,241,.2)",display:"flex",zIndex:200,backdropFilter:"blur(20px)"},
     navB:(a)=>({flex:1,padding:"12px 4px",background:"none",border:"none",color:a?"#818cf8":"#334155",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:3,transition:"color .2s"}),
-    inp:{background:"rgba(15,23,42,.8)",border:"1px solid rgba(99,102,241,.2)",borderRadius:12,padding:"12px 16px",color:"white",fontFamily:"Georgia,serif",fontSize:14,width:"100%",outline:"none",resize:"vertical"},
+    inp:{background:"rgba(15,23,42,.8)",border:"1px solid rgba(99,102,241,.2)",borderRadius:12,padding:"12px 16px",color:"white",fontFamily:"system-ui,-apple-system,sans-serif",fontSize:14,width:"100%",outline:"none",resize:"vertical"},
     badge:(c)=>({background:c+"20",border:`1px solid ${c}40`,borderRadius:20,padding:"4px 14px",fontSize:12,color:c,fontWeight:700,display:"inline-block"}),
     wrap:{padding:"0 16px",maxWidth:600,margin:"0 auto"},
   };
 
-  if(loading)return(<div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#020817"}}><div style={{textAlign:"center"}}><Raton items={[]} size={100} anim/><div style={{color:"#a5b4fc",fontFamily:"Georgia,serif",marginTop:16}}>Chargement…</div></div></div>);
+  if(loading)return(<div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#020817"}}><div style={{textAlign:"center"}}><Raton items={[]} size={100} anim/><div style={{color:"#a5b4fc",fontFamily:"system-ui,-apple-system,sans-serif",marginTop:16}}>Chargement…</div></div></div>);
 
   const li  = lvl(prof.totalPoints);
   const ulk = unlocked(prof.totalPoints,prof.unlockedBonusItems||[]);
@@ -756,8 +756,8 @@ JSON uniquement :
     <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"linear-gradient(160deg,#020817 0%,#0f172a 40%,#1a103a 70%,#0c1220 100%)"}}>
       <div style={{textAlign:"center",padding:"0 32px"}}>
         <Raton items={eqp} size={120} anim/>
-        <div style={{marginTop:24,fontSize:18,fontWeight:700,color:"#a5b4fc",fontFamily:"Georgia,serif"}}>Roki prépare ta séance…</div>
-        <div style={{marginTop:8,fontSize:13,color:"#475569",fontFamily:"Georgia,serif"}}>Génération en cours, ça peut prendre 20–30 secondes</div>
+        <div style={{marginTop:24,fontSize:18,fontWeight:700,color:"#a5b4fc",fontFamily:"system-ui,-apple-system,sans-serif"}}>Roki prépare ta séance…</div>
+        <div style={{marginTop:8,fontSize:13,color:"#475569",fontFamily:"system-ui,-apple-system,sans-serif"}}>Génération en cours, ça peut prendre 20–30 secondes</div>
         <div style={{marginTop:24,display:"flex",justifyContent:"center",gap:8}}>
           {[0,1,2].map(i=>(<div key={i} style={{width:10,height:10,borderRadius:"50%",background:"#6366f1",animation:"pulse 1.2s ease-in-out infinite",animationDelay:`${i*0.3}s`}}/>))}
         </div>
