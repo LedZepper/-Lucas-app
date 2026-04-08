@@ -321,11 +321,11 @@ function ExCard({ ex, dark=true }) {
 
   if (fmt === 'calcul') {
     if (!lignes.length) return <div style={{fontSize:14, color:tc, whiteSpace:"pre-line"}}>{ex.content||""}</div>;
-    const isMulti = ex.type?.includes("multiplication") || ex.type?.includes("tables") || ex.title?.toLowerCase().includes("multiplication") || ex.title?.toLowerCase().includes("table");
+    const isMulti = ex.type?.includes("tables_melange") || ex.title?.toLowerCase().includes("tables de 1");
     const calcItems = lignes
       .map(l => l.replace(/^\d+[\.\)]\s*/, "").replace(/_{2,}/g, "").trimEnd())
       .filter(Boolean)
-      .slice(0, 18);
+      .slice(0, isMulti ? 20 : 6);
     return (
       <div>
         {isMulti && (
@@ -339,7 +339,7 @@ function ExCard({ ex, dark=true }) {
             <div style={{fontSize:dark?13:12, color:tc, whiteSpace:"pre-line", lineHeight:1.8}}>{ex.example}</div>
           </div>
         )}
-        <div style={{display:"grid", gridTemplateColumns:"repeat(3, 1fr)", gap:"14px 16px"}}>
+        <div style={{display:"grid", gridTemplateColumns:`repeat(${isMulti ? 4 : 3}, 1fr)`, gap:"14px 16px"}}>
           {calcItems.map((item, i) => (
             <div key={i} style={{display:"flex", alignItems:"baseline", gap:6}}>
               <span style={{fontWeight:600, fontSize:dark?13:12, color:tc, whiteSpace:"nowrap"}}>{item}</span>
@@ -539,7 +539,7 @@ FORMAT OBLIGATOIRE :
 
         if (isTablesType) {
           regles.push(`TYPE : MULTIPLICATION — Tables mélangées de 1 à 10.
-- Exactement 18 items dans lignes (3 colonnes × 6)
+- Exactement 20 items dans lignes (4 colonnes × 5)
 - Format lignes : ["4 × 6 =","7 × 8 =","3 × 9 =", ...]
 - Sans tirets dans lignes
 - Mélange varié de toutes les tables de 1 à 10
@@ -549,7 +549,7 @@ FORMAT OBLIGATOIRE :
           const isAdd  = st.includes("addition");
           const isSous = st.includes("soustraction");
           const calcType    = isSous?"SOUSTRACTION (− uniquement)":isAdd?"ADDITION (+ uniquement)":isDiv?"DIVISION (÷ uniquement)":"MULTIPLICATION (× uniquement)";
-          const calcNbItems = isDiv?"15 items (3 colonnes × 5)":"6 items (3 colonnes × 2)";
+          const calcNbItems = "6 items (3 colonnes × 2)";
           const calcGrands  = (isAdd||isSous)?" — nombres à 5 chiffres obligatoires (ex: 64 382 − 27 519 =)":"";
           const calcEx      = isSous?'["64 382 − 27 519 =","85 074 − 36 248 =","92 615 − 48 307 =","71 830 − 29 564 =","53 947 − 18 623 =","80 401 − 35 788 ="]':isAdd?'["34 456 + 28 237 =","52 583 + 31 249 =","71 712 + 18 189 =","63 634 + 27 278 =","48 521 + 35 463 =","57 308 + 24 195 ="]':isDiv?'["24 ÷ 4 =","36 ÷ 6 =","45 ÷ 9 ="]':'["4 × 6 =","7 × 8 =","3 × 9 ="]';
           const calcExemple = isSous?"64 382 − 27 519 = 36 863 (on pose et on soustrait colonne par colonne)":isAdd?"34 456 + 28 237 = 62 693 (on pose et on additionne colonne par colonne)":isDiv?"48 ÷ 6 = 8 (car 6 × 8 = 48)":"4 × 6 = 24 (car 6 × 4 = 24)";
