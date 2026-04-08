@@ -545,17 +545,34 @@ FORMAT OBLIGATOIRE :
 - Mélange varié de toutes les tables de 1 à 10
 - example = "" (vide)`);
         } else if (isCalcType) {
-          const calcType = st.includes("multiplication")?"MULTIPLICATION (× uniquement)":st.includes("soustraction")?"SOUSTRACTION (− uniquement)":st.includes("addition")?"ADDITION (+ uniquement)":"DIVISION (÷ uniquement)";
-          const calcEx   = st.includes("multiplication")?`["4 × 6 =","7 × 8 =","3 × 9 ="]`:st.includes("soustraction")?`["85 − 47 =","63 − 28 =","91 − 54 ="]`:st.includes("addition")?`["43 + 29 =","67 + 35 =","58 + 26 ="]`:`["24 ÷ 4 =","36 ÷ 6 =","45 ÷ 9 ="]`;
-          const calcExemple = st.includes("multiplication")?"4 × 6 = 24 (car 6 × 4 = 24)":st.includes("soustraction")?"85 − 47 = 38 (on pose et on soustrait colonne par colonne)":st.includes("addition")?"43 + 29 = 72 (on pose et on additionne colonne par colonne)":"48 ÷ 6 = 8 (car 6 × 8 = 48)";
+          const isDiv  = st.includes("division");
+          const isAdd  = st.includes("addition");
+          const isSous = st.includes("soustraction");
+          const calcType    = isSous?"SOUSTRACTION (− uniquement)":isAdd?"ADDITION (+ uniquement)":isDiv?"DIVISION (÷ uniquement)":"MULTIPLICATION (× uniquement)";
+          const calcNbItems = isDiv?"15 items (3 colonnes × 5)":"6 items (3 colonnes × 2)";
+          const calcGrands  = (isAdd||isSous)?" — nombres à 5 chiffres obligatoires (ex: 64 382 − 27 519 =)":"";
+          const calcEx      = isSous?'["64 382 − 27 519 =","85 074 − 36 248 =","92 615 − 48 307 =","71 830 − 29 564 =","53 947 − 18 623 =","80 401 − 35 788 ="]':isAdd?'["34 456 + 28 237 =","52 583 + 31 249 =","71 712 + 18 189 =","63 634 + 27 278 =","48 521 + 35 463 =","57 308 + 24 195 ="]':isDiv?'["24 ÷ 4 =","36 ÷ 6 =","45 ÷ 9 ="]':'["4 × 6 =","7 × 8 =","3 × 9 ="]';
+          const calcExemple = isSous?"64 382 − 27 519 = 36 863 (on pose et on soustrait colonne par colonne)":isAdd?"34 456 + 28 237 = 62 693 (on pose et on additionne colonne par colonne)":isDiv?"48 ÷ 6 = 8 (car 6 × 8 = 48)":"4 × 6 = 24 (car 6 × 4 = 24)";
           regles.push(`TYPE : ${calcType} — UNIQUEMENT ce type, jamais mélanger.
-- Exactement 15 items dans lignes (3 colonnes × 5)
-- Format : ${calcEx}
+- Exactement ${calcNbItems}${calcGrands}
+- Format lignes : ${calcEx}
 - Sans tirets dans lignes
-- example = "${calcExemple}" — UNE SEULE ligne claire, format : opération = résultat (explication courte)`);
+- example = "${calcExemple}" — UNE SEULE ligne claire`);
         }
 
         if (isEncadr) regles.push(`TYPE : NUMÉRATION. Minimum 6 items dans lignes.`);
+
+        const isMonnaie = st.includes("monnaie");
+        if (isMonnaie) {
+          regles.push(`TYPE : MESURES MONNAIE.
+RÈGLES ABSOLUES :
+1. example = "" (vide — NE PAS mettre d exemple, il est deja dans le corpus)
+2. lignes = 6 items : 3 calculs simples (additions de pieces/billets) + 3 problemes courts avec ___
+3. Format calculs : "2€ + 1€ + 50c = ___"
+4. Format problemes : phrase courte avec ___ a la fin
+5. Tout doit tenir en une ligne courte — pas de phrases longues
+6. Utilise des montants realistes CE1/CE2 (max 10€)`);
+        }
 
         if (isProbl) {
           regles.push(`TYPE : PROBLÈME.
