@@ -576,9 +576,12 @@ RÈGLES ABSOLUES :
 
         if (isProbl) {
           regles.push(`TYPE : PROBLÈME.
-- example = solution complète multi-lignes avec calculs détaillés
-- lignes = énoncé de Léo avec blancs ___ uniquement, JAMAIS les réponses
-- Chiffres différents de l example`);
+RÈGLES ABSOLUES :
+- L énoncé contient de VRAIS CHIFFRES — jamais de ___ dans l énoncé
+- Seules les lignes "Calcul :" et "Réponse :" se terminent par _______________
+- example = solution complète avec calculs détaillés ET réponse rédigée (chiffres différents du problème)
+- lignes = [énoncé complet avec vrais chiffres, "Calcul : _______________", "Réponse : _______________"]
+- Utilise le même format que le corpus (Calcul puis Réponse)`);
         }
 
         if (isDictee) {
