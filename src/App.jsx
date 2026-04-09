@@ -250,11 +250,12 @@ function ExCard({ ex, dark=true }) {
     // Si pas de verbes trouvés dans lignes, construire depuis ex.title
     if (blocs.length === 0 && ex.title) {
       const parts = ex.title.split("—")[0].trim().split("&").map(v => v.trim());
-      const tempsMatch = ex.title.match(/—\s*(.+)$/);
+      const tempsMatch = ex.title.match(/[—-]\s*([^—-]+)$/);
       const temps = tempsMatch ? tempsMatch[1].trim() : "";
       parts.forEach(v => { if(v) blocs.push({title: `${v.toUpperCase()} — ${temps}`}); });
     }
-    while (blocs.length < 2) blocs.push({title:"? — ?"});
+    // Si un seul bloc trouvé, ajouter un second vide plutôt que "? — ?"
+    while (blocs.length < 2) blocs.push({title: blocs[0]?.title || "VERBE — ?"});
     const show = blocs.slice(0, 2);
     const PRONOMS = ["je","tu","il/elle","nous","vous","ils/elles"];
     return (
@@ -578,11 +579,13 @@ export default function App() {
           };
           const titreConj = CONJ_TITLES[st] || `Conjugaison — ${temps}`;
           regles.push(`TYPE : CONJUGAISON — ${titreConj}.
-FORMAT STRICTEMENT OBLIGATOIRE :
+MODÈLE : les verbes du corpus sont [${verbe1}, ${verbe2}] — utilise-les comme référence de TYPE uniquement.
+RÈGLE : choisis 2 verbes DIFFÉRENTS du même type que [${verbe1}, ${verbe2}], jamais les mêmes qu une fois sur deux.
+FORMAT JSON STRICTEMENT OBLIGATOIRE :
 - title = "${titreConj}"
-- lignes = EXACTEMENT ["${verbe1} — ${temps}", "${verbe2} — ${temps}"] — ces 2 verbes uniquement, rien d autre
-- NE PAS mettre de phrases, d exemples ou de tirets dans lignes
-- example = ""`);
+- lignes = ["VERBE_CHOISI_1 — ${temps}", "VERBE_CHOISI_2 — ${temps}"] avec tes 2 nouveaux verbes en majuscules
+- example = ""
+- RIEN D AUTRE dans lignes — uniquement les 2 titres de verbes`);
         }
 
         if (isTranspo) {
@@ -621,7 +624,15 @@ FORMAT STRICTEMENT OBLIGATOIRE :
 - example = "${calcExemple}" — UNE SEULE ligne claire`);
         }
 
-        if (isEncadr) regles.push(`TYPE : NUMÉRATION. Minimum 6 items dans lignes.`);
+        if (isEncadr) regles.push(`TYPE : NUMÉRATION. Minimum 6 items dans lignes. Utilise des nombres DIFFÉRENTS du modèle.`);
+
+        const isHomophone = st.includes("homophones") || st.includes("sons_") || st.includes("accord_");
+        if (isHomophone && !isMonnaie) {
+          regles.push(`TYPE : ORTHOGRAPHE/HOMOPHONES.
+- Génère des phrases ENTIÈREMENT NOUVELLES — jamais les mêmes que le modèle
+- Même règle grammaticale, situations et vocabulaire différents
+- Niveau CE1/CE2, phrases courtes et simples`);
+        }
 
         const isMonnaie = st.includes("monnaie");
         if (isMonnaie) {
@@ -659,8 +670,9 @@ RÈGLES ABSOLUES :
 
         if (isDictee) {
           regles.push(`TYPE : DICTÉE.
-- lignes[0] = "MOTS À PRÉPARER : mot1 | mot2 | mot3 | mot4 | mot5"
-- lignes[1..n] = phrases du texte`);
+- lignes[0] = "MOTS À PRÉPARER : mot1 | mot2 | mot3 | mot4 | mot5" — choisis 5 mots NOUVEAUX du même niveau orthographique que le modèle
+- lignes[1..n] = 4 à 6 phrases NOUVELLES utilisant ces mots, niveau CE1/CE2
+- JAMAIS copier les phrases du modèle — invente une situation, des personnages, un contexte différents`);
         }
 
         if (isNature) {
@@ -673,6 +685,14 @@ RÈGLES ABSOLUES :
 5. Varier les natures sur les phrases : inclure au moins 1 nom, 1 verbe, 1 adjectif, 1 adverbe
 6. JAMAIS mettre la réponse après "→" dans lignes
 7. parentNote = "" (vide)`);
+        }
+
+        const isGrammaire = st.includes("accord") || st.includes("classes") || st.includes("fonctions") || st.includes("types_de_phrases") || st.includes("expansion") || st.includes("ponctuation");
+        if (isGrammaire) {
+          regles.push(`TYPE : GRAMMAIRE.
+- Génère des phrases et exemples ENTIÈREMENT NOUVEAUX — jamais les mêmes que le modèle
+- Même structure grammaticale, mots et situations différents
+- Niveau CE1/CE2, phrases adaptées à l âge`);
         }
 
         if (isFamilles) {
@@ -743,11 +763,13 @@ JSON uniquement : {"title":"Négation avec ${negType}","emoji":"✏️","duratio
 
         const prompt = modele
           ? `Tu es instituteur CE1/CE2 expert. Exercice pour ${CHILD_NAME}, niveau ${niv}.
-MODÈLE PROGRAMME NATIONAL :
+MODÈLE DE RÉFÉRENCE (structure et type uniquement — NE PAS copier les valeurs) :
 ---
 ${modele.slice(0,600)}
 ---
-Même structure, renouvelle uniquement les valeurs.
+RÈGLE FONDAMENTALE : respecte exactement la STRUCTURE du modèle, mais génère des valeurs ENTIÈREMENT NOUVELLES.
+- Mots, phrases, chiffres, verbes, exemples : tout doit être différent du modèle
+- Objectif : enrichir les connaissances de l enfant à chaque génération
 ${reglesTxt}
 ${focStr?`CONTRAINTES :\n${focStr}`:""}
 RÈGLE ANTI-RÉPONSES : dans "lignes", jamais les réponses — uniquement questions et blancs ___.
@@ -756,6 +778,7 @@ JSON uniquement :
           : `Tu es instituteur CE1/CE2 expert. Exercice "${st.replace(/_/g," ")}" pour ${CHILD_NAME}, niveau ${niv}.
 ${reglesTxt}
 ${focStr?`CONTRAINTES :\n${focStr}`:""}
+RÈGLE FONDAMENTALE : génère des valeurs variées et originales à chaque fois — jamais les mêmes mots, chiffres ou phrases.
 JSON uniquement :
 {"title":"titre précis","emoji":"...","duration":"${dur} min","instructions":"consigne claire CE1","example":"","lignes":[...],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
 
@@ -904,7 +927,7 @@ JSON uniquement :
               <div key={i} style={{...S.card,borderLeft:"3px solid #6366f1"}}>
                 <div style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:10}}>
                   <span style={{fontSize:26}}>{ex.emoji}</span>
-                  <div><div style={{fontWeight:700,fontSize:15,color:"#e2e8f0"}}>Exercice {i+1} — {ex.title}</div><div style={{fontSize:12,color:"#475569"}}>⏱ {ex.duration}</div></div>
+                  <div><div style={{fontWeight:700,fontSize:15,color:"#e2e8f0"}}>Exercice {i+1} — {ex.title}</div></div>
                 </div>
                 {!hideInstructions(ex.type)&&<div style={{background:"rgba(99,102,241,.1)",borderRadius:12,padding:"10px 14px",marginBottom:10,fontSize:13,color:"#a5b4fc",fontStyle:"italic",borderLeft:"2px solid #6366f1"}}>📌 {ex.instructions}</div>}
                 {ex.example&&!hideExample(ex.type)&&<div style={{background:"rgba(52,211,153,.08)",borderRadius:12,padding:"10px 14px",marginBottom:12,fontSize:13,color:"#6ee7b7",borderLeft:"2px solid #34d399"}}>{ex.example}</div>}
