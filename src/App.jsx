@@ -11,7 +11,7 @@ const CATEGORIES = {
   "Conjugaison": [
     "present_etre_avoir","present_aller_faire","present_1er_groupe","present_2eme_groupe","present_voir_savoir_cm1",
     "imparfait_etre_avoir","imparfait_1er_groupe","imparfait_2eme_groupe","imparfait_irreguliers","imparfait_vs_passe_compose_cm1",
-    "futur_simple_etre_avoir","futur_simple_1er_groupe","futur_simple_irreguliers",
+    "futur_simple_etre_avoir","futur_simple_1er_groupe","futur_simple_2eme_groupe","futur_simple_irreguliers",
     "passe_compose_avoir_1er_groupe","passe_compose_etre",
     "conditionnel_present_cm1","identification_temps_cm1"
   ],
