@@ -578,9 +578,17 @@ export default function App() {
             "identification_temps_cm1": "Identification des temps (CM1)",
           };
           const titreConj = CONJ_TITLES[st] || `Conjugaison — ${temps}`;
+          // Déterminer la contrainte de groupe pour le choix des verbes
+          const groupeContrainte = st.includes("1er_groupe") ? "UNIQUEMENT des verbes du 1er groupe (infinitif en -ER) : chanter, parler, marcher, jouer, manger, aimer, regarder, sauter, danser, porter, tomber, trouver, rester, passer, etc." :
+            st.includes("2eme_groupe") ? "UNIQUEMENT des verbes du 2ème groupe (infinitif en -IR, type finir) : finir, choisir, grandir, réussir, obéir, rougir, grossir, nourrir, etc." :
+            st.includes("etre_avoir") ? "UNIQUEMENT ÊTRE et AVOIR — ces 2 verbes fixes, ne pas en choisir d autres" :
+            st.includes("aller_faire") ? "UNIQUEMENT ALLER et FAIRE — ces 2 verbes fixes, ne pas en choisir d autres" :
+            st.includes("irreguliers") ? "des verbes irréguliers du 3ème groupe différents du modèle" :
+            "des verbes adaptés au niveau CE1/CE2";
           regles.push(`TYPE : CONJUGAISON — ${titreConj}.
-MODÈLE : les verbes du corpus sont [${verbe1}, ${verbe2}] — utilise-les comme référence de TYPE uniquement.
-RÈGLE : choisis 2 verbes DIFFÉRENTS du même type que [${verbe1}, ${verbe2}], jamais les mêmes qu une fois sur deux.
+MODÈLE de référence (TYPE uniquement) : [${verbe1}] et [${verbe2}]
+CONTRAINTE ABSOLUE : ${groupeContrainte}
+RÈGLE : choisis 2 verbes DIFFÉRENTS du modèle, respectant la contrainte ci-dessus.
 FORMAT JSON STRICTEMENT OBLIGATOIRE :
 - title = "${titreConj}"
 - lignes = ["VERBE_CHOISI_1 — ${temps}", "VERBE_CHOISI_2 — ${temps}"] avec tes 2 nouveaux verbes en majuscules
@@ -696,14 +704,30 @@ RÈGLES ABSOLUES :
         }
 
         if (isFamilles) {
+          // Exemples variés pour éviter que MER soit toujours utilisé
+          const FAMILLES_EXEMPLES = [
+            "MER → marin, maritime, amerrir",
+            "TERRE → terrain, enterrer, terrestre",
+            "FEU → feuille non — foyer, enflammer, brûlant",
+            "PAIN → boulangerie, boulanger, biscuit",
+            "SOLEIL → ensoleillé, parasol, solaire",
+            "CHAT → chaton, chatière, chatte",
+            "MAISON → maisonnette, maçon, domicile",
+            "NUIT → nocturne, minuit, nuitée",
+            "EAU → aquatique, arroser, mouillé",
+            "FLEUR → fleuriste, fleurir, floral",
+          ];
+          const exempleIdx = Math.floor(Math.random() * FAMILLES_EXEMPLES.length);
+          const exempleChoisi = FAMILLES_EXEMPLES[exempleIdx];
+          const motExemple = exempleChoisi.split("→")[0].trim();
           regles.push(`TYPE : FAMILLES DE MOTS.
 RÈGLES ABSOLUES :
 1. instructions = "Trouve des mots de la même famille que le mot en majuscules."
-2. example = "MER → marin, maritime, amerrir" (mot racine en majuscules → exemples de mots dérivés)
+2. example = "${exempleChoisi}" (mot racine en majuscules → exemples de mots dérivés)
 3. lignes = 5 lignes format exact avec des mots simples que les enfants de CE1/CE2 connaissent bien.
    Choisis parmi ces mots racines adaptés à l age : PAIN, LAIT, FLEUR, BOIS, MAISON, MAIN, DENT, NUIT, JOUR, NEIGE, PLUIE, VENT, HERBE, CHAMP, SOLEIL, TERRE, EAU, FEU, CHAT, CHIEN
    Format : ["1. MOT →", "2. MOT →", "3. MOT →", "4. MOT →", "5. MOT →"]
-4. Les mots racines dans lignes doivent être DIFFÉRENTS de MER (le mot de l example)
+4. Les mots racines dans lignes doivent être DIFFÉRENTS de ${motExemple} (le mot de l example)
 5. JAMAIS écrire les mots dérivés dans lignes — l enfant les trouve lui-même
 6. parentNote = "" (vide)`);
         } else if (isVocabType) {
