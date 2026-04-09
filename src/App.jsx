@@ -223,7 +223,7 @@ const isMath  = t => MATH_TYPES.some(x => t?.includes(x));
 const isConj  = t => CONJ_TYPES.some(x => t?.includes(x));
 const isVocab = t => VOCAB_TYPES.some(x => t?.includes(x));
 const hideInstructions = t => isMath(t) || isConj(t);
-const hideExample      = t => isMath(t) || isConj(t) || t?.includes("addition") || t?.includes("soustraction") || t?.includes("comprehension");
+const hideExample      = t => (isMath(t) || isConj(t) || t?.includes("addition") || t?.includes("soustraction") || t?.includes("comprehension")) && !t?.includes("vs_passe_compose");
 // parentNote masqué partout — on ne l'affiche plus nulle part
 const hideParentNote   = () => true;
 
@@ -593,7 +593,9 @@ FORMAT JSON STRICTEMENT OBLIGATOIRE :
 - title = "${titreConj}"
 - lignes = ["VERBE_CHOISI_1 — ${temps}", "VERBE_CHOISI_2 — ${temps}"] — les verbes OBLIGATOIREMENT à l infinitif complet (ex: DANSER pas DANSE, CHANTER pas CHANTE, FINIR pas FINI)
 - example = ""
-- RIEN D AUTRE dans lignes — uniquement les 2 titres de verbes`);
+- RIEN D AUTRE dans lignes — uniquement les 2 titres de verbes
+- verbsUsed = [les 2 verbes choisis à l infinitif, en minuscules]
+${memory.usedVerbs?.length ? `- INTERDIT d utiliser ces verbes déjà vus : ${memory.usedVerbs.slice(-20).join(", ")}` : ""}`);
         }
 
         if (isTranspo) {
@@ -729,7 +731,8 @@ RÈGLES ABSOLUES :
    Format : ["1. MOT →", "2. MOT →", "3. MOT →", "4. MOT →", "5. MOT →"]
 4. Les mots racines dans lignes doivent être DIFFÉRENTS de ${motExemple} (le mot de l example)
 5. JAMAIS écrire les mots dérivés dans lignes — l enfant les trouve lui-même
-6. parentNote = "" (vide)`);
+6. parentNote = "" (vide)
+${memory.usedWords?.length ? `7. INTERDIT d utiliser ces mots racines déjà vus récemment : ${memory.usedWords.slice(-20).join(", ")}` : ""}`);
         } else if (isVocabType) {
           regles.push(`TYPE : VOCABULAIRE.
 RÈGLES ABSOLUES :
