@@ -8,7 +8,13 @@ const ADMIN_CODE   = "TTR250";
 const SB_H = { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` };
 
 const CATEGORIES = {
-  "Conjugaison": ["present_etre","present_avoir","present_aller","present_faire","present_1er_groupe","present_1er_groupe_2","present_2eme_groupe","present_venir","present_prendre","present_pouvoir_vouloir","present_voir_savoir","imparfait_etre_avoir","imparfait_1er_groupe","imparfait_1er_groupe_2","imparfait_2eme_groupe","imparfait_irreguliers","futur_simple_1er_groupe","futur_simple_etre_avoir","futur_simple_irreguliers","passe_compose_avoir","passe_compose_etre","identification_temps","conditionnel_present","imparfait_vs_passe_compose"],
+  "Conjugaison": [
+    "present_etre_avoir","present_aller_faire","present_1er_groupe","present_2eme_groupe","present_voir_savoir_cm1",
+    "imparfait_etre_avoir","imparfait_1er_groupe","imparfait_2eme_groupe","imparfait_irreguliers","imparfait_vs_passe_compose_cm1",
+    "futur_simple_etre_avoir","futur_simple_1er_groupe","futur_simple_irreguliers",
+    "passe_compose_avoir_1er_groupe","passe_compose_etre",
+    "conditionnel_present_cm1","identification_temps_cm1"
+  ],
   "Grammaire": ["transposition","negation_ne_pas","negation_ne_plus","negation_ne_jamais_rien","accord_sujet_verbe","accord_sujet_verbe_eloigne","classes_de_mots","nature_des_mots","fonctions_sujet_verbe_cod","complement_circonstanciel","expansion_gn","phrase_syntaxe","types_de_phrases","ponctuation","propositions_cm1"],
   "Orthographe": ["sons_ou_on","sons_an_en","sons_in_ain","sons_oi","sons_eau_au","sons_ill_gn","homophones_a_a","homophones_et_est","homophones_son_sont","homophones_ou_ou","homophones_ces_ses","homophones_on_ont","homophones_ma_ma","accord_adjectif","accord_participe_passe","mots_invariables"],
   "Dictée": ["dictee_sons_simples","dictee_homophones","dictee_avancee"],
@@ -26,11 +32,11 @@ const CATEGORIES = {
 };
 
 const AUTO_TYPES = {
-  "CE1 debut":  ["present_1er_groupe","soustraction_retenue","sons_ou_on","transposition","numeration_encadrement"],
-  "CE1/CE2":    ["imparfait_1er_groupe","soustraction_retenue","tables_melange","transposition","negation_ne_pas"],
-  "CE2":        ["futur_simple_1er_groupe","soustraction_grands_nombres","tables_melange","negation_ne_plus","fractions_representation"],
-  "CE2 avance": ["passe_compose_avoir","soustraction_grands_nombres","multiplication_posee_1chiffre","accord_sujet_verbe","fractions_ecriture"],
-  "CM1":        ["passe_compose_etre","division_posee","multiplication_posee_2chiffres","complement_circonstanciel","fractions_operations"],
+  "CE1 debut":  ["present_etre_avoir","soustraction_retenue","sons_ou_on","transposition","familles_de_mots"],
+  "CE1/CE2":    ["present_aller_faire","imparfait_etre_avoir","tables_melange","transposition","negation_ne_pas"],
+  "CE2":        ["futur_simple_1er_groupe","soustraction_grands_nombres","tables_melange","negation_ne_plus","passe_compose_avoir_1er_groupe"],
+  "CE2 avance": ["passe_compose_etre","soustraction_grands_nombres","multiplication_posee_1chiffre","accord_sujet_verbe","comprehension_texte_court"],
+  "CM1":        ["passe_compose_etre","division_posee","multiplication_posee_2chiffres","complement_circonstanciel","imparfait_vs_passe_compose_cm1"],
 };
 
 async function sbLoad() {
