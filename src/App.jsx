@@ -527,6 +527,9 @@ export default function App() {
     ].filter(Boolean).join("\n");
 
     const exercises = [];
+    // Tracking intra-séance pour éviter les répétitions dans la même génération
+    const usedVerbsSession = new Set((memory.usedVerbs || []).map(v => v.toLowerCase()));
+    const usedWordsSession = new Set((memory.usedWords || []).map(w => w.toLowerCase()));
 
     for (let idx = 0; idx < types.length; idx++) {
       const st = types[idx];
@@ -583,7 +586,7 @@ export default function App() {
             st.includes("2eme_groupe") ? "UNIQUEMENT des verbes du 2ème groupe (infinitif en -IR, type finir) : finir, choisir, grandir, réussir, obéir, rougir, grossir, nourrir, etc." :
             st.includes("etre_avoir") ? "UNIQUEMENT ÊTRE et AVOIR — ces 2 verbes fixes, ne pas en choisir d autres" :
             st.includes("aller_faire") ? "UNIQUEMENT ALLER et FAIRE — ces 2 verbes fixes, ne pas en choisir d autres" :
-            st.includes("irreguliers") ? "des verbes irréguliers du 3ème groupe différents du modèle" :
+            st.includes("irreguliers") ? "UNIQUEMENT des verbes irréguliers du 3ème groupe (aller, faire, venir, partir, prendre, voir, savoir, pouvoir, vouloir, dire) — JAMAIS finir ou choisir qui sont du 2ème groupe" :
             "des verbes adaptés au niveau CE1/CE2";
           regles.push(`TYPE : CONJUGAISON — ${titreConj}.
 MODÈLE de référence (TYPE uniquement) : [${verbe1}] et [${verbe2}]
@@ -595,7 +598,7 @@ FORMAT JSON STRICTEMENT OBLIGATOIRE :
 - example = ""
 - RIEN D AUTRE dans lignes — uniquement les 2 titres de verbes
 - verbsUsed = [les 2 verbes choisis à l infinitif, en minuscules]
-${memory.usedVerbs?.length ? `- INTERDIT d utiliser ces verbes déjà vus : ${memory.usedVerbs.slice(-20).join(", ")}` : ""}`);
+${usedVerbsSession.size ? `- INTERDIT d utiliser ces verbes déjà utilisés : ${[...usedVerbsSession].join(", ")}` : ""}`);
         }
 
         if (isTranspo) {
@@ -746,7 +749,7 @@ RÈGLES ABSOLUES :
 5. JAMAIS écrire les mots dérivés dans lignes — l enfant les trouve lui-même
 6. parentNote = "" (vide)
 7. wordsUsed = [les 5 mots racines choisis pour lignes, en minuscules] — OBLIGATOIRE pour mémorisation
-${memory.usedWords?.length ? `8. INTERDIT d utiliser ces mots racines déjà vus récemment : ${memory.usedWords.slice(-20).join(", ")}` : ""}`);
+${usedWordsSession.size ? `8. INTERDIT d utiliser ces mots racines déjà utilisés dans cette séance : ${[...usedWordsSession].join(", ")}` : ""}`);
         } else if (isVocabType) {
           regles.push(`TYPE : VOCABULAIRE.
 RÈGLES ABSOLUES :
@@ -826,7 +829,27 @@ JSON uniquement :
         const raw   = await callAPI(prompt,"exercice");
         const clean = raw.replace(/```json|```/g,"").trim();
         const obj   = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
-        if(obj.title) exercises.push({type:st, format: st.includes('monnaie') ? 'trous' : exFormat, ...obj});
+        if(obj.title) {
+          const fmt = st.includes('monnaie') ? 'trous' : exFormat;
+          exercises.push({type:st, format: fmt, ...obj});
+          // Enrichir le tracking intra-séance
+          (obj.verbsUsed||[]).forEach(v => usedVerbsSession.add(v.toLowerCase()));
+          (obj.wordsUsed||[]).forEach(w => usedWordsSession.add(w.toLowerCase()));
+          // Extraire verbes depuis lignes conjugaison
+          if (isConjType && obj.lignes) {
+            obj.lignes.forEach(l => {
+              const m = l.match(/^([A-ZÀÂÉÈÊËÎÏÔÙÛÜÇ]{2,})/);
+              if (m) usedVerbsSession.add(m[1].toLowerCase());
+            });
+          }
+          // Extraire mots racines depuis lignes familles
+          if (isFamilles && obj.lignes) {
+            obj.lignes.forEach(l => {
+              const m = l.match(/^d+.s*([A-ZÀÂÉÈÊËÎÏÔÙÛÜÇ]{2,})/);
+              if (m) usedWordsSession.add(m[1].toLowerCase());
+            });
+          }
+        }
 
       } catch(e) { console.error("Erreur exercice",st,e); }
     }
