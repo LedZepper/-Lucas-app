@@ -536,7 +536,7 @@ export default function App() {
         const modele = corpusData?.contenu || null;
         const exFormat = corpusData?.format || 'libre';
 
-        const isConjType  = st.includes("present")||st.includes("imparfait")||st.includes("futur")||st.includes("passe")||st.includes("conditionnel")||st.includes("identification");
+        const isConjType  = (st.includes("present")||st.includes("imparfait")||st.includes("futur")||st.includes("passe")||st.includes("conditionnel")||st.includes("identification")) && !st.includes("vs_passe_compose");
         const isCalcType  = ["multiplication","soustraction","addition","division"].some(t=>st.includes(t));
         const isTablesType = st.includes("tables_melange");
         const isEncadr    = st.includes("encadrement")||st.includes("numeration")||st.includes("calcul_mental");
@@ -591,7 +591,7 @@ CONTRAINTE ABSOLUE : ${groupeContrainte}
 RÈGLE : choisis 2 verbes DIFFÉRENTS du modèle, respectant la contrainte ci-dessus.
 FORMAT JSON STRICTEMENT OBLIGATOIRE :
 - title = "${titreConj}"
-- lignes = ["VERBE_CHOISI_1 — ${temps}", "VERBE_CHOISI_2 — ${temps}"] avec tes 2 nouveaux verbes en majuscules
+- lignes = ["VERBE_CHOISI_1 — ${temps}", "VERBE_CHOISI_2 — ${temps}"] — les verbes OBLIGATOIREMENT à l infinitif complet (ex: DANSER pas DANSE, CHANTER pas CHANTE, FINIR pas FINI)
 - example = ""
 - RIEN D AUTRE dans lignes — uniquement les 2 titres de verbes`);
         }
