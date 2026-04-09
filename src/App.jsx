@@ -556,11 +556,6 @@ export default function App() {
 
         if (isConjType && !isTranspo) {
           const temps = st.includes("present")?"présent":st.includes("imparfait")?"imparfait":st.includes("futur_simple")?"futur simple":st.includes("futur")?"futur":st.includes("passe_compose")?"passé composé":st.includes("conditionnel")?"conditionnel présent":"présent";
-          // Extraire les verbes directement depuis le modèle corpus
-          const verbLines = modele ? modele.split("\n").filter(l => l.includes("—")).map(l => l.split("—")[0].trim().toUpperCase()).filter(Boolean) : [];
-          const verbe1 = verbLines[0] || "VERBE1";
-          const verbe2 = verbLines[1] || "VERBE2";
-          // Titre lisible basé sur sous_type
           const CONJ_TITLES = {
             "present_etre_avoir": "ÊTRE & AVOIR — Présent",
             "present_aller_faire": "ALLER & FAIRE — Présent",
@@ -573,32 +568,46 @@ export default function App() {
             "imparfait_irreguliers": "Irréguliers — Imparfait",
             "futur_simple_etre_avoir": "ÊTRE & AVOIR — Futur",
             "futur_simple_1er_groupe": "1er groupe — Futur",
+            "futur_simple_2eme_groupe": "2ème groupe — Futur",
             "futur_simple_irreguliers": "Irréguliers — Futur",
             "passe_compose_avoir_1er_groupe": "Passé composé avec AVOIR",
-            "passe_compose_etre": "Passé composé avec ÊTRE",
+            "passe_compose_ete": "Passé composé avec ÊTRE",
             "conditionnel_present_cm1": "Conditionnel présent (CM1)",
             "imparfait_vs_passe_compose_cm1": "Choix entre imparfait et passé composé (CM1)",
             "identification_temps_cm1": "Identification des temps (CM1)",
           };
           const titreConj = CONJ_TITLES[st] || `Conjugaison — ${temps}`;
-          // Déterminer la contrainte de groupe pour le choix des verbes
-          const groupeContrainte = st.includes("1er_groupe") ? "UNIQUEMENT des verbes du 1er groupe (infinitif en -ER) : chanter, parler, marcher, jouer, manger, aimer, regarder, sauter, danser, porter, tomber, trouver, rester, passer, etc." :
-            st.includes("2eme_groupe") ? "UNIQUEMENT des verbes du 2ème groupe (infinitif en -IR, type finir) : finir, choisir, grandir, réussir, obéir, rougir, grossir, nourrir, etc." :
-            st.includes("etre_avoir") ? "UNIQUEMENT ÊTRE et AVOIR — ces 2 verbes fixes, ne pas en choisir d autres" :
-            st.includes("aller_faire") ? "UNIQUEMENT ALLER et FAIRE — ces 2 verbes fixes, ne pas en choisir d autres" :
-            st.includes("irreguliers") ? "UNIQUEMENT des verbes irréguliers du 3ème groupe (aller, faire, venir, partir, prendre, voir, savoir, pouvoir, vouloir, dire) — JAMAIS finir ou choisir qui sont du 2ème groupe" :
-            "des verbes adaptés au niveau CE1/CE2";
-          regles.push(`TYPE : CONJUGAISON — ${titreConj}.
-MODÈLE de référence (TYPE uniquement) : [${verbe1}] et [${verbe2}]
-CONTRAINTE ABSOLUE : ${groupeContrainte}
-RÈGLE : choisis 2 verbes DIFFÉRENTS du modèle, respectant la contrainte ci-dessus.
-FORMAT JSON STRICTEMENT OBLIGATOIRE :
-- title = "${titreConj}"
-- lignes = ["VERBE_CHOISI_1 — ${temps}", "VERBE_CHOISI_2 — ${temps}"] — les verbes OBLIGATOIREMENT à l infinitif complet (ex: DANSER pas DANSE, CHANTER pas CHANTE, FINIR pas FINI)
-- example = ""
-- RIEN D AUTRE dans lignes — uniquement les 2 titres de verbes
-- verbsUsed = [les 2 verbes choisis à l infinitif, en minuscules]
-${usedVerbsSession.size ? `- INTERDIT d utiliser ces verbes déjà utilisés : ${[...usedVerbsSession].join(", ")}` : ""}`);
+          const groupeContrainte = st.includes("1er_groupe") ?
+            "UNIQUEMENT des verbes du 1er groupe en -ER. Liste autorisée : aimer, chanter, danser, jouer, manger, marcher, parler, passer, porter, regarder, rester, sauter, tomber, tourner, trouver, travailler, laver, fermer, montrer, écouter, appeler, arriver, chercher, compter, dessiner, donner, écrire non, entrer, garder, lancer, lever, nager, ouvrir non, penser, pleurer, poser, pousser, rencontrer, rentrer, retourner, rouler, sembler, soigner, tirer, toucher, voler" :
+            st.includes("2eme_groupe") ?
+            "UNIQUEMENT des verbes du 2ème groupe en -IR (type finir). Liste autorisée : finir, choisir, grandir, réussir, obéir, rougir, grossir, nourrir, ralentir, réfléchir, remplir, saisir, subir, vieillir, bâtir, établir, fournir, garantir, guérir, investir, jaunir, mincir, munir, punir, rajeunir, réunir, salir, surgir, ternir, unir, verdir" :
+            st.includes("etre_avoir") ? "UNIQUEMENT les verbes ÊTRE et AVOIR, toujours ces 2 là" :
+            st.includes("aller_faire") ? "UNIQUEMENT les verbes ALLER et FAIRE, toujours ces 2 là" :
+            st.includes("irreguliers") ?
+            "UNIQUEMENT des verbes irréguliers du 3ème groupe. Liste autorisée : aller, dire, dormir, écrire, être, faire, lire, mettre, partir, pouvoir, prendre, savoir, sortir, tenir, valoir, venir, voir, vouloir. JAMAIS finir, choisir, grandir (ce sont des verbes du 2ème groupe)" :
+            "des verbes adaptés CE1/CE2";
+          const interdits = usedVerbsSession.size ? `VERBES INTERDITS (déjà utilisés) : ${[...usedVerbsSession].join(", ")}. Choisis OBLIGATOIREMENT des verbes hors de cette liste.` : "";
+          const conjPrompt = `Tu es instituteur CE1/CE2. Génère un exercice de conjugaison pour ${CHILD_NAME}, niveau ${niv}.
+TEMPS : ${temps}
+CONTRAINTE DE GROUPE : ${groupeContrainte}
+${interdits}
+RÈGLE : choisis 2 verbes qui respectent strictement la contrainte de groupe ci-dessus.
+JSON uniquement :
+{"title":"${titreConj}","emoji":"📝","duration":"${dur} min","instructions":"Conjugue les verbes au ${temps}.","example":"","lignes":["VERBE1 — ${temps}","VERBE2 — ${temps}"],"parentNote":"","verbsUsed":["verbe1","verbe2"],"wordsUsed":[]}`;
+          try {
+            const rawC = await callAPI(conjPrompt, "exercice");
+            const cleanC = rawC.replace(/```json|```/g,"").trim();
+            const objC = JSON.parse(cleanC.match(/\{[\s\S]*\}/)?.[0]||"{}");
+            if (objC.title) {
+              exercises.push({type:st, format:'conjugaison', ...objC});
+              (objC.verbsUsed||[]).forEach(v => usedVerbsSession.add(v.toLowerCase()));
+              if (objC.lignes) objC.lignes.forEach(l => {
+                const m = l.match(/^([A-ZÀÂÉÈÊËÎÏÔÙÛÜÇ]{2,})/);
+                if (m) usedVerbsSession.add(m[1].toLowerCase());
+              });
+            }
+          } catch(e) { console.error("Erreur conjugaison",st,e); }
+          continue;
         }
 
         if (isTranspo) {
