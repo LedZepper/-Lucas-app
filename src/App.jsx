@@ -247,7 +247,14 @@ function ExCard({ ex, dark=true }) {
       if (isTitle) { if (cur) blocs.push(cur); cur = {title: trim}; }
     }
     if (cur) blocs.push(cur);
-    while (blocs.length < 2) blocs.push({title:"— — —"});
+    // Si pas de verbes trouvés dans lignes, construire depuis ex.title
+    if (blocs.length === 0 && ex.title) {
+      const parts = ex.title.split("—")[0].trim().split("&").map(v => v.trim());
+      const tempsMatch = ex.title.match(/—\s*(.+)$/);
+      const temps = tempsMatch ? tempsMatch[1].trim() : "";
+      parts.forEach(v => { if(v) blocs.push({title: `${v.toUpperCase()} — ${temps}`}); });
+    }
+    while (blocs.length < 2) blocs.push({title:"? — ?"});
     const show = blocs.slice(0, 2);
     const PRONOMS = ["je","tu","il/elle","nous","vous","ils/elles"];
     return (
@@ -544,12 +551,38 @@ export default function App() {
         const regles = [];
 
         if (isConjType && !isTranspo) {
-          const temps = st.includes("present")?"présent":st.includes("imparfait")?"imparfait":st.includes("futur")?"futur":"passé composé";
-          regles.push(`TYPE : CONJUGAISON.
-FORMAT OBLIGATOIRE :
-- lignes = ["VERBE1 — ${temps}", "VERBE2 — ${temps}"] (2 verbes uniquement)
-- NE PAS inclure les pronoms dans lignes
-- example = consigne sans réponses`);
+          const temps = st.includes("present")?"présent":st.includes("imparfait")?"imparfait":st.includes("futur_simple")?"futur simple":st.includes("futur")?"futur":st.includes("passe_compose")?"passé composé":st.includes("conditionnel")?"conditionnel présent":"présent";
+          // Extraire les verbes directement depuis le modèle corpus
+          const verbLines = modele ? modele.split("\n").filter(l => l.includes("—")).map(l => l.split("—")[0].trim().toUpperCase()).filter(Boolean) : [];
+          const verbe1 = verbLines[0] || "VERBE1";
+          const verbe2 = verbLines[1] || "VERBE2";
+          // Titre lisible basé sur sous_type
+          const CONJ_TITLES = {
+            "present_etre_avoir": "ÊTRE & AVOIR — Présent",
+            "present_aller_faire": "ALLER & FAIRE — Présent",
+            "present_1er_groupe": "1er groupe — Présent",
+            "present_2eme_groupe": "2ème groupe — Présent",
+            "present_voir_savoir_cm1": "VOIR & SAVOIR — Présent (CM1)",
+            "imparfait_etre_avoir": "ÊTRE & AVOIR — Imparfait",
+            "imparfait_1er_groupe": "1er groupe — Imparfait",
+            "imparfait_2eme_groupe": "2ème groupe — Imparfait",
+            "imparfait_irreguliers": "Irréguliers — Imparfait",
+            "futur_simple_etre_avoir": "ÊTRE & AVOIR — Futur",
+            "futur_simple_1er_groupe": "1er groupe — Futur",
+            "futur_simple_irreguliers": "Irréguliers — Futur",
+            "passe_compose_avoir_1er_groupe": "Passé composé avec AVOIR",
+            "passe_compose_etre": "Passé composé avec ÊTRE",
+            "conditionnel_present_cm1": "Conditionnel présent (CM1)",
+            "imparfait_vs_passe_compose_cm1": "Imparfait vs Passé composé (CM1)",
+            "identification_temps_cm1": "Identification des temps (CM1)",
+          };
+          const titreConj = CONJ_TITLES[st] || `Conjugaison — ${temps}`;
+          regles.push(`TYPE : CONJUGAISON — ${titreConj}.
+FORMAT STRICTEMENT OBLIGATOIRE :
+- title = "${titreConj}"
+- lignes = EXACTEMENT ["${verbe1} — ${temps}", "${verbe2} — ${temps}"] — ces 2 verbes uniquement, rien d autre
+- NE PAS mettre de phrases, d exemples ou de tirets dans lignes
+- example = ""`);
         }
 
         if (isTranspo) {
