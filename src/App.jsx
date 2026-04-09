@@ -587,13 +587,15 @@ export default function App() {
             "UNIQUEMENT des verbes irréguliers du 3ème groupe. Liste autorisée : aller, dire, dormir, écrire, être, faire, lire, mettre, partir, pouvoir, prendre, savoir, sortir, tenir, valoir, venir, voir, vouloir. JAMAIS finir, choisir, grandir (ce sont des verbes du 2ème groupe)" :
             "des verbes adaptés CE1/CE2";
           const interdits = usedVerbsSession.size ? `VERBES INTERDITS (déjà utilisés) : ${[...usedVerbsSession].join(", ")}. Choisis OBLIGATOIREMENT des verbes hors de cette liste.` : "";
-          const conjPrompt = `Tu es instituteur CE1/CE2. Génère un exercice de conjugaison pour ${CHILD_NAME}, niveau ${niv}.
+          const conjPrompt = `Tu es instituteur CE1/CE2. Génère un exercice de conjugaison.
 TEMPS : ${temps}
 CONTRAINTE DE GROUPE : ${groupeContrainte}
 ${interdits}
-RÈGLE : choisis 2 verbes qui respectent strictement la contrainte de groupe ci-dessus.
-JSON uniquement :
-{"title":"${titreConj}","emoji":"📝","duration":"${dur} min","instructions":"Conjugue les verbes au ${temps}.","example":"","lignes":["VERBE1 — ${temps}","VERBE2 — ${temps}"],"parentNote":"","verbsUsed":["verbe1","verbe2"],"wordsUsed":[]}`;
+INSTRUCTION STRICTE : lignes doit contenir EXACTEMENT 2 chaînes au format "VERBE — temps". Rien d autre. Pas de conjugaison, pas de tirets, pas de pronoms.
+Exemple correct : ["CHANTER — présent", "MARCHER — présent"]
+Exemple INCORRECT à ne jamais faire : ["CHANTER — JE CHANTE, TU CHANTES..."]
+JSON à retourner (remplace seulement VERBE_A et VERBE_B par tes 2 verbes à l infinitif en MAJUSCULES) :
+{"title":"${titreConj}","emoji":"📝","duration":"${dur} min","instructions":"Conjugue les verbes au ${temps}.","example":"","lignes":["VERBE_A — ${temps}","VERBE_B — ${temps}"],"parentNote":"","verbsUsed":["verbe_a_minuscule","verbe_b_minuscule"],"wordsUsed":[]}\`;
           try {
             const rawC = await callAPI(conjPrompt, "exercice");
             const cleanC = rawC.replace(/```json|```/g,"").trim();
