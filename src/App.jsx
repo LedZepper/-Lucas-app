@@ -595,7 +595,8 @@ INSTRUCTION STRICTE : lignes doit contenir EXACTEMENT 2 chaînes au format "VERB
 Exemple correct : ["CHANTER — présent", "MARCHER — présent"]
 Exemple INCORRECT à ne jamais faire : ["CHANTER — JE CHANTE, TU CHANTES..."]
 JSON à retourner (remplace seulement VERBE_A et VERBE_B par tes 2 verbes à l infinitif en MAJUSCULES) :
-{"title":"${titreConj}","emoji":"📝","duration":"${dur} min","instructions":"Conjugue les verbes au ${temps}.","example":"","lignes":["VERBE_A — ${temps}","VERBE_B — ${temps}"],"parentNote":"","verbsUsed":["verbe_a_minuscule","verbe_b_minuscule"],"wordsUsed":[]}\`;
+{"title":"${titreConj}","emoji":"📝","duration":"${dur} min","instructions":"Conjugue les verbes au ${temps}.","example":"","lignes":["VERBE_A — ${temps}","VERBE_B — ${temps}"],"parentNote":"","verbsUsed":["verbe_a_minuscule","verbe_b_minuscule"],"wordsUsed":[]}`;
+
           try {
             const rawC = await callAPI(conjPrompt, "exercice");
             const cleanC = rawC.replace(/```json|```/g,"").trim();
