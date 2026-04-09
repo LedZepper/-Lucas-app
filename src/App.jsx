@@ -574,7 +574,7 @@ export default function App() {
             "passe_compose_avoir_1er_groupe": "Passé composé avec AVOIR",
             "passe_compose_etre": "Passé composé avec ÊTRE",
             "conditionnel_present_cm1": "Conditionnel présent (CM1)",
-            "imparfait_vs_passe_compose_cm1": "Imparfait vs Passé composé (CM1)",
+            "imparfait_vs_passe_compose_cm1": "Choix entre imparfait et passé composé (CM1)",
             "identification_temps_cm1": "Identification des temps (CM1)",
           };
           const titreConj = CONJ_TITLES[st] || `Conjugaison — ${temps}`;
@@ -642,6 +642,19 @@ ${memory.usedVerbs?.length ? `- INTERDIT d utiliser ces verbes déjà vus : ${me
 - Génère des phrases ENTIÈREMENT NOUVELLES — jamais les mêmes que le modèle
 - Même règle grammaticale, situations et vocabulaire différents
 - Niveau CE1/CE2, phrases courtes et simples`);
+        }
+
+        const isVsTemps = st.includes("vs_passe_compose");
+        if (isVsTemps) {
+          regles.push(`TYPE : CHOIX ENTRE IMPARFAIT ET PASSÉ COMPOSÉ (CM1).
+RÈGLES ABSOLUES :
+1. title = "Choix entre imparfait et passé composé (CM1)"
+2. instructions = "Choisis le bon temps et conjugue le verbe entre parenthèses."
+3. example = "Chaque soir, il (regarder) → regardait (imparfait) / Hier, elle (tomber) → est tombée (passé composé)"
+4. lignes = 5 phrases numérotées avec ___ et (verbe) à conjuguer, se terminant par " →"
+5. Utilise des marqueurs de temps variés : chaque matin/soir/été, hier, soudain, avant, tous les jours, ce matin
+6. Verbes différents du modèle corpus
+7. JAMAIS écrire la réponse après "→"`);
         }
 
         const isMonnaie = st.includes("monnaie");
@@ -732,7 +745,8 @@ RÈGLES ABSOLUES :
 4. Les mots racines dans lignes doivent être DIFFÉRENTS de ${motExemple} (le mot de l example)
 5. JAMAIS écrire les mots dérivés dans lignes — l enfant les trouve lui-même
 6. parentNote = "" (vide)
-${memory.usedWords?.length ? `7. INTERDIT d utiliser ces mots racines déjà vus récemment : ${memory.usedWords.slice(-20).join(", ")}` : ""}`);
+7. wordsUsed = [les 5 mots racines choisis pour lignes, en minuscules] — OBLIGATOIRE pour mémorisation
+${memory.usedWords?.length ? `8. INTERDIT d utiliser ces mots racines déjà vus récemment : ${memory.usedWords.slice(-20).join(", ")}` : ""}`);
         } else if (isVocabType) {
           regles.push(`TYPE : VOCABULAIRE.
 RÈGLES ABSOLUES :
