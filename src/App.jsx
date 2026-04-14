@@ -104,6 +104,24 @@ function unlocked(pts, bonus=[]) {
   const all=[...a]; b.forEach(x=>{if(!all.find(a=>a.e===x.e))all.push(x);}); return all;
 }
 
+const LABELS = {
+  "present_etre_avoir":"Présent — Être & Avoir","present_aller_faire":"Présent — Aller & Faire","present_1er_groupe":"Présent — 1er groupe","present_2eme_groupe":"Présent — 2ème groupe","present_voir_savoir_cm1":"Présent — Voir & Savoir (CM1)",
+  "imparfait_etre_avoir":"Imparfait — Être & Avoir","imparfait_1er_groupe":"Imparfait — 1er groupe","imparfait_2eme_groupe":"Imparfait — 2ème groupe","imparfait_irreguliers":"Imparfait — Irréguliers","imparfait_vs_passe_compose_cm1":"Imparfait vs Passé composé (CM1)",
+  "futur_simple_etre_avoir":"Futur — Être & Avoir","futur_simple_1er_groupe":"Futur — 1er groupe","futur_simple_2eme_groupe":"Futur — 2ème groupe","futur_simple_irreguliers":"Futur — Irréguliers",
+  "passe_compose_avoir_1er_groupe":"Passé composé avec Avoir","passe_compose_etre":"Passé composé avec Être",
+  "conditionnel_present_cm1":"Conditionnel présent (CM1)","identification_temps_cm1":"Identification des temps (CM1)",
+  "transposition":"Transposition — Change le sujet","negation_ne_pas":"Négation NE...PAS","negation_ne_plus":"Négation NE...PLUS","negation_ne_jamais_rien":"Négation NE...JAMAIS/RIEN",
+  "accord_sujet_verbe":"Accord sujet-verbe","accord_sujet_verbe_eloigne":"Accord sujet-verbe éloigné",
+  "classes_de_mots":"Classer des mots","nature_des_mots":"Nature des mots","fonctions_sujet_verbe_cod":"Sujet, verbe et COD","identifier_sujet_verbe":"Identifier le sujet et le verbe",
+  "complement_circonstanciel":"Complément circonstanciel","expansion_gn":"Expansion du groupe nominal","phrase_syntaxe":"Remettre les mots dans l ordre","types_de_phrases":"Types de phrases","ponctuation":"Ponctuation","liaison_phrases":"Relier des phrases","propositions_cm1":"Propositions (CM1)",
+  "familles_de_mots":"Familles de mots","familles_de_mots_avancees":"Familles de mots (avancé)","synonymes":"Synonymes","antonymes":"Antonymes","sens_contexte":"Sens selon le contexte","prefixes_suffixes":"Préfixes et suffixes","niveaux_de_langue":"Niveaux de langue",
+  "tables_melange":"Tables de multiplication mélangées","multiplication_posee_1chiffre":"Multiplication posée (1 chiffre)","multiplication_posee_2chiffres":"Multiplication posée (2 chiffres)",
+  "soustraction_retenue":"Soustraction avec retenue","soustraction_grands_nombres":"Soustraction grands nombres","soustraction_cm1":"Soustraction CM1",
+  "addition_retenue":"Addition avec retenue","addition_grands_nombres":"Addition grands nombres","addition_cm1":"Addition CM1",
+  "comprehension_texte_court":"Compréhension texte court","comprehension_inference":"Compréhension — Inférences","comprehension_avancee":"Compréhension avancée (CM1)","remise_en_ordre":"Remettre les phrases dans l ordre","resume_texte":"Résumé de texte",
+};
+const label = s => LABELS[s] || s.replace(/_/g," ");
+
 function Raton({ items=[], size=120, anim=true }) {
   const bag   = items.find(i=>i.e==="🎒");
   const hat   = items.find(i=>i.e==="🎩");
@@ -445,7 +463,7 @@ function ExCard({ ex, dark=true }) {
             </div>
           );
         }
-        return <div key={i} style={{fontSize:dark?13:12, color:tc, lineHeight:2.1, marginBottom:ex.type?.includes("identifier_sujet")?10:2}}>{trim}</div>;
+        return <div key={i} style={{fontSize:dark?13:12, color:tc, lineHeight:2.1, marginBottom:ex.type?.includes("identifier_sujet")?10:2}}>{trim.replace(/<\/?u>/g,"")}</div>;
       })}
     </div>
   );
@@ -787,15 +805,21 @@ JSON uniquement :
         // ─── NÉGATION : prompt dédié ──────────────────────────────────────────
         if (isNeg) {
           const negType = st.includes("plus")?"NE...PLUS":st.includes("jamais")?"NE...JAMAIS":"NE...PAS";
-          const negPas  = st.includes("plus")?"plus":st.includes("jamais")?"jamais":"pas";
-          const negPrompt = `Tu es instituteur CE1/CE2. Génère 5 phrases de négation ${negType} niveau ${niv}.
+          const negMot  = st.includes("plus")?"ne … plus":st.includes("jamais")?"ne … jamais":"ne … pas";
+          const negEx   = st.includes("plus")?"Il joue au foot. → Il ne joue plus au foot.":st.includes("jamais")?"Elle mange des épinards. → Elle ne mange jamais d épinards.":"Il joue au foot. → Il ne joue pas au foot.";
+          const negPrompt = `Tu es instituteur CE1/CE2. Génère un exercice de négation ${negType} niveau ${niv}.
 RÈGLES ABSOLUES :
-- lignes = 5 phrases AFFIRMATIVES numérotées, chacune se terminant par " →" UNIQUEMENT
-- JAMAIS écrire la forme négative dans lignes — l enfant le fait lui-même
-- Sujets variés : il, elle, nous, tu, ils, prénom d enfant
-- Phrases courtes et simples, vocabulaire CE1/CE2
-- example = UN exemple résolu : phrase affirmative → forme négative complète
-JSON uniquement : {"title":"Négation avec ${negType}","emoji":"✏️","duration":"${dur} min","instructions":"Transforme chaque phrase à la forme négative avec ${negType}","example":"Il joue au foot. → Il ne joue ${negPas} au foot.","lignes":["1. Elle mange une pomme. →","2. Nous courons vite. →","3. Tu lis un livre. →","4. Il regarde la télévision. →","5. Elles jouent dans le jardin. →"],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+1. title = "Négation avec ${negType}"
+2. instructions = "Réécris chaque phrase à la forme négative avec ${negMot}."
+3. example = "${negEx}"
+4. lignes = 5 phrases AFFIRMATIVES numérotées, chacune se terminant par " → _______________"
+   Format EXACT : "N. [Phrase affirmative complète.] → _______________"
+5. JAMAIS mettre de blancs ou de (ne) dans la phrase affirmative — la phrase est complète et lisible
+6. L enfant réécrit la phrase ENTIÈRE à la forme négative dans le blanc après la flèche
+7. Sujets variés : il, elle, nous, tu, ils, prénom
+8. Phrases courtes, vocabulaire CE1/CE2
+JSON uniquement :
+{"title":"Négation avec ${negType}","emoji":"✏️","duration":"${dur} min","instructions":"Réécris chaque phrase à la forme négative avec ${negMot}.","example":"${negEx}","lignes":["1. Il joue au ballon. → _______________","2. Elle mange une pomme. → _______________","3. Nous courons dans le jardin. → _______________","4. Tu lis un livre. → _______________","5. Elles chantent une chanson. → _______________"],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
           try {
             const raw = await callAPI(negPrompt, "exercice");
             const clean = raw.replace(/```json|```/g,"").trim();
@@ -948,18 +972,21 @@ JSON uniquement :
         // ─── PHRASE SYNTAXE (remise en ordre des mots) : prompt dédié ────────
         if (isPhraseSyntaxe) {
           const phraseSyntaxePrompt = `Tu es instituteur CE1/CE2. Génère un exercice de remise en ordre des MOTS pour former une phrase niveau ${niv}.
-MÉTHODE OBLIGATOIRE : pour chaque item, tu dois D ABORD construire une phrase française correcte et logique (sujet + verbe + complément), PUIS mélanger les mots dans le désordre.
+MÉTHODE OBLIGATOIRE en 2 étapes pour chaque item :
+  ÉTAPE 1 — Construis une phrase française correcte et logique de 4 à 6 mots (sujet + verbe + complément simple)
+  ÉTAPE 2 — Mélange les mots de cette phrase dans le désordre, séparés par " - "
 RÈGLES ABSOLUES :
 1. title = "Remets les mots dans l ordre"
 2. instructions = "Remets les mots dans le bon ordre pour former une phrase correcte."
-3. example = "mange - le - chat - un - poisson → Le chat mange un poisson." (phrase correcte : Le chat mange un poisson)
-4. lignes = 5 items numérotés. Format : "N. [mots mélangés] → _______________"
-5. Chaque item = exactement les mots d UNE phrase courte (4 à 6 mots) dans le DÉSORDRE
-6. VÉRIFICATION OBLIGATOIRE : les mots de chaque item doivent pouvoir former une vraie phrase française — pas de doublon de déterminant, verbe adapté au sujet
-7. Phrases variées, vocabulaire CE1, DIFFÉRENTES du modèle
-8. JAMAIS écrire la solution après "→"
-JSON uniquement :
-{"title":"Remets les mots dans l ordre","emoji":"✏️","duration":"${dur} min","instructions":"Remets les mots dans le bon ordre pour former une phrase correcte.","example":"mange - le - chat - un - poisson → Le chat mange un poisson.","lignes":["1. [mots mélangés] → _______________","2. [mots mélangés] → _______________","3. [mots mélangés] → _______________","4. [mots mélangés] → _______________","5. [mots mélangés] → _______________"],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+3. example = "mange - le - chat - un - poisson → Le chat mange un poisson." (phrase valide : Le chat mange un poisson)
+4. lignes = 5 items. Format : "N. [mots en désordre] → _______________"
+5. VÉRIFICATIONS OBLIGATOIRES pour chaque item :
+   - Pas de doublon de déterminant (pas deux fois LE ou LA)
+   - Le verbe s accorde avec le sujet
+   - Les mots forment UNE SEULE phrase française naturelle
+6. Vocabulaire CE1/CE2, phrases NOUVELLES et VARIÉES — jamais les mêmes que le modèle corpus
+JSON uniquement (NE PAS copier les phrases de l exemple — génère 5 phrases NOUVELLES) :
+{"title":"Remets les mots dans l ordre","emoji":"✏️","duration":"${dur} min","instructions":"Remets les mots dans le bon ordre pour former une phrase correcte.","example":"mange - le - chat - un - poisson → Le chat mange un poisson.","lignes":["1. [GÉNÈRE ICI] → _______________","2. [GÉNÈRE ICI] → _______________","3. [GÉNÈRE ICI] → _______________","4. [GÉNÈRE ICI] → _______________","5. [GÉNÈRE ICI] → _______________"],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
           try {
             const raw = await callAPI(phraseSyntaxePrompt, "exercice");
             const clean = raw.replace(/```json|```/g,"").trim();
@@ -1022,17 +1049,18 @@ RÈGLES ABSOLUES :
 1. title = "Relier des phrases avec un mot de liaison"
 2. instructions = "Relie les deux phrases avec le mot de liaison indiqué entre parenthèses."
 3. example = "Le soleil brille. Je porte des lunettes de soleil. (donc) → Le soleil brille donc je porte des lunettes de soleil."
-4. lignes = 4 items. Chaque item = deux phrases courtes + (mot de liaison) + " → _______________"
-5. LOGIQUE SÉMANTIQUE OBLIGATOIRE pour chaque mot de liaison :
-   - (donc) ou (alors) = CONSÉQUENCE : la 2e phrase est la conséquence logique de la 1ère. Ex : "Il pleut. Je prends mon parapluie."
-   - (mais) = OPPOSITION : la 2e phrase CONTREDIT ou s oppose à la 1ère. Ex : "Il fait froid. Elle ne met pas de manteau."
-   - (parce que) ou (car) = CAUSE : la 2e phrase EXPLIQUE POURQUOI la 1ère. Ex : "Je suis fatigué. Je me couche tôt."
-   - (et) = ADDITION : la 2e phrase s ajoute naturellement à la 1ère
-6. Phrases simples, vocabulaire CE1/CE2
-7. JAMAIS écrire la réponse après "→" dans lignes
-8. Varier les mots de liaison : utiliser au moins 3 mots différents parmi : donc, alors, mais, parce que, car, et
+4. lignes = 4 items. Format EXACT : "[Phrase 1]. [Phrase 2]. (mot) → _______________"
+5. RÈGLE CRITIQUE : le mot de liaison entre parenthèses DOIT être logiquement cohérent avec les deux phrases.
+   Définitions STRICTES à respecter :
+   - (donc) ou (alors) = la phrase 2 est une CONSÉQUENCE DIRECTE de la phrase 1. Ex : "Il pleut. Je prends mon parapluie. (donc)"
+   - (mais) = la phrase 2 CONTREDIT ou S OPPOSE à ce qu on attendrait après la phrase 1. Ex : "Il fait froid. Elle ne met pas de manteau. (mais)"
+   - (parce que) = la phrase 2 EXPLIQUE LA RAISON de la phrase 1. Ex : "Je suis fatigué. Je me couche tôt. (parce que)"
+   - (et) = la phrase 2 S AJOUTE simplement à la phrase 1 sans opposition ni conséquence logique
+6. INTERDIT : une phrase comme "Elle est heureuse. Elle sourit. (mais)" — sourire quand on est heureux n est pas une opposition
+7. Utilise 4 mots de liaison DIFFÉRENTS parmi : donc, alors, mais, parce que
+8. Phrases courtes, vocabulaire CE1/CE2, NOUVELLES à chaque génération
 JSON uniquement :
-{"title":"Relier des phrases avec un mot de liaison","emoji":"✏️","duration":"${dur} min","instructions":"Relie les deux phrases avec le mot de liaison indiqué entre parenthèses.","example":"Le soleil brille. Je porte des lunettes de soleil. (donc) → Le soleil brille donc je porte des lunettes de soleil.","lignes":["Il fait froid. Je mets mon manteau. (donc) → _______________","Elle est triste. Elle pleure. (parce que) → _______________","Il aimerait jouer dehors. Il pleut. (mais) → _______________","Il pleut des cordes. Je prends mon imperméable. (alors) → _______________"],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+{"title":"Relier des phrases avec un mot de liaison","emoji":"✏️","duration":"${dur} min","instructions":"Relie les deux phrases avec le mot de liaison indiqué entre parenthèses.","example":"Le soleil brille. Je porte des lunettes de soleil. (donc) → Le soleil brille donc je porte des lunettes de soleil.","lignes":["[GÉNÈRE ICI] → _______________","[GÉNÈRE ICI] → _______________","[GÉNÈRE ICI] → _______________","[GÉNÈRE ICI] → _______________"],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
           try {
             const raw = await callAPI(liaisonPrompt, "exercice");
             const clean = raw.replace(/```json|```/g,"").trim();
@@ -1454,14 +1482,14 @@ JSON uniquement :
                     {selCat&&(
                       <select style={{...S.inp,flex:2,padding:"10px 12px"}} value={selSub} onChange={e=>setSelSub(e.target.value)}>
                         <option value="">— Type d exercice —</option>
-                        {CATEGORIES[selCat].map(s=><option key={s} value={s}>{s.replace(/_/g," ")}</option>)}
+                        {CATEGORIES[selCat].map(s=><option key={s} value={s}>{label(s)}</option>)}
                       </select>
                     )}
                     <button style={{...S.btnSm,padding:"10px 16px"}} onClick={()=>{
                       if(!selSub){toast$("Choisis un type !","#f59e0b");return;}
                       if(mesure.includes(selSub)){toast$("Déjà ajouté !","#f59e0b");return;}
                       setMesure(p=>[...p,selSub]);
-                      toast$(`✅ ${selSub.replace(/_/g," ")} ajouté`);
+                      toast$(`✅ ${label(selSub)} ajouté`);
                     }}>+ Ajouter</button>
                   </div>
                   {mesure.length>0&&(
@@ -1470,7 +1498,7 @@ JSON uniquement :
                       <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
                         {mesure.map((s,i)=>(
                           <div key={i} style={{display:"flex",alignItems:"center",gap:6,background:"rgba(99,102,241,.15)",border:"1px solid rgba(99,102,241,.3)",borderRadius:10,padding:"4px 10px"}}>
-                            <span style={{fontSize:12,color:"#a5b4fc"}}>{s.replace(/_/g," ")}</span>
+                            <span style={{fontSize:12,color:"#a5b4fc"}}>{label(s)}</span>
                             <span style={{fontSize:14,color:"#f87171",cursor:"pointer"}} onClick={()=>setMesure(p=>p.filter((_,j)=>j!==i))}>✕</span>
                           </div>
                         ))}
