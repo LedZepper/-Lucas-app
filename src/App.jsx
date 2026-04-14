@@ -534,7 +534,8 @@ export default function App() {
         const modele = corpusData?.contenu || null;
         const exFormat = corpusData?.format || 'libre';
 
-        const isConjType  = (st.includes("present")||st.includes("imparfait")||st.includes("futur")||st.includes("passe")||st.includes("conditionnel")||st.includes("identification")) && !st.includes("vs_passe_compose");
+        const isConjType  = (st.includes("present")||st.includes("imparfait")||st.includes("futur")||st.includes("passe")||st.includes("conditionnel")) && !st.includes("vs_passe_compose") && !st.includes("identification_temps");
+        const isIdentTemps = st === "identification_temps_cm1";
         const isCalcType  = ["multiplication","soustraction","addition","division"].some(t=>st.includes(t));
         const isTablesType = st.includes("tables_melange");
         const isEncadr    = st.includes("encadrement")||st.includes("numeration")||st.includes("calcul_mental");
@@ -605,16 +606,74 @@ Retourne EXACTEMENT ce JSON (remplace seulement le titre et les verbsUsed si né
             continue;
           }
 
-          // ── 1er groupe, 2ème groupe, irréguliers : choix dans liste stricte ─
+          // ── 2ème groupe : verbes câblés côté code, Groq ne choisit pas ───────
+          if (st.includes("2eme_groupe")) {
+            const VERBES_2EME = ["finir","choisir","grandir","réussir","obéir","rougir","grossir","nourrir","réfléchir","remplir","applaudir","ralentir","vieillir","blanchir","noircir","fleurir","maigrir","mugir","saisir","subir"];
+            const disponibles = VERBES_2EME.filter(v => !usedVerbsSession.has(v));
+            const pool = disponibles.length >= 2 ? disponibles : VERBES_2EME;
+            const idx1 = Math.floor(Math.random() * pool.length);
+            let idx2 = Math.floor(Math.random() * (pool.length - 1));
+            if (idx2 >= idx1) idx2++;
+            const vA = pool[idx1].toUpperCase();
+            const vB = pool[idx2].toUpperCase();
+            const vAmin = vA.toLowerCase();
+            const vBmin = vB.toLowerCase();
+            const conjPromptFixe2 = `Tu es instituteur CE1/CE2. Génère un exercice de conjugaison.
+TEMPS : ${temps}
+RÈGLE ABSOLUE : les deux verbes sont IMPOSÉS. Tu ne peux pas les changer.
+Retourne EXACTEMENT ce JSON :
+{"title":"${titreConj}","emoji":"📝","duration":"${dur} min","instructions":"Conjugue les verbes au ${temps}.","example":"","lignes":["${vA} — ${temps}","${vB} — ${temps}"],"parentNote":"","verbsUsed":["${vAmin}","${vBmin}"],"wordsUsed":[]}`;
+            try {
+              const rawC = await callAPI(conjPromptFixe2, "exercice");
+              const cleanC = rawC.replace(/```json|```/g,"").trim();
+              const objC = JSON.parse(cleanC.match(/\{[\s\S]*\}/)?.[0]||"{}");
+              if (objC.title) {
+                exercises.push({type:st, format:'conjugaison', ...objC});
+                usedVerbsSession.add(vAmin);
+                usedVerbsSession.add(vBmin);
+              }
+            } catch(e) { console.error("Erreur conjugaison 2eme_groupe",st,e); }
+            continue;
+          }
+
+          // ── Passé composé avec ÊTRE : liste nationale, verbes câblés ─────────
+          if (st === "passe_compose_etre") {
+            const VERBES_ETRE = ["aller","venir","partir","arriver","entrer","sortir","naître","mourir","tomber","rester","monter","descendre","passer","retourner","rentrer","revenir","repartir","devenir","parvenir"];
+            const disponiblesE = VERBES_ETRE.filter(v => !usedVerbsSession.has(v));
+            const poolE = disponiblesE.length >= 2 ? disponiblesE : VERBES_ETRE;
+            const ei1 = Math.floor(Math.random() * poolE.length);
+            let ei2 = Math.floor(Math.random() * (poolE.length - 1));
+            if (ei2 >= ei1) ei2++;
+            const vA = poolE[ei1].toUpperCase();
+            const vB = poolE[ei2].toUpperCase();
+            const vAmin = vA.toLowerCase();
+            const vBmin = vB.toLowerCase();
+            const conjPromptEtre = `Tu es instituteur CE2/CM1. Génère un exercice de conjugaison.
+TEMPS : passé composé avec l auxiliaire ÊTRE
+RÈGLE ABSOLUE : les deux verbes sont IMPOSÉS. Tu ne peux pas les changer. Ces verbes se conjuguent OBLIGATOIREMENT avec ÊTRE.
+Retourne EXACTEMENT ce JSON :
+{"title":"Passé composé avec ÊTRE","emoji":"📝","duration":"${dur} min","instructions":"Conjugue les verbes au passé composé avec l auxiliaire ÊTRE. Attention aux accords !","example":"","lignes":["${vA} — passé composé","${vB} — passé composé"],"parentNote":"","verbsUsed":["${vAmin}","${vBmin}"],"wordsUsed":[]}`;
+            try {
+              const rawC = await callAPI(conjPromptEtre, "exercice");
+              const cleanC = rawC.replace(/```json|```/g,"").trim();
+              const objC = JSON.parse(cleanC.match(/\{[\s\S]*\}/)?.[0]||"{}");
+              if (objC.title) {
+                exercises.push({type:st, format:'conjugaison', ...objC});
+                usedVerbsSession.add(vAmin);
+                usedVerbsSession.add(vBmin);
+              }
+            } catch(e) { console.error("Erreur passe_compose_etre",st,e); }
+            continue;
+          }
+
+          // ── 1er groupe, irréguliers, passé composé AVOIR : liste stricte ─────
           const interdits = usedVerbsSession.size ? `VERBES INTERDITS (déjà utilisés cette séance) : ${[...usedVerbsSession].join(", ")}. Choisis OBLIGATOIREMENT des verbes hors de cette liste.` : "";
 
           const groupeContrainte = st.includes("1er_groupe") ?
             "UNIQUEMENT des verbes du 1er groupe en -ER. Liste autorisée (choisis 2 verbes DIFFÉRENTS parmi cette liste) : aimer, chanter, danser, jouer, manger, marcher, parler, passer, porter, regarder, rester, sauter, tomber, tourner, travailler, laver, fermer, montrer, écouter, appeler, arriver, chercher, compter, dessiner, donner, entrer, garder, lancer, lever, nager, penser, pleurer, poser, pousser, rentrer, rouler, tirer, toucher, voler" :
-            st.includes("2eme_groupe") ?
-            "UNIQUEMENT des verbes du 2ème groupe en -IR (type finir). Liste autorisée (choisis 2 verbes DIFFÉRENTS parmi cette liste SEULEMENT — ne pas inventer d autres verbes) : finir, choisir, grandir, réussir, obéir, rougir, grossir, nourrir, réfléchir, remplir, avertir, bâtir, envahir, établir, guérir, jaunir, mincir, punir, rajeunir, verdir" :
             st.includes("irreguliers") ?
-            "UNIQUEMENT des verbes irréguliers du 3ème groupe. Liste autorisée (choisis 2 verbes DIFFÉRENTS parmi cette liste SEULEMENT) : aller, dire, dormir, écrire, faire, lire, mettre, partir, pouvoir, prendre, savoir, sortir, tenir, venir, voir, vouloir. JAMAIS finir, choisir, grandir (ce sont des verbes du 2ème groupe)" :
-            "des verbes adaptés CE1/CE2";
+            "UNIQUEMENT des verbes irréguliers du 3ème groupe. Liste autorisée (choisis 2 verbes DIFFÉRENTS parmi cette liste SEULEMENT) : dire, dormir, écrire, faire, lire, mettre, partir, pouvoir, prendre, savoir, sortir, tenir, venir, voir, vouloir. JAMAIS finir, choisir, grandir (ce sont des verbes du 2ème groupe)" :
+            "des verbes du 1er groupe adaptés CE1/CE2";
 
           const conjPrompt = `Tu es instituteur CE1/CE2. Génère un exercice de conjugaison.
 TEMPS : ${temps}
@@ -663,6 +722,29 @@ JSON uniquement :
             const obj = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
             if (obj.title) exercises.push({type:st, format:'trous', ...obj});
           } catch(e) { console.error("Erreur vs_passe_compose",st,e); }
+          continue;
+        }
+
+        // ─── IDENTIFICATION DES TEMPS : prompt dédié ─────────────────────────
+        if (isIdentTemps) {
+          const identPrompt = `Tu es instituteur CM1. Génère un exercice d identification des temps verbaux.
+RÈGLES ABSOLUES :
+1. title = "Identification des temps (CM1)"
+2. instructions = "Lis chaque phrase et écris le temps du verbe souligné."
+3. example = "Elle chante une chanson. → présent"
+4. lignes = exactement 6 phrases numérotées. Chaque phrase se termine par " → _______________"
+5. Temps à utiliser : présent, imparfait, futur simple, passé composé — au moins 1 phrase par temps
+6. Verbes variés, phrases courtes niveau CM1, vocabulaire du quotidien
+7. JAMAIS écrire la réponse après "→" dans lignes
+8. parentNote = "" (vide)
+JSON uniquement :
+{"title":"Identification des temps (CM1)","emoji":"📝","duration":"${dur} min","instructions":"Lis chaque phrase et écris le temps du verbe souligné. Temps possibles : présent - imparfait - futur simple - passé composé","example":"Elle chante une chanson. → présent","lignes":["1. Nous mangions des crêpes. → _______________","2. Il viendra demain. → _______________","3. Tu as fini tes devoirs. → _______________","4. Elles jouent dans le jardin. → _______________","5. Vous partirez en vacances. → _______________","6. Je regardais la télévision. → _______________"],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+          try {
+            const raw = await callAPI(identPrompt, "exercice");
+            const clean = raw.replace(/```json|```/g,"").trim();
+            const obj = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
+            if (obj.title) exercises.push({type:st, format:'trous', ...obj});
+          } catch(e) { console.error("Erreur identification_temps",st,e); }
           continue;
         }
 
