@@ -15,7 +15,7 @@ const CATEGORIES = {
     "passe_compose_avoir_1er_groupe","passe_compose_etre",
     "conditionnel_present_cm1","identification_temps_cm1"
   ],
-  "Grammaire": ["transposition","negation_ne_pas","negation_ne_plus","negation_ne_jamais_rien","accord_sujet_verbe","accord_sujet_verbe_eloigne","classes_de_mots","nature_des_mots","fonctions_sujet_verbe_cod","complement_circonstanciel","expansion_gn","phrase_syntaxe","types_de_phrases","ponctuation","propositions_cm1"],
+  "Grammaire": ["transposition","negation_ne_pas","negation_ne_plus","negation_ne_jamais_rien","accord_sujet_verbe","accord_sujet_verbe_eloigne","classes_de_mots","nature_des_mots","fonctions_sujet_verbe_cod","identifier_sujet_verbe","complement_circonstanciel","expansion_gn","phrase_syntaxe","types_de_phrases","ponctuation","liaison_phrases","propositions_cm1"],
   "Orthographe": ["sons_ou_on","sons_an_en","sons_in_ain","sons_oi","sons_eau_au","sons_ill_gn","homophones_a_a","homophones_et_est","homophones_son_sont","homophones_ou_ou","homophones_ces_ses","homophones_on_ont","homophones_ma_ma","accord_adjectif","accord_participe_passe","mots_invariables"],
   "Dictée": ["dictee_sons_simples","dictee_homophones","dictee_avancee"],
   "Vocabulaire": ["familles_de_mots","familles_de_mots_avancees","synonymes","antonymes","sens_contexte","prefixes_suffixes","niveaux_de_langue"],
@@ -557,6 +557,7 @@ export default function App() {
         const isPhraseSyntaxe   = st === "phrase_syntaxe";
         const isPonctuation     = st === "ponctuation";
         const isRemiseOrdre     = st === "remise_en_ordre";
+        const isLiaison         = st === "liaison_phrases" || st.includes("liaison");
 
         const dur = Math.max(5, Math.round((weeklyConfig.duration||25)/types.length));
         const regles = [];
@@ -869,26 +870,35 @@ JSON uniquement :
           continue;
         }
 
-        // ─── CLASSES DE MOTS : prompt dédié ──────────────────────────────────
+        // ─── CLASSER DES MOTS : prompt dédié ─────────────────────────────────
         if (isClassesMots) {
-          const classesPrompt = `Tu es instituteur CE1/CE2. Génère un exercice sur les classes de mots niveau ${niv}.
+          const motsInterdits = usedWordsSession.size ? `MOTS INTERDITS (déjà utilisés récemment) : ${[...usedWordsSession].join(", ")}. N utilise AUCUN de ces mots.` : "";
+          const classesPrompt = `Tu es instituteur CE1/CE2. Génère un exercice de classement de mots niveau ${niv}.
 RÈGLES ABSOLUES :
-1. title = "Classes de mots"
+1. title = "Classer des mots"
 2. instructions = "Trie ces mots dans le bon tableau selon leur classe grammaticale."
 3. example = "chat → NOM | court → VERBE | petit → ADJECTIF | le → DÉTERMINANT"
-4. lignes[0] = une ligne de 12 mots séparés par " - " : 3 noms, 3 verbes, 3 adjectifs, 3 déterminants — MÉLANGÉS
+4. lignes[0] = exactement 12 mots séparés par " - " : 3 noms, 3 verbes, 3 adjectifs, 3 déterminants MÉLANGÉS
+   - Les déterminants DOIVENT être parmi : le, la, les, un, une, des, mon, ma, mes, son, sa, ses, ce, cette, ces
+   - Les verbes doivent être à l infinitif ou au présent, simples CE1
+   - Les noms et adjectifs doivent être des mots du quotidien CE1
 5. lignes[1] = "NOMS : _______________"
 6. lignes[2] = "VERBES : _______________"
 7. lignes[3] = "ADJECTIFS : _______________"
 8. lignes[4] = "DÉTERMINANTS : _______________"
-9. Mots simples niveau CE1/CE2, DIFFÉRENTS du modèle corpus
+9. wordsUsed = la liste des 12 mots utilisés dans lignes[0]
+${motsInterdits}
+IMPORTANT : génère des mots ENTIÈREMENT DIFFÉRENTS à chaque fois. Ne jamais utiliser maison, soleil, forêt, joue, chante, grand, beau, vieux comme première liste.
 JSON uniquement :
-{"title":"Classes de mots","emoji":"📚","duration":"${dur} min","instructions":"Trie ces mots dans le bon tableau selon leur classe grammaticale.","example":"chat → NOM | court → VERBE | petit → ADJECTIF | le → DÉTERMINANT","lignes":["maison - mange - grand - une - soleil - joue - beau - les - forêt - chante - vieux - des","NOMS : _______________","VERBES : _______________","ADJECTIFS : _______________","DÉTERMINANTS : _______________"],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+{"title":"Classer des mots","emoji":"📚","duration":"${dur} min","instructions":"Trie ces mots dans le bon tableau selon leur classe grammaticale.","example":"chat → NOM | court → VERBE | petit → ADJECTIF | le → DÉTERMINANT","lignes":["[12 MOTS VARIÉS ICI]","NOMS : _______________","VERBES : _______________","ADJECTIFS : _______________","DÉTERMINANTS : _______________"],"parentNote":"","verbsUsed":[],"wordsUsed":["les 12 mots en minuscules"]}`;
           try {
             const raw = await callAPI(classesPrompt, "exercice");
             const clean = raw.replace(/```json|```/g,"").trim();
             const obj = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
-            if (obj.title) exercises.push({type:st, format:'trous', ...obj});
+            if (obj.title) {
+              exercises.push({type:st, format:'trous', ...obj});
+              (obj.wordsUsed||[]).forEach(w => usedWordsSession.add(w.toLowerCase()));
+            }
           } catch(e) { console.error("Erreur classes_de_mots",st,e); }
           continue;
         }
@@ -938,16 +948,18 @@ JSON uniquement :
         // ─── PHRASE SYNTAXE (remise en ordre des mots) : prompt dédié ────────
         if (isPhraseSyntaxe) {
           const phraseSyntaxePrompt = `Tu es instituteur CE1/CE2. Génère un exercice de remise en ordre des MOTS pour former une phrase niveau ${niv}.
+MÉTHODE OBLIGATOIRE : pour chaque item, tu dois D ABORD construire une phrase française correcte et logique (sujet + verbe + complément), PUIS mélanger les mots dans le désordre.
 RÈGLES ABSOLUES :
 1. title = "Remets les mots dans l ordre"
 2. instructions = "Remets les mots dans le bon ordre pour former une phrase correcte."
-3. example = "mange - le - chat - un - poisson → Le chat mange un poisson."
-4. lignes = 5 items numérotés. Chaque item = des mots mélangés séparés par " - " se terminant par " → _______________"
-5. VÉRIFIE que chaque groupe de mots peut former UNE VRAIE PHRASE française correcte
-6. Mots simples, phrases courtes (4-5 mots), niveau CE1
-7. JAMAIS écrire la solution après "→" dans lignes
+3. example = "mange - le - chat - un - poisson → Le chat mange un poisson." (phrase correcte : Le chat mange un poisson)
+4. lignes = 5 items numérotés. Format : "N. [mots mélangés] → _______________"
+5. Chaque item = exactement les mots d UNE phrase courte (4 à 6 mots) dans le DÉSORDRE
+6. VÉRIFICATION OBLIGATOIRE : les mots de chaque item doivent pouvoir former une vraie phrase française — pas de doublon de déterminant, verbe adapté au sujet
+7. Phrases variées, vocabulaire CE1, DIFFÉRENTES du modèle
+8. JAMAIS écrire la solution après "→"
 JSON uniquement :
-{"title":"Remets les mots dans l ordre","emoji":"✏️","duration":"${dur} min","instructions":"Remets les mots dans le bon ordre pour former une phrase correcte.","example":"mange - le - chat - un - poisson → Le chat mange un poisson.","lignes":["1. jardin - joue - dans - il - le → _______________","2. belle - elle - porte - une - robe → _______________","3. école - vont - les - à - l - enfants → _______________","4. aime - le - tu - chocolat → _______________","5. dort - le - sur - chien - le - canapé → _______________"],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+{"title":"Remets les mots dans l ordre","emoji":"✏️","duration":"${dur} min","instructions":"Remets les mots dans le bon ordre pour former une phrase correcte.","example":"mange - le - chat - un - poisson → Le chat mange un poisson.","lignes":["1. [mots mélangés] → _______________","2. [mots mélangés] → _______________","3. [mots mélangés] → _______________","4. [mots mélangés] → _______________","5. [mots mélangés] → _______________"],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
           try {
             const raw = await callAPI(phraseSyntaxePrompt, "exercice");
             const clean = raw.replace(/```json|```/g,"").trim();
@@ -962,15 +974,16 @@ JSON uniquement :
           const ponctuationPrompt = `Tu es instituteur CE1/CE2. Génère un exercice de ponctuation niveau ${niv}.
 RÈGLES ABSOLUES :
 1. title = "Ajoute la ponctuation"
-2. instructions = "Ajoute le signe de ponctuation manquant à la fin ou dans chaque phrase. Signes possibles : . ? ! ,"
+2. instructions = "Ajoute le signe de ponctuation manquant. Signes possibles : . ? ! ,"
 3. example = "Il fait beau aujourd hui ___ → Il fait beau aujourd hui."
-4. lignes = 5 phrases numérotées. Chaque phrase se termine par " ___" (un seul blanc pour UN signe de ponctuation)
-5. Varier les signes : au moins 1 point, 1 point d interrogation, 1 point d exclamation, 1 virgule
-6. Pour la virgule : la phrase contient deux parties à séparer, le ___ est AU MILIEU de la phrase
-7. Phrases courtes, vocabulaire CE1/CE2
-8. JAMAIS écrire la réponse dans lignes
+4. lignes = 5 phrases numérotées. UN seul ___ par phrase pour UN seul signe de ponctuation
+5. Distribution OBLIGATOIRE : 2 phrases avec point final (.), 1 avec point d interrogation (?), 1 avec point d exclamation (!), 1 avec virgule (,)
+6. Pour le point et ! et ? : le ___ est EN FIN de phrase
+7. Pour la virgule : la phrase = deux courtes propositions séparées par ___ au milieu. Exemple : "Il pleut ___ je prends mon parapluie."
+8. Phrases courtes, vocabulaire CE1/CE2, DIFFÉRENTES du modèle
+9. JAMAIS écrire la réponse dans lignes
 JSON uniquement :
-{"title":"Ajoute la ponctuation","emoji":"✏️","duration":"${dur} min","instructions":"Ajoute le signe de ponctuation manquant à la fin ou dans chaque phrase. Signes possibles : . ? ! ,","example":"Il fait beau aujourd hui ___ → Il fait beau aujourd hui.","lignes":["1. Où vas-tu ___","2. Comme c est beau ___","3. Elle mange une pomme ___ une poire et une banane.","4. Viens ici ___","5. Il pleut ___ je prends mon parapluie."],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+{"title":"Ajoute la ponctuation","emoji":"✏️","duration":"${dur} min","instructions":"Ajoute le signe de ponctuation manquant. Signes possibles : . ? ! ,","example":"Il fait beau aujourd hui ___ → Il fait beau aujourd hui.","lignes":["1. Où vas-tu ___","2. Comme c est beau ___","3. Elle mange une pomme ___ une poire et une banane.","4. Viens ici ___","5. Il pleut ___ je prends mon parapluie."],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
           try {
             const raw = await callAPI(ponctuationPrompt, "exercice");
             const clean = raw.replace(/```json|```/g,"").trim();
@@ -999,6 +1012,33 @@ JSON uniquement :
             const obj = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
             if (obj.title) exercises.push({type:st, format:'libre', ...obj});
           } catch(e) { console.error("Erreur remise_en_ordre",st,e); }
+          continue;
+        }
+
+        // ─── LIAISON DE PHRASES : prompt dédié ───────────────────────────────
+        if (isLiaison) {
+          const liaisonPrompt = `Tu es instituteur CE2. Génère un exercice de liaison de phrases niveau ${niv}.
+RÈGLES ABSOLUES :
+1. title = "Relier des phrases avec un mot de liaison"
+2. instructions = "Relie les deux phrases avec le mot de liaison indiqué entre parenthèses."
+3. example = "Le soleil brille. Je porte des lunettes de soleil. (donc) → Le soleil brille donc je porte des lunettes de soleil."
+4. lignes = 4 items. Chaque item = deux phrases courtes + (mot de liaison) + " → _______________"
+5. LOGIQUE SÉMANTIQUE OBLIGATOIRE pour chaque mot de liaison :
+   - (donc) ou (alors) = CONSÉQUENCE : la 2e phrase est la conséquence logique de la 1ère. Ex : "Il pleut. Je prends mon parapluie."
+   - (mais) = OPPOSITION : la 2e phrase CONTREDIT ou s oppose à la 1ère. Ex : "Il fait froid. Elle ne met pas de manteau."
+   - (parce que) ou (car) = CAUSE : la 2e phrase EXPLIQUE POURQUOI la 1ère. Ex : "Je suis fatigué. Je me couche tôt."
+   - (et) = ADDITION : la 2e phrase s ajoute naturellement à la 1ère
+6. Phrases simples, vocabulaire CE1/CE2
+7. JAMAIS écrire la réponse après "→" dans lignes
+8. Varier les mots de liaison : utiliser au moins 3 mots différents parmi : donc, alors, mais, parce que, car, et
+JSON uniquement :
+{"title":"Relier des phrases avec un mot de liaison","emoji":"✏️","duration":"${dur} min","instructions":"Relie les deux phrases avec le mot de liaison indiqué entre parenthèses.","example":"Le soleil brille. Je porte des lunettes de soleil. (donc) → Le soleil brille donc je porte des lunettes de soleil.","lignes":["Il fait froid. Je mets mon manteau. (donc) → _______________","Elle est triste. Elle pleure. (parce que) → _______________","Il aimerait jouer dehors. Il pleut. (mais) → _______________","Il pleut des cordes. Je prends mon imperméable. (alors) → _______________"],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+          try {
+            const raw = await callAPI(liaisonPrompt, "exercice");
+            const clean = raw.replace(/```json|```/g,"").trim();
+            const obj = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
+            if (obj.title) exercises.push({type:st, format:'fleche', ...obj});
+          } catch(e) { console.error("Erreur liaison_phrases",st,e); }
           continue;
         }
 
