@@ -36,7 +36,7 @@ const AUTO_TYPES = {
   "CE1/CE2":    ["present_aller_faire","imparfait_etre_avoir","tables_melange","transposition","negation_ne_pas"],
   "CE2":        ["futur_simple_1er_groupe","soustraction_grands_nombres","tables_melange","negation_ne_plus","passe_compose_avoir_1er_groupe"],
   "CE2 avance": ["passe_compose_etre","soustraction_grands_nombres","multiplication_posee_1chiffre","accord_sujet_verbe","comprehension_texte_court"],
-  "CM1":        ["passe_compose_etre","division_posee","multiplication_posee_2chiffres","complement_circonstanciel","imparfait_vs_passe_compose_cm1"],
+  "CM1":        ["passe_compose_ete","division_posee","multiplication_posee_2chiffres","complement_circonstanciel","imparfait_vs_passe_compose_cm1"],
 };
 
 async function sbLoad() {
@@ -224,7 +224,6 @@ const isConj  = t => CONJ_TYPES.some(x => t?.includes(x));
 const isVocab = t => VOCAB_TYPES.some(x => t?.includes(x));
 const hideInstructions = t => isMath(t) || isConj(t);
 const hideExample      = t => (isMath(t) || isConj(t) || t?.includes("addition") || t?.includes("soustraction") || t?.includes("comprehension")) && !t?.includes("vs_passe_compose");
-// parentNote masqué partout — on ne l'affiche plus nulle part
 const hideParentNote   = () => true;
 
 function ExCard({ ex, dark=true }) {
@@ -247,14 +246,12 @@ function ExCard({ ex, dark=true }) {
       if (isTitle) { if (cur) blocs.push(cur); cur = {title: trim}; }
     }
     if (cur) blocs.push(cur);
-    // Si pas de verbes trouvés dans lignes, construire depuis ex.title
     if (blocs.length === 0 && ex.title) {
       const parts = ex.title.split("—")[0].trim().split("&").map(v => v.trim());
       const tempsMatch = ex.title.match(/[—-]\s*([^—-]+)$/);
       const temps = tempsMatch ? tempsMatch[1].trim() : "";
       parts.forEach(v => { if(v) blocs.push({title: `${v.toUpperCase()} — ${temps}`}); });
     }
-    // Si un seul bloc trouvé, ajouter un second vide plutôt que "? — ?"
     while (blocs.length < 2) blocs.push({title: blocs[0]?.title || "VERBE — ?"});
     const show = blocs.slice(0, 2);
     const PRONOMS = ["je","tu","il/elle","nous","vous","ils/elles"];
@@ -262,7 +259,7 @@ function ExCard({ ex, dark=true }) {
       <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:"0 24px"}}>
         {show.map((b,bi) => (
           <div key={bi}>
-            <div style={{fontWeight:700, fontSize:dark?13:12, color:ac, marginBottom:10, paddingBottom:4, }}>
+            <div style={{fontWeight:700, fontSize:dark?13:12, color:ac, marginBottom:10, paddingBottom:4}}>
               {b.title.toUpperCase()}
             </div>
             {PRONOMS.map((p,pi) => (
@@ -311,7 +308,6 @@ function ExCard({ ex, dark=true }) {
     if (!lignes.length) return <div style={{fontSize:14, color:tc, whiteSpace:"pre-line"}}>{ex.content||""}</div>;
     const isComprehension = ex.type?.includes("comprehension");
     if (isComprehension) {
-      // lignes[0] = texte en paragraphe, lignes[1] = vide, lignes[2..] = questions
       const texte = lignes[0] || "";
       const questions = lignes.slice(2).filter(l => l.trim());
       return (
@@ -527,7 +523,6 @@ export default function App() {
     ].filter(Boolean).join("\n");
 
     const exercises = [];
-    // Tracking intra-séance pour éviter les répétitions dans la même génération
     const usedVerbsSession = new Set((memory.usedVerbs || []).map(v => v.toLowerCase()));
     const usedWordsSession = new Set((memory.usedWords || []).map(w => w.toLowerCase()));
 
@@ -550,12 +545,16 @@ export default function App() {
         const isNature    = st.includes("nature_des_mots") || st.includes("classes_de_mots");
         const isVocabType = VOCAB_TYPES.some(t=>st.includes(t));
         const isFamilles  = st.includes("familles_de_mots");
+        const isVsTemps   = st.includes("vs_passe_compose");
+        const isMonnaie   = st.includes("monnaie");
 
         const dur = Math.max(5, Math.round((weeklyConfig.duration||25)/types.length));
         const regles = [];
 
+        // ─── BLOC CONJUGAISON DÉDIÉ ───────────────────────────────────────────
         if (isConjType && !isTranspo) {
           const temps = st.includes("present")?"présent":st.includes("imparfait")?"imparfait":st.includes("futur_simple")?"futur simple":st.includes("futur")?"futur":st.includes("passe_compose")?"passé composé":st.includes("conditionnel")?"conditionnel présent":"présent";
+
           const CONJ_TITLES = {
             "present_etre_avoir": "ÊTRE & AVOIR — Présent",
             "present_aller_faire": "ALLER & FAIRE — Présent",
@@ -566,27 +565,57 @@ export default function App() {
             "imparfait_1er_groupe": "1er groupe — Imparfait",
             "imparfait_2eme_groupe": "2ème groupe — Imparfait",
             "imparfait_irreguliers": "Irréguliers — Imparfait",
-            "futur_simple_etre_avoir": "ÊTRE & AVOIR — Futur",
-            "futur_simple_1er_groupe": "1er groupe — Futur",
-            "futur_simple_2eme_groupe": "2ème groupe — Futur",
-            "futur_simple_irreguliers": "Irréguliers — Futur",
+            "futur_simple_etre_avoir": "ÊTRE & AVOIR — Futur simple",
+            "futur_simple_1er_groupe": "1er groupe — Futur simple",
+            "futur_simple_2eme_groupe": "2ème groupe — Futur simple",
+            "futur_simple_irreguliers": "Irréguliers — Futur simple",
             "passe_compose_avoir_1er_groupe": "Passé composé avec AVOIR",
-            "passe_compose_ete": "Passé composé avec ÊTRE",
+            "passe_compose_etre": "Passé composé avec ÊTRE",
             "conditionnel_present_cm1": "Conditionnel présent (CM1)",
-            "imparfait_vs_passe_compose_cm1": "Choix entre imparfait et passé composé (CM1)",
             "identification_temps_cm1": "Identification des temps (CM1)",
           };
           const titreConj = CONJ_TITLES[st] || `Conjugaison — ${temps}`;
+
+          // ── ÊTRE & AVOIR : verbes câblés, Groq ne choisit pas ──────────────
+          const isEtreAvoir  = st.includes("etre_avoir");
+          const isAllerFaire = st.includes("aller_faire");
+          const isVoirSavoir = st.includes("voir_savoir");
+
+          if (isEtreAvoir || isAllerFaire || isVoirSavoir) {
+            const [vA, vB] = isEtreAvoir  ? ["ÊTRE","AVOIR"]
+                           : isAllerFaire ? ["ALLER","FAIRE"]
+                           :               ["VOIR","SAVOIR"];
+            const vAmin = vA.toLowerCase();
+            const vBmin = vB.toLowerCase();
+            const conjPromptFixe = `Tu es instituteur CE1/CE2. Génère un exercice de conjugaison.
+TEMPS : ${temps}
+RÈGLE ABSOLUE : les deux verbes sont IMPOSÉS. Tu ne peux pas les changer.
+Retourne EXACTEMENT ce JSON (remplace seulement le titre et les verbsUsed si nécessaire) :
+{"title":"${titreConj}","emoji":"📝","duration":"${dur} min","instructions":"Conjugue les verbes au ${temps}.","example":"","lignes":["${vA} — ${temps}","${vB} — ${temps}"],"parentNote":"","verbsUsed":["${vAmin}","${vBmin}"],"wordsUsed":[]}`;
+            try {
+              const rawC = await callAPI(conjPromptFixe, "exercice");
+              const cleanC = rawC.replace(/```json|```/g,"").trim();
+              const objC = JSON.parse(cleanC.match(/\{[\s\S]*\}/)?.[0]||"{}");
+              if (objC.title) {
+                exercises.push({type:st, format:'conjugaison', ...objC});
+                usedVerbsSession.add(vAmin);
+                usedVerbsSession.add(vBmin);
+              }
+            } catch(e) { console.error("Erreur conjugaison fixe",st,e); }
+            continue;
+          }
+
+          // ── 1er groupe, 2ème groupe, irréguliers : choix dans liste stricte ─
+          const interdits = usedVerbsSession.size ? `VERBES INTERDITS (déjà utilisés cette séance) : ${[...usedVerbsSession].join(", ")}. Choisis OBLIGATOIREMENT des verbes hors de cette liste.` : "";
+
           const groupeContrainte = st.includes("1er_groupe") ?
-            "UNIQUEMENT des verbes du 1er groupe en -ER. Liste autorisée : aimer, chanter, danser, jouer, manger, marcher, parler, passer, porter, regarder, rester, sauter, tomber, tourner, trouver, travailler, laver, fermer, montrer, écouter, appeler, arriver, chercher, compter, dessiner, donner, écrire non, entrer, garder, lancer, lever, nager, ouvrir non, penser, pleurer, poser, pousser, rencontrer, rentrer, retourner, rouler, sembler, soigner, tirer, toucher, voler" :
+            "UNIQUEMENT des verbes du 1er groupe en -ER. Liste autorisée (choisis 2 verbes DIFFÉRENTS parmi cette liste) : aimer, chanter, danser, jouer, manger, marcher, parler, passer, porter, regarder, rester, sauter, tomber, tourner, travailler, laver, fermer, montrer, écouter, appeler, arriver, chercher, compter, dessiner, donner, entrer, garder, lancer, lever, nager, penser, pleurer, poser, pousser, rentrer, rouler, tirer, toucher, voler" :
             st.includes("2eme_groupe") ?
-            "UNIQUEMENT des verbes du 2ème groupe en -IR (type finir). Liste autorisée : finir, choisir, grandir, réussir, obéir, rougir, grossir, nourrir, ralentir, réfléchir, remplir, saisir, subir, vieillir, bâtir, établir, fournir, garantir, guérir, investir, jaunir, mincir, munir, punir, rajeunir, réunir, salir, surgir, ternir, unir, verdir" :
-            st.includes("etre_avoir") ? "UNIQUEMENT les verbes ÊTRE et AVOIR, toujours ces 2 là" :
-            st.includes("aller_faire") ? "UNIQUEMENT les verbes ALLER et FAIRE, toujours ces 2 là" :
+            "UNIQUEMENT des verbes du 2ème groupe en -IR (type finir). Liste autorisée (choisis 2 verbes DIFFÉRENTS parmi cette liste SEULEMENT — ne pas inventer d autres verbes) : finir, choisir, grandir, réussir, obéir, rougir, grossir, nourrir, réfléchir, remplir, avertir, bâtir, envahir, établir, guérir, jaunir, mincir, punir, rajeunir, verdir" :
             st.includes("irreguliers") ?
-            "UNIQUEMENT des verbes irréguliers du 3ème groupe. Liste autorisée : aller, dire, dormir, écrire, être, faire, lire, mettre, partir, pouvoir, prendre, savoir, sortir, tenir, valoir, venir, voir, vouloir. JAMAIS finir, choisir, grandir (ce sont des verbes du 2ème groupe)" :
+            "UNIQUEMENT des verbes irréguliers du 3ème groupe. Liste autorisée (choisis 2 verbes DIFFÉRENTS parmi cette liste SEULEMENT) : aller, dire, dormir, écrire, faire, lire, mettre, partir, pouvoir, prendre, savoir, sortir, tenir, venir, voir, vouloir. JAMAIS finir, choisir, grandir (ce sont des verbes du 2ème groupe)" :
             "des verbes adaptés CE1/CE2";
-          const interdits = usedVerbsSession.size ? `VERBES INTERDITS (déjà utilisés) : ${[...usedVerbsSession].join(", ")}. Choisis OBLIGATOIREMENT des verbes hors de cette liste.` : "";
+
           const conjPrompt = `Tu es instituteur CE1/CE2. Génère un exercice de conjugaison.
 TEMPS : ${temps}
 CONTRAINTE DE GROUPE : ${groupeContrainte}
@@ -613,19 +642,78 @@ JSON à retourner (remplace seulement VERBE_A et VERBE_B par tes 2 verbes à l i
           continue;
         }
 
-        if (isTranspo) {
-          // géré par prompt dédié plus bas — pas de règle générique
+        // ─── IMPARFAIT VS PASSÉ COMPOSÉ : prompt dédié ───────────────────────
+        if (isVsTemps) {
+          const vsPrompt = `Tu es instituteur CM1. Génère un exercice de choix entre imparfait et passé composé.
+RÈGLES ABSOLUES :
+1. title = "Choix entre imparfait et passé composé (CM1)"
+2. instructions = "Choisis le bon temps et conjugue le verbe entre parenthèses."
+3. example = "Chaque soir, il (regarder) → regardait (imparfait) / Hier, elle (tomber) → est tombée (passé composé)"
+4. lignes = exactement 5 phrases numérotées. Chaque phrase contient ___ (verbe à conjuguer) et se termine par " →"
+5. Format de chaque ligne : "N. Marqueur de temps, sujet ___ (verbe) complément →"
+6. Utilise ces marqueurs de temps variés : chaque matin, chaque soir, chaque été, hier, soudain, avant, tous les jours, ce matin-là, autrefois, à ce moment-là
+7. Verbes simples niveau CM1 : jouer, manger, partir, tomber, crier, chercher, finir, arriver, regarder, courir, trouver, appeler
+8. JAMAIS écrire la réponse après "→" dans lignes — l enfant conjugue lui-même
+9. parentNote = "" (vide)
+JSON uniquement :
+{"title":"Choix entre imparfait et passé composé (CM1)","emoji":"📝","duration":"${dur} min","instructions":"Choisis le bon temps et conjugue le verbe entre parenthèses.","example":"Chaque soir, il (regarder) → regardait (imparfait) / Hier, elle (tomber) → est tombée (passé composé)","lignes":["1. Tous les jours, il ___ (jouer) au ballon →","2. Hier, elle ___ (tomber) dans l escalier →","3. Chaque matin, nous ___ (manger) des céréales →","4. Soudain, il ___ (crier) très fort →","5. Avant, tu ___ (habiter) à la campagne →"],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+          try {
+            const raw = await callAPI(vsPrompt, "exercice");
+            const clean = raw.replace(/```json|```/g,"").trim();
+            const obj = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
+            if (obj.title) exercises.push({type:st, format:'trous', ...obj});
+          } catch(e) { console.error("Erreur vs_passe_compose",st,e); }
+          continue;
         }
 
+        // ─── TRANSPOSITION : prompt dédié ────────────────────────────────────
+        if (isTranspo) {
+          const transpoPrompt = `Tu es instituteur CE1/CE2. Génère un exercice de transposition MÉLANGÉ niveau ${niv}.
+L exercice contient 5 phrases, chacune avec un TYPE DIFFÉRENT de transposition :
+- Type A : remplacer IL par ELLE (ou ELLE par IL)
+- Type B : remplacer TU par JE (ou JE par TU)
+- Type C : remplacer IL/ELLE par ILS/ELLES (singulier → pluriel)
+- Type D : remplacer NOUS par ILS/ELLES
+- Type E : remplacer un prénom singulier par un prénom pluriel (ex: "Léa joue" → "Léa et Tom jouent")
+RÈGLES ABSOLUES :
+1. Chaque ligne = "N. [phrase originale] → [nouveau sujet] _______________"
+2. JAMAIS écrire la réponse complète après la flèche — seulement le nouveau sujet + underscores
+3. example = UN exemple résolu complet : "IL mange une pomme. → ELLE mange une pomme."
+4. Les 5 lignes doivent avoir 5 types différents parmi A B C D E
+5. Phrases courtes, verbes simples, vocabulaire CE1
+JSON uniquement :
+{"title":"Transposition — Change le sujet","emoji":"✏️","duration":"${dur} min","instructions":"Réécris chaque phrase en changeant le sujet indiqué. Accorde bien le verbe !","example":"IL mange une pomme. → ELLE mange une pomme.","lignes":["1. ELLE dessine un chat. → IL _______________","2. TU chantes bien. → JE _______________","3. IL court vite. → ILS _______________","4. NOUS mangeons. → ILS _______________","5. Léa rit. → Léa et Tom _______________"],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+          try {
+            const raw = await callAPI(transpoPrompt, "exercice");
+            const clean = raw.replace(/```json|```/g,"").trim();
+            const obj = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
+            if (obj.title) exercises.push({type:st, format:'fleche', ...obj});
+          } catch(e) { console.error("Erreur transposition",st,e); }
+          continue;
+        }
+
+        // ─── NÉGATION : prompt dédié ──────────────────────────────────────────
         if (isNeg) {
           const negType = st.includes("plus")?"NE...PLUS":st.includes("jamais")?"NE...JAMAIS":"NE...PAS";
           const negPas  = st.includes("plus")?"plus":st.includes("jamais")?"jamais":"pas";
-          regles.push(`TYPE : NÉGATION avec ${negType}.
-- Chaque ligne = phrase AFFIRMATIVE numérotée se terminant par "→", jamais la réponse après
-- Sujets variés (il, elle, nous, tu, ils, prénom...)
-- example = "Il joue au foot. → Il ne joue ${negPas} au foot."`);
+          const negPrompt = `Tu es instituteur CE1/CE2. Génère 5 phrases de négation ${negType} niveau ${niv}.
+RÈGLES ABSOLUES :
+- lignes = 5 phrases AFFIRMATIVES numérotées, chacune se terminant par " →" UNIQUEMENT
+- JAMAIS écrire la forme négative dans lignes — l enfant le fait lui-même
+- Sujets variés : il, elle, nous, tu, ils, prénom d enfant
+- Phrases courtes et simples, vocabulaire CE1/CE2
+- example = UN exemple résolu : phrase affirmative → forme négative complète
+JSON uniquement : {"title":"Négation avec ${negType}","emoji":"✏️","duration":"${dur} min","instructions":"Transforme chaque phrase à la forme négative avec ${negType}","example":"Il joue au foot. → Il ne joue ${negPas} au foot.","lignes":["1. Elle mange une pomme. →","2. Nous courons vite. →","3. Tu lis un livre. →","4. Il regarde la télévision. →","5. Elles jouent dans le jardin. →"],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+          try {
+            const raw = await callAPI(negPrompt, "exercice");
+            const clean = raw.replace(/```json|```/g,"").trim();
+            const obj = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
+            if (obj.title) exercises.push({type:st, format:'fleche', ...obj});
+          } catch(e) { console.error("Erreur négation",st,e); }
+          continue;
         }
 
+        // ─── PROMPT GÉNÉRIQUE ────────────────────────────────────────────────
         if (isTablesType) {
           regles.push(`TYPE : MULTIPLICATION — Tables mélangées de 1 à 10.
 - Exactement 20 items dans lignes (4 colonnes × 5)
@@ -659,20 +747,6 @@ JSON à retourner (remplace seulement VERBE_A et VERBE_B par tes 2 verbes à l i
 - Niveau CE1/CE2, phrases courtes et simples`);
         }
 
-        const isVsTemps = st.includes("vs_passe_compose");
-        if (isVsTemps) {
-          regles.push(`TYPE : CHOIX ENTRE IMPARFAIT ET PASSÉ COMPOSÉ (CM1).
-RÈGLES ABSOLUES :
-1. title = "Choix entre imparfait et passé composé (CM1)"
-2. instructions = "Choisis le bon temps et conjugue le verbe entre parenthèses."
-3. example = "Chaque soir, il (regarder) → regardait (imparfait) / Hier, elle (tomber) → est tombée (passé composé)"
-4. lignes = 5 phrases numérotées avec ___ et (verbe) à conjuguer, se terminant par " →"
-5. Utilise des marqueurs de temps variés : chaque matin/soir/été, hier, soudain, avant, tous les jours, ce matin
-6. Verbes différents du modèle corpus
-7. JAMAIS écrire la réponse après "→"`);
-        }
-
-        const isMonnaie = st.includes("monnaie");
         if (isMonnaie) {
           regles.push(`TYPE : MESURES MONNAIE.
 RÈGLES ABSOLUES :
@@ -734,11 +808,9 @@ RÈGLES ABSOLUES :
         }
 
         if (isFamilles) {
-          // Exemples variés pour éviter que MER soit toujours utilisé
           const FAMILLES_EXEMPLES = [
             "MER → marin, maritime, amerrir",
             "TERRE → terrain, enterrer, terrestre",
-            "FEU → feuille non — foyer, enflammer, brûlant",
             "PAIN → boulangerie, boulanger, biscuit",
             "SOLEIL → ensoleillé, parasol, solaire",
             "CHAT → chaton, chatière, chatte",
@@ -772,51 +844,6 @@ RÈGLES ABSOLUES :
 
         const reglesTxt = regles.join("\n\n");
 
-        if (isTranspo) {
-          const transpoPrompt = `Tu es instituteur CE1/CE2. Génère un exercice de transposition MÉLANGÉ niveau ${niv}.
-L exercice contient 5 phrases, chacune avec un TYPE DIFFÉRENT de transposition :
-- Type A : remplacer IL par ELLE (ou ELLE par IL)
-- Type B : remplacer TU par JE (ou JE par TU)
-- Type C : remplacer IL/ELLE par ILS/ELLES (singulier → pluriel)
-- Type D : remplacer NOUS par ILS/ELLES
-- Type E : remplacer un prénom singulier par un prénom pluriel (ex: "Léa joue" → "Léa et Tom jouent")
-RÈGLES ABSOLUES :
-1. Chaque ligne = "N. [phrase originale] → [nouveau sujet] _______________" — les underscores représentent l espace pour écrire la suite
-2. JAMAIS écrire la réponse complète après la flèche — seulement le nouveau sujet + underscores
-3. example = UN exemple résolu complet : "IL mange une pomme. → ELLE mange une pomme."
-4. Les 5 lignes doivent avoir 5 types différents parmi A B C D E
-5. Phrases courtes, verbes simples, vocabulaire CE1
-JSON uniquement :
-{"title":"Transposition — Change le sujet","emoji":"✏️","duration":"${dur} min","instructions":"Réécris chaque phrase en changeant le sujet indiqué. Accorde bien le verbe !","example":"IL mange une pomme. → ELLE mange une pomme.","lignes":["1. ELLE dessine un chat. → IL _______________","2. TU chantes bien. → JE _______________","3. IL court vite. → ILS _______________","4. NOUS mangeons. → ILS _______________","5. Léa rit. → Léa et Tom _______________"],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
-          try {
-            const raw = await callAPI(transpoPrompt, "exercice");
-            const clean = raw.replace(/```json|```/g,"").trim();
-            const obj = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
-            if (obj.title) exercises.push({type:st, format:'fleche', ...obj});
-          } catch(e) { console.error("Erreur transposition",st,e); }
-          continue;
-        }
-
-        if (isNeg) {
-          const negType = st.includes("plus")?"NE...PLUS":st.includes("jamais")?"NE...JAMAIS":"NE...PAS";
-          const negPas  = st.includes("plus")?"plus":st.includes("jamais")?"jamais":"pas";
-          const negPrompt = `Tu es instituteur CE1/CE2. Génère 5 phrases de négation ${negType} niveau ${niv}.
-RÈGLES ABSOLUES :
-- lignes = 5 phrases AFFIRMATIVES numérotées, chacune se terminant par " →" UNIQUEMENT
-- JAMAIS écrire la forme négative dans lignes — l enfant le fait lui-même
-- Sujets variés : il, elle, nous, tu, ils, prénom d enfant
-- Phrases courtes et simples, vocabulaire CE1/CE2
-- example = UN exemple résolu : phrase affirmative → forme négative complète
-JSON uniquement : {"title":"Négation avec ${negType}","emoji":"✏️","duration":"${dur} min","instructions":"Transforme chaque phrase à la forme négative avec ${negType}","example":"Il joue au foot. → Il ne joue ${negPas} au foot.","lignes":["1. Elle mange une pomme. →","2. Nous courons vite. →","3. Tu lis un livre. →","4. Il regarde la télévision. →","5. Elles jouent dans le jardin. →"],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
-          try {
-            const raw = await callAPI(negPrompt, "exercice");
-            const clean = raw.replace(/```json|```/g,"").trim();
-            const obj = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
-            if (obj.title) exercises.push({type:st, format:'fleche', ...obj});
-          } catch(e) { console.error("Erreur négation",st,e); }
-          continue;
-        }
-
         const prompt = modele
           ? `Tu es instituteur CE1/CE2 expert. Exercice pour ${CHILD_NAME}, niveau ${niv}.
 MODÈLE DE RÉFÉRENCE (structure et type uniquement — NE PAS copier les valeurs) :
@@ -842,22 +869,19 @@ JSON uniquement :
         const clean = raw.replace(/```json|```/g,"").trim();
         const obj   = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
         if(obj.title) {
-          const fmt = st.includes('monnaie') ? 'trous' : exFormat;
+          const fmt = isMonnaie ? 'trous' : exFormat;
           exercises.push({type:st, format: fmt, ...obj});
-          // Enrichir le tracking intra-séance
           (obj.verbsUsed||[]).forEach(v => usedVerbsSession.add(v.toLowerCase()));
           (obj.wordsUsed||[]).forEach(w => usedWordsSession.add(w.toLowerCase()));
-          // Extraire verbes depuis lignes conjugaison
           if (isConjType && obj.lignes) {
             obj.lignes.forEach(l => {
               const m = l.match(/^([A-ZÀÂÉÈÊËÎÏÔÙÛÜÇ]{2,})/);
               if (m) usedVerbsSession.add(m[1].toLowerCase());
             });
           }
-          // Extraire mots racines depuis lignes familles
           if (isFamilles && obj.lignes) {
             obj.lignes.forEach(l => {
-              const m = l.match(/^d+.s*([A-ZÀÂÉÈÊËÎÏÔÙÛÜÇ]{2,})/);
+              const m = l.match(/^\d+\.\s*([A-ZÀÂÉÈÊËÎÏÔÙÛÜÇ]{2,})/);
               if (m) usedWordsSession.add(m[1].toLowerCase());
             });
           }
