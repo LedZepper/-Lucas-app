@@ -445,7 +445,7 @@ function ExCard({ ex, dark=true }) {
             </div>
           );
         }
-        return <div key={i} style={{fontSize:dark?13:12, color:tc, lineHeight:2.1, marginBottom:2}}>{trim}</div>;
+        return <div key={i} style={{fontSize:dark?13:12, color:tc, lineHeight:2.1, marginBottom:ex.type?.includes("identifier_sujet")?10:2}}>{trim}</div>;
       })}
     </div>
   );
@@ -546,8 +546,17 @@ export default function App() {
         const isNature    = st.includes("nature_des_mots") || st.includes("classes_de_mots");
         const isVocabType = VOCAB_TYPES.some(t=>st.includes(t));
         const isFamilles  = st.includes("familles_de_mots");
-        const isVsTemps   = st.includes("vs_passe_compose");
-        const isMonnaie   = st.includes("monnaie");
+        const isVsTemps         = st.includes("vs_passe_compose");
+        const isMonnaie         = st.includes("monnaie");
+        const isAccordSVEloigne = st === "accord_sujet_verbe_eloigne";
+        const isAccordSV        = st === "accord_sujet_verbe";
+        const isNatureMots      = st === "nature_des_mots";
+        const isClassesMots     = st === "classes_de_mots";
+        const isFonctionsSVC    = st === "fonctions_sujet_verbe_cod";
+        const isIdentSujetVerbe = st === "identifier_sujet_verbe";
+        const isPhraseSyntaxe   = st === "phrase_syntaxe";
+        const isPonctuation     = st === "ponctuation";
+        const isRemiseOrdre     = st === "remise_en_ordre";
 
         const dur = Math.max(5, Math.round((weeklyConfig.duration||25)/types.length));
         const regles = [];
@@ -792,6 +801,204 @@ JSON uniquement : {"title":"Négation avec ${negType}","emoji":"✏️","duratio
             const obj = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
             if (obj.title) exercises.push({type:st, format:'fleche', ...obj});
           } catch(e) { console.error("Erreur négation",st,e); }
+          continue;
+        }
+
+        // ─── ACCORD SUJET-VERBE : prompt dédié ───────────────────────────────
+        if (isAccordSV) {
+          const accordPrompt = `Tu es instituteur CE1/CE2. Génère un exercice d accord sujet-verbe niveau ${niv}.
+RÈGLES ABSOLUES :
+1. title = "Accord sujet-verbe"
+2. instructions = "Entoure le sujet et complète la terminaison du verbe."
+3. example = "Les enfants chant___ → Les enfants chantent (ILS → -ent)"
+4. lignes = 5 phrases numérotées. Chaque phrase contient un verbe avec une terminaison MANQUANTE notée ___ et se termine par " → _______________"
+5. Format : "N. Le/La/Les [sujet] [verbe tronqué]___ [complément]. → _______________"
+6. Verbes du 1er groupe uniquement, sujets variés (je/tu/il/elle/nous/vous/ils/elles)
+7. JAMAIS écrire la réponse après "→" dans lignes
+JSON uniquement :
+{"title":"Accord sujet-verbe","emoji":"✏️","duration":"${dur} min","instructions":"Entoure le sujet et complète la terminaison du verbe.","example":"Les enfants chant___ → Les enfants chantent (ILS → -ent)","lignes":["1. Le chien aboi___ fort. → _______________","2. Les oiseaux vol___ dans le ciel. → _______________","3. Tu chant___ très bien. → _______________","4. Nous march___ dans la forêt. → _______________","5. Elle dans___ sur scène. → _______________"],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+          try {
+            const raw = await callAPI(accordPrompt, "exercice");
+            const clean = raw.replace(/```json|```/g,"").trim();
+            const obj = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
+            if (obj.title) exercises.push({type:st, format:'fleche', ...obj});
+          } catch(e) { console.error("Erreur accord_sujet_verbe",st,e); }
+          continue;
+        }
+
+        // ─── ACCORD SUJET-VERBE ÉLOIGNÉ : prompt dédié ───────────────────────
+        if (isAccordSVEloigne) {
+          const accordEloignePrompt = `Tu es instituteur CE2. Génère un exercice d accord sujet-verbe éloigné niveau ${niv}.
+RÈGLES ABSOLUES :
+1. title = "Accord sujet-verbe éloigné"
+2. instructions = "Souligne le sujet et complète la terminaison du verbe. Attention : le sujet est loin du verbe !"
+3. example = "Les enfants de la classe chant___ → chantent (sujet = les enfants → ILS)"
+4. lignes = 5 phrases numérotées. Le sujet est séparé du verbe par un groupe nominal. Terminaison MANQUANTE notée ___
+5. Format : "N. Les [nom] de/du [complément] [verbe tronqué]___ [suite]. → _______________"
+6. Verbes simples du 1er groupe, sujets au pluriel ou singulier variés
+7. JAMAIS écrire la réponse après "→" dans lignes
+JSON uniquement :
+{"title":"Accord sujet-verbe éloigné","emoji":"✏️","duration":"${dur} min","instructions":"Souligne le sujet et complète la terminaison du verbe. Attention : le sujet est loin du verbe !","example":"Les enfants de la classe chant___ → chantent (sujet = les enfants → ILS)","lignes":["1. Les chiens du voisin aboi___ fort. → _______________","2. Les élèves de CE2 travaill___ bien. → _______________","3. Le livre de contes est___ très beau. → _______________","4. Les enfants du quartier jou___ dehors. → _______________","5. La boîte de crayons est___ sur la table. → _______________"],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+          try {
+            const raw = await callAPI(accordEloignePrompt, "exercice");
+            const clean = raw.replace(/```json|```/g,"").trim();
+            const obj = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
+            if (obj.title) exercises.push({type:st, format:'fleche', ...obj});
+          } catch(e) { console.error("Erreur accord_sujet_verbe_eloigne",st,e); }
+          continue;
+        }
+
+        // ─── NATURE DES MOTS : prompt dédié ──────────────────────────────────
+        if (isNatureMots) {
+          const naturePrompt = `Tu es instituteur CE1/CE2. Génère un exercice sur la nature des mots niveau ${niv}.
+RÈGLES ABSOLUES :
+1. title = "Nature des mots"
+2. instructions = "Indique la nature du mot EN MAJUSCULES dans chaque phrase. Natures possibles : nom commun, verbe, adjectif qualificatif, adverbe, déterminant, pronom."
+3. example = "Le petit CHAT dort. → nom commun"
+4. lignes = 6 phrases numérotées. Chaque phrase contient UN seul mot en MAJUSCULES et se termine par " → _______________"
+5. Varier les natures : au moins 1 nom, 1 verbe, 1 adjectif, 1 adverbe, 1 déterminant
+6. JAMAIS écrire la réponse après "→" dans lignes
+JSON uniquement :
+{"title":"Nature des mots","emoji":"📚","duration":"${dur} min","instructions":"Indique la nature du mot EN MAJUSCULES dans chaque phrase. Natures possibles : nom commun, verbe, adjectif qualificatif, adverbe, déterminant, pronom.","example":"Le petit CHAT dort. → nom commun","lignes":["1. Le CHIEN court vite. → _______________","2. Elle MANGE une pomme. → _______________","3. Un GRAND arbre pousse. → _______________","4. LES enfants jouent. → _______________","5. Elle est contente. → _______________","6. Il court VITE. → _______________"],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+          try {
+            const raw = await callAPI(naturePrompt, "exercice");
+            const clean = raw.replace(/```json|```/g,"").trim();
+            const obj = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
+            if (obj.title) exercises.push({type:st, format:'trous', ...obj});
+          } catch(e) { console.error("Erreur nature_des_mots",st,e); }
+          continue;
+        }
+
+        // ─── CLASSES DE MOTS : prompt dédié ──────────────────────────────────
+        if (isClassesMots) {
+          const classesPrompt = `Tu es instituteur CE1/CE2. Génère un exercice sur les classes de mots niveau ${niv}.
+RÈGLES ABSOLUES :
+1. title = "Classes de mots"
+2. instructions = "Trie ces mots dans le bon tableau selon leur classe grammaticale."
+3. example = "chat → NOM | court → VERBE | petit → ADJECTIF | le → DÉTERMINANT"
+4. lignes[0] = une ligne de 12 mots séparés par " - " : 3 noms, 3 verbes, 3 adjectifs, 3 déterminants — MÉLANGÉS
+5. lignes[1] = "NOMS : _______________"
+6. lignes[2] = "VERBES : _______________"
+7. lignes[3] = "ADJECTIFS : _______________"
+8. lignes[4] = "DÉTERMINANTS : _______________"
+9. Mots simples niveau CE1/CE2, DIFFÉRENTS du modèle corpus
+JSON uniquement :
+{"title":"Classes de mots","emoji":"📚","duration":"${dur} min","instructions":"Trie ces mots dans le bon tableau selon leur classe grammaticale.","example":"chat → NOM | court → VERBE | petit → ADJECTIF | le → DÉTERMINANT","lignes":["maison - mange - grand - une - soleil - joue - beau - les - forêt - chante - vieux - des","NOMS : _______________","VERBES : _______________","ADJECTIFS : _______________","DÉTERMINANTS : _______________"],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+          try {
+            const raw = await callAPI(classesPrompt, "exercice");
+            const clean = raw.replace(/```json|```/g,"").trim();
+            const obj = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
+            if (obj.title) exercises.push({type:st, format:'trous', ...obj});
+          } catch(e) { console.error("Erreur classes_de_mots",st,e); }
+          continue;
+        }
+
+        // ─── FONCTIONS SUJET VERBE COD : prompt dédié ────────────────────────
+        if (isFonctionsSVC) {
+          const fonctionsPrompt = `Tu es instituteur CE2/CM1. Génère un exercice d identification sujet, verbe et COD niveau ${niv}.
+RÈGLES ABSOLUES :
+1. title = "Identifie le sujet, le verbe et le COD"
+2. instructions = "Lis chaque phrase et identifie le sujet, le verbe et le complément d objet direct (COD). Écris tes réponses dans les espaces vides."
+3. example = "Le garçon mange un sandwich. Sujet : Le garçon (qui est-ce qui mange ?) Verbe : mange COD : un sandwich"
+4. lignes = 3 phrases numérotées. Format EXACT : "N. [phrase]. Sujet : _______________ Verbe : _______________ COD : _______________"
+5. Phrases simples, sujet + verbe transitif + COD clair, niveau CE2
+6. JAMAIS écrire les réponses dans lignes
+JSON uniquement :
+{"title":"Identifie le sujet, le verbe et le COD","emoji":"📚","duration":"${dur} min","instructions":"Lis chaque phrase et identifie le sujet, le verbe et le complément d objet direct (COD). Écris tes réponses dans les espaces vides.","example":"Le garçon mange un sandwich. Sujet : Le garçon (qui est-ce qui mange ?) Verbe : mange COD : un sandwich","lignes":["1. La fille dessine un portrait. Sujet : _______________ Verbe : _______________ COD : _______________","2. Les amis jouent à cache-cache. Sujet : _______________ Verbe : _______________ COD : _______________","3. Le professeur écrit sur le tableau. Sujet : _______________ Verbe : _______________ COD : _______________"],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+          try {
+            const raw = await callAPI(fonctionsPrompt, "exercice");
+            const clean = raw.replace(/```json|```/g,"").trim();
+            const obj = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
+            if (obj.title) exercises.push({type:st, format:'trous', ...obj});
+          } catch(e) { console.error("Erreur fonctions_sujet_verbe_cod",st,e); }
+          continue;
+        }
+
+        // ─── IDENTIFIER SUJET VERBE : prompt dédié ───────────────────────────
+        if (isIdentSujetVerbe) {
+          const identSVPrompt = `Tu es instituteur CE1/CE2. Génère un exercice d identification du sujet et du verbe niveau ${niv}.
+RÈGLES ABSOLUES :
+1. title = "Identifie le sujet et le verbe"
+2. instructions = "Souligne le sujet et encadre le verbe dans chaque phrase."
+3. example = "Les enfants jouent dans le jardin. → sujet : Les enfants | verbe : jouent"
+4. lignes = 5 phrases simples numérotées, sans espace de réponse (l enfant souligne directement)
+5. Dernière ligne = une consigne d invention : "Invente une phrase avec : [mot1] / [verbe] → _______________"
+6. Phrases courtes, vocabulaire CE1, sujets variés
+JSON uniquement :
+{"title":"Identifie le sujet et le verbe","emoji":"📚","duration":"${dur} min","instructions":"Souligne le sujet et encadre le verbe dans chaque phrase.","example":"Les enfants jouent dans le jardin. → sujet : Les enfants | verbe : jouent","lignes":["1. Le chien court dans le jardin.","2. Ma mère prépare le dîner.","3. Les oiseaux chantent dans les arbres.","4. Mon ami dessine un dragon.","5. La maîtresse explique la leçon.","Invente une phrase avec : le chat / dormir → _______________________________________________"],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+          try {
+            const raw = await callAPI(identSVPrompt, "exercice");
+            const clean = raw.replace(/```json|```/g,"").trim();
+            const obj = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
+            if (obj.title) exercises.push({type:st, format:'libre', ...obj});
+          } catch(e) { console.error("Erreur identifier_sujet_verbe",st,e); }
+          continue;
+        }
+
+        // ─── PHRASE SYNTAXE (remise en ordre des mots) : prompt dédié ────────
+        if (isPhraseSyntaxe) {
+          const phraseSyntaxePrompt = `Tu es instituteur CE1/CE2. Génère un exercice de remise en ordre des MOTS pour former une phrase niveau ${niv}.
+RÈGLES ABSOLUES :
+1. title = "Remets les mots dans l ordre"
+2. instructions = "Remets les mots dans le bon ordre pour former une phrase correcte."
+3. example = "mange - le - chat - un - poisson → Le chat mange un poisson."
+4. lignes = 5 items numérotés. Chaque item = des mots mélangés séparés par " - " se terminant par " → _______________"
+5. VÉRIFIE que chaque groupe de mots peut former UNE VRAIE PHRASE française correcte
+6. Mots simples, phrases courtes (4-5 mots), niveau CE1
+7. JAMAIS écrire la solution après "→" dans lignes
+JSON uniquement :
+{"title":"Remets les mots dans l ordre","emoji":"✏️","duration":"${dur} min","instructions":"Remets les mots dans le bon ordre pour former une phrase correcte.","example":"mange - le - chat - un - poisson → Le chat mange un poisson.","lignes":["1. jardin - joue - dans - il - le → _______________","2. belle - elle - porte - une - robe → _______________","3. école - vont - les - à - l - enfants → _______________","4. aime - le - tu - chocolat → _______________","5. dort - le - sur - chien - le - canapé → _______________"],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+          try {
+            const raw = await callAPI(phraseSyntaxePrompt, "exercice");
+            const clean = raw.replace(/```json|```/g,"").trim();
+            const obj = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
+            if (obj.title) exercises.push({type:st, format:'fleche', ...obj});
+          } catch(e) { console.error("Erreur phrase_syntaxe",st,e); }
+          continue;
+        }
+
+        // ─── PONCTUATION : prompt dédié ───────────────────────────────────────
+        if (isPonctuation) {
+          const ponctuationPrompt = `Tu es instituteur CE1/CE2. Génère un exercice de ponctuation niveau ${niv}.
+RÈGLES ABSOLUES :
+1. title = "Ajoute la ponctuation"
+2. instructions = "Ajoute le signe de ponctuation manquant à la fin ou dans chaque phrase. Signes possibles : . ? ! ,"
+3. example = "Il fait beau aujourd hui ___ → Il fait beau aujourd hui."
+4. lignes = 5 phrases numérotées. Chaque phrase se termine par " ___" (un seul blanc pour UN signe de ponctuation)
+5. Varier les signes : au moins 1 point, 1 point d interrogation, 1 point d exclamation, 1 virgule
+6. Pour la virgule : la phrase contient deux parties à séparer, le ___ est AU MILIEU de la phrase
+7. Phrases courtes, vocabulaire CE1/CE2
+8. JAMAIS écrire la réponse dans lignes
+JSON uniquement :
+{"title":"Ajoute la ponctuation","emoji":"✏️","duration":"${dur} min","instructions":"Ajoute le signe de ponctuation manquant à la fin ou dans chaque phrase. Signes possibles : . ? ! ,","example":"Il fait beau aujourd hui ___ → Il fait beau aujourd hui.","lignes":["1. Où vas-tu ___","2. Comme c est beau ___","3. Elle mange une pomme ___ une poire et une banane.","4. Viens ici ___","5. Il pleut ___ je prends mon parapluie."],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+          try {
+            const raw = await callAPI(ponctuationPrompt, "exercice");
+            const clean = raw.replace(/```json|```/g,"").trim();
+            const obj = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
+            if (obj.title) exercises.push({type:st, format:'trous', ...obj});
+          } catch(e) { console.error("Erreur ponctuation",st,e); }
+          continue;
+        }
+
+        // ─── REMISE EN ORDRE DES PHRASES : prompt dédié ──────────────────────
+        if (isRemiseOrdre) {
+          const remiseOrdrePrompt = `Tu es instituteur CE1/CE2. Génère un exercice de remise en ordre de phrases pour reconstituer une histoire niveau ${niv}.
+RÈGLES ABSOLUES :
+1. title = "Remets les phrases dans l ordre"
+2. instructions = "Remets les phrases dans le bon ordre pour raconter l histoire. Écris un numéro devant chaque phrase (de 1 à 5)."
+3. example = "" (vide)
+4. lignes = 5 phrases dans le MAUVAIS ordre. Chaque phrase commence par "___ " (espace pour écrire le numéro)
+5. L histoire doit avoir un début, un milieu et une fin logiques — 5 phrases qui racontent une mini-histoire cohérente
+6. Vocabulaire CE1/CE2, phrases courtes
+7. JAMAIS numéroter les phrases dans lignes — l enfant met les numéros lui-même
+JSON uniquement :
+{"title":"Remets les phrases dans l ordre","emoji":"📖","duration":"${dur} min","instructions":"Remets les phrases dans le bon ordre pour raconter l histoire. Écris un numéro devant chaque phrase (de 1 à 5).","example":"","lignes":["___ Il mange son goûter avec plaisir.","___ Léo rentre de l école.","___ Sa maman lui prépare du pain et du chocolat.","___ Il pose son sac et enlève ses chaussures.","___ Il dit bonjour à sa maman."],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+          try {
+            const raw = await callAPI(remiseOrdrePrompt, "exercice");
+            const clean = raw.replace(/```json|```/g,"").trim();
+            const obj = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
+            if (obj.title) exercises.push({type:st, format:'libre', ...obj});
+          } catch(e) { console.error("Erreur remise_en_ordre",st,e); }
           continue;
         }
 
