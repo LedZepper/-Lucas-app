@@ -587,86 +587,61 @@ export default function App() {
         const isRemiseOrdre     = st === "remise_en_ordre";
         const isLiaison         = st === "liaison_phrases" || st.includes("liaison");
 
-        // ─── SONS SIMPLES orthographe : prompt dédié ─────────────────────────
-        const SONS_CONFIG = {
-          "sons_ou_et_on": {
-            son: "OU / ON",
-            exTronque: "b_uche → bouche (OU) | m_sieur → monsieur (ON)",
-            exMots: ["bouche","mouton","ballon","maison","genou","robe","fond","tonnerre","genoux","monsieur","bouton","couleur","moulin","bonbon","agon","courir"],
-          },
-          "son_ou": {
-            son: "OU / ON",
-            exTronque: "b_uche → bouche (OU) | m_sieur → monsieur (ON)",
-            exMots: ["bouche","mouton","ballon","maison","genou","robe","fond","tonnerre","genoux","monsieur","bouton","couleur","moulin","bonbon"],
-          },
-          "sons_an_en": {
-            son: "AN / EN",
-            exTronque: "l enf_nt → l enfant (EN) | le serp_nt → le serpent (AN)",
-            exMots: ["enfant","serpent","temps","dent","manger","pantalon","mercredi","lanterne","vent","cent","lent","ventre","sang","blanc","grand","dans","avant","devant"],
-          },
-          "sons_in_ain": {
-            son: "IN / AIN",
-            exTronque: "lap_ → lapin (IN) | m_ → main (AIN)",
-            exMots: ["lapin","main","matin","train","jardin","moulin","raisin","chemin","pain","gain","bain","voisin","dessin","cousin","médecin","demain"],
-          },
-          "sons_oi": {
-            son: "OI",
-            exTronque: "le r_ → le roi",
-            exMots: ["roi","étoile","boire","froid","trois","voilà","bois","voix","doigt","mois","toit","voiture","croix","droite","loi","foi"],
-          },
-          "sons_eau_au": {
-            son: "EAU / AU",
-            exTronque: "le bat_ → bateau (EAU) | l _tomne → automne (AU)",
-            exMots: ["bateau","automne","chapeau","gâteau","oiseau","chaud","rideau","cadeau","tableau","manteau","beau","peau","teau","faux","haut","aussi"],
-          },
-          "sons_ill_gn": {
-            son: "ILL / GN",
-            exTronque: "la fi___ → fille (ILL) | la monta___ → montagne (GN)",
-            exMots: ["fille","montagne","bouillon","vigne","campagne","papillon","champignon","grille","famille","chenille","vanille","agneau","cigogne","peigne","trille","bille"],
-          },
+        // ─── SONS SIMPLES orthographe : génération DIRECTE sans Groq ────────
+        const SONS_LABELS = {
+          "sons_ou_et_on": "OU / ON",
+          "son_ou":        "OU / ON",
+          "sons_an_en":    "AN / EN",
+          "sons_in_ain":   "IN / AIN",
+          "sons_oi":       "OI / OIN",
+          "sons_eau_au":   "EAU / AU",
+          "sons_ill_gn":   "ILL / GN",
+        };
+        const SONS_EXEMPLES = {
+          "sons_ou_et_on": "B__CHE → BOUCHE (OU) | BALL__ → BALLON (ON)",
+          "son_ou":        "B__CHE → BOUCHE (OU) | BALL__ → BALLON (ON)",
+          "sons_an_en":    "__NF__T → ENFANT (EN) | SERP__T → SERPENT (AN)",
+          "sons_in_ain":   "LAP__ → LAPIN (IN) | MA__ → MAIN (AIN)",
+          "sons_oi":       "R__ → ROI (OI) | L__N → LOIN (OIN)",
+          "sons_eau_au":   "BAT__ → BATEAU (EAU) | __TOMNE → AUTOMNE (AU)",
+          "sons_ill_gn":   "F__E → FILLE (ILL) | MONT__E → MONTAGNE (GN)",
         };
 
-        const sonsConfig = SONS_CONFIG[st];
-        if (sonsConfig) {
-          const { son, exTronque, exMots } = sonsConfig;
-          const disponiblesMots = exMots.filter(m => !usedWordsSession.has(m));
-          const poolMots = disponiblesMots.length >= 4 ? disponiblesMots : exMots;
+        if (SONS_LABELS[st]) {
+          const sonLabel = SONS_LABELS[st];
+          const sonExemple = SONS_EXEMPLES[st];
           const dur = Math.max(5, Math.round((weeklyConfig.duration||25)/types.length));
 
-          const sonsPrompt = `Tu es instituteur CE1/CE2. Génère un exercice sur le son ${son} niveau ${niv}.
+          // Corpus contient les paires MOT|TRONCATURE — on parse et on tire 6 au hasard
+          const pairesRaw = (modele || "").split("\n").map(l => l.trim()).filter(l => l.includes("|"));
+          const paires = pairesRaw.map(l => { const [mot, tronc] = l.split("|"); return { mot: mot.trim(), tronc: tronc.trim() }; }).filter(p => p.mot && p.tronc);
 
-MÉCANIQUE DE L EXERCICE — LIS ATTENTIVEMENT :
-Chaque item = un mot courant connu des enfants CE1, avec les lettres du son ${son} remplacées par ___.
-L enfant doit retrouver et écrire le mot complet.
+          // Exclure les mots déjà vus cette séance
+          const pairesDispos = paires.filter(p => !usedWordsSession.has(p.mot.toLowerCase()));
+          const pool = pairesDispos.length >= 6 ? pairesDispos : paires;
 
-EXEMPLE EXACT de ce que tu dois produire pour le son ${son} :
-${exTronque}
+          // Tirage aléatoire de 6 paires sans remise
+          const shuffled = [...pool].sort(() => Math.random() - 0.5);
+          const selection = shuffled.slice(0, 6);
 
-RÈGLES ABSOLUES :
-1. title = "Sons ${son}"
-2. instructions = "Retrouve le mot complet et écris-le."
-3. example = "${exTronque}"
-4. lignes = exactement 6 items. Format STRICT de chaque ligne :
-   "[article optionnel] [mot_tronqué] → _______________"
-   - Le mot tronqué = mot réel français avec UNIQUEMENT les lettres du son ${son} remplacées par ___
-   - JAMAIS tronquer d autres lettres que celles du son ${son}
-   - JAMAIS inventer des mots — uniquement des mots français réels CE1
-   - JAMAIS écrire le mot complet dans lignes
-5. Utilise des mots parmi cette liste (mots CE1 courants pour ce son) : ${poolMots.slice(0,10).join(", ")}
-6. wordsUsed = les 6 mots COMPLETS (sans troncature) utilisés
-
-JSON uniquement :
-{"title":"Sons ${son}","emoji":"✏️","duration":"${dur} min","instructions":"Retrouve le mot complet et écris-le.","example":"${exTronque}","lignes":["[item 1] → _______________","[item 2] → _______________","[item 3] → _______________","[item 4] → _______________","[item 5] → _______________","[item 6] → _______________"],"parentNote":"","verbsUsed":[],"wordsUsed":["mot1","mot2","mot3","mot4","mot5","mot6"]}`;
-
-          try {
-            const raw = await callAPI(sonsPrompt, "exercice");
-            const clean = raw.replace(/```json|```/g,"").trim();
-            const obj = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
-            if (obj.title) {
-              exercises.push({type:st, format:'fleche', ...obj});
-              (obj.wordsUsed||[]).forEach(w => usedWordsSession.add(w.toLowerCase()));
-            }
-          } catch(e) { console.error("Erreur sons simples",st,e); }
+          if (selection.length >= 3) {
+            const lignes = selection.map(p => `${p.tronc} → _______________`);
+            const wordsUsed = selection.map(p => p.mot.toLowerCase());
+            exercises.push({
+              type: st,
+              format: 'fleche',
+              title: `Sons ${sonLabel}`,
+              emoji: "✏️",
+              duration: `${dur} min`,
+              instructions: `Retrouve le mot complet et écris-le. Les lettres manquantes forment le son ${sonLabel}.`,
+              example: sonExemple,
+              lignes,
+              parentNote: "",
+              verbsUsed: [],
+              wordsUsed,
+            });
+            wordsUsed.forEach(w => usedWordsSession.add(w));
+          }
           continue;
         }
 
