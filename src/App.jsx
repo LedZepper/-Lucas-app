@@ -125,7 +125,7 @@ const LABELS = {
   "addition_retenue":"Addition avec retenue","addition_grands_nombres":"Addition grands nombres","addition_cm1":"Addition CM1",
   "comprehension_texte_court":"Compréhension texte court","comprehension_inference":"Compréhension — Inférences","comprehension_avancee":"Compréhension avancée (CM1)","remise_en_ordre":"Remettre les phrases dans l ordre","resume_texte":"Résumé de texte",
   "sons_ou_et_on":"Sons OU / ON","sons_an_en":"Sons AN / EN","sons_in_ain":"Sons IN / AIN",
-  "sons_oi":"Son OI","sons_eau_au":"Sons EAU / AU","sons_ill_gn":"Sons ILL / GN",
+  "sons_oi":"Sons OI / OIN","sons_eau_au":"Sons EAU / AU","sons_ill_gn":"Sons ILL / GN",
   "homophones_a_a":"Homophones A / À","homophones_et_est":"Homophones ET / EST","homophones_son_sont":"Homophones SON / SONT",
   "homophones_ou_où":"Homophones OU / OÙ","homophones_ces_ses":"Homophones CES / SES","homophones_on_ont":"Homophones ON / ONT","homophones_ma_ma":"Homophones MA / M'A",
   "accord_adjectif":"Accord de l adjectif","accord_participe_passe":"Accord du participe passé","mots_invariables":"Mots invariables",
