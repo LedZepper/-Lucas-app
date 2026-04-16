@@ -16,7 +16,12 @@ const CATEGORIES = {
     "conditionnel_present_cm1","identification_temps_cm1"
   ],
   "Grammaire": ["transposition","negation_ne_pas","negation_ne_plus","negation_ne_jamais_rien","accord_sujet_verbe","accord_sujet_verbe_eloigne","classes_de_mots","nature_des_mots","fonctions_sujet_verbe_cod","identifier_sujet_verbe","complement_circonstanciel","expansion_gn","phrase_syntaxe","types_de_phrases","ponctuation","liaison_phrases","propositions_cm1"],
-  "Orthographe": ["sons_ou_on","sons_an_en","sons_in_ain","sons_oi","sons_eau_au","sons_ill_gn","homophones_a_a","homophones_et_est","homophones_son_sont","homophones_ou_ou","homophones_ces_ses","homophones_on_ont","homophones_ma_ma","accord_adjectif","accord_participe_passe","mots_invariables"],
+  "Orthographe": [
+    "sons_ou_et_on","sons_an_en","sons_in_ain","sons_oi","sons_eau_au","sons_ill_gn",
+    "homophones_a_a","homophones_et_est","homophones_son_sont","homophones_ou_où",
+    "homophones_ces_ses","homophones_on_ont","homophones_ma_ma",
+    "accord_adjectif","accord_participe_passe","mots_invariables"
+  ],
   "Dictée": ["dictee_sons_simples","dictee_homophones","dictee_avancee"],
   "Vocabulaire": ["familles_de_mots","familles_de_mots_avancees","synonymes","antonymes","sens_contexte","prefixes_suffixes","niveaux_de_langue"],
   "Lecture": ["comprehension_texte_court","comprehension_inference","comprehension_avancee","remise_en_ordre","resume_texte"],
@@ -32,7 +37,7 @@ const CATEGORIES = {
 };
 
 const AUTO_TYPES = {
-  "CE1 debut":  ["present_etre_avoir","soustraction_retenue","sons_ou_on","transposition","familles_de_mots"],
+  "CE1 debut":  ["present_etre_avoir","soustraction_retenue","sons_ou_et_on","transposition","familles_de_mots"],
   "CE1/CE2":    ["present_aller_faire","imparfait_etre_avoir","tables_melange","transposition","negation_ne_pas"],
   "CE2":        ["futur_simple_1er_groupe","soustraction_grands_nombres","tables_melange","negation_ne_plus","passe_compose_avoir_1er_groupe"],
   "CE2 avance": ["passe_compose_etre","soustraction_grands_nombres","multiplication_posee_1chiffre","accord_sujet_verbe","comprehension_texte_court"],
@@ -119,6 +124,11 @@ const LABELS = {
   "soustraction_retenue":"Soustraction avec retenue","soustraction_grands_nombres":"Soustraction grands nombres","soustraction_cm1":"Soustraction CM1",
   "addition_retenue":"Addition avec retenue","addition_grands_nombres":"Addition grands nombres","addition_cm1":"Addition CM1",
   "comprehension_texte_court":"Compréhension texte court","comprehension_inference":"Compréhension — Inférences","comprehension_avancee":"Compréhension avancée (CM1)","remise_en_ordre":"Remettre les phrases dans l ordre","resume_texte":"Résumé de texte",
+  "sons_ou_et_on":"Sons OU / ON","sons_an_en":"Sons AN / EN","sons_in_ain":"Sons IN / AIN",
+  "sons_oi":"Son OI","sons_eau_au":"Sons EAU / AU","sons_ill_gn":"Sons ILL / GN",
+  "homophones_a_a":"Homophones A / À","homophones_et_est":"Homophones ET / EST","homophones_son_sont":"Homophones SON / SONT",
+  "homophones_ou_où":"Homophones OU / OÙ","homophones_ces_ses":"Homophones CES / SES","homophones_on_ont":"Homophones ON / ONT","homophones_ma_ma":"Homophones MA / M'A",
+  "accord_adjectif":"Accord de l adjectif","accord_participe_passe":"Accord du participe passé","mots_invariables":"Mots invariables",
 };
 const label = s => LABELS[s] || s.replace(/_/g," ");
 
@@ -577,6 +587,89 @@ export default function App() {
         const isRemiseOrdre     = st === "remise_en_ordre";
         const isLiaison         = st === "liaison_phrases" || st.includes("liaison");
 
+        // ─── SONS SIMPLES orthographe : prompt dédié ─────────────────────────
+        const SONS_CONFIG = {
+          "sons_ou_et_on": {
+            son: "OU / ON",
+            exTronque: "b_uche → bouche (OU) | m_sieur → monsieur (ON)",
+            exMots: ["bouche","mouton","ballon","maison","genou","robe","fond","tonnerre","genoux","monsieur","bouton","couleur","moulin","bonbon","agon","courir"],
+          },
+          "son_ou": {
+            son: "OU / ON",
+            exTronque: "b_uche → bouche (OU) | m_sieur → monsieur (ON)",
+            exMots: ["bouche","mouton","ballon","maison","genou","robe","fond","tonnerre","genoux","monsieur","bouton","couleur","moulin","bonbon"],
+          },
+          "sons_an_en": {
+            son: "AN / EN",
+            exTronque: "l enf_nt → l enfant (EN) | le serp_nt → le serpent (AN)",
+            exMots: ["enfant","serpent","temps","dent","manger","pantalon","mercredi","lanterne","vent","cent","lent","ventre","sang","blanc","grand","dans","avant","devant"],
+          },
+          "sons_in_ain": {
+            son: "IN / AIN",
+            exTronque: "lap_ → lapin (IN) | m_ → main (AIN)",
+            exMots: ["lapin","main","matin","train","jardin","moulin","raisin","chemin","pain","gain","bain","voisin","dessin","cousin","médecin","demain"],
+          },
+          "sons_oi": {
+            son: "OI",
+            exTronque: "le r_ → le roi",
+            exMots: ["roi","étoile","boire","froid","trois","voilà","bois","voix","doigt","mois","toit","voiture","croix","droite","loi","foi"],
+          },
+          "sons_eau_au": {
+            son: "EAU / AU",
+            exTronque: "le bat_ → bateau (EAU) | l _tomne → automne (AU)",
+            exMots: ["bateau","automne","chapeau","gâteau","oiseau","chaud","rideau","cadeau","tableau","manteau","beau","peau","teau","faux","haut","aussi"],
+          },
+          "sons_ill_gn": {
+            son: "ILL / GN",
+            exTronque: "la fi___ → fille (ILL) | la monta___ → montagne (GN)",
+            exMots: ["fille","montagne","bouillon","vigne","campagne","papillon","champignon","grille","famille","chenille","vanille","agneau","cigogne","peigne","trille","bille"],
+          },
+        };
+
+        const sonsConfig = SONS_CONFIG[st];
+        if (sonsConfig) {
+          const { son, exTronque, exMots } = sonsConfig;
+          const disponiblesMots = exMots.filter(m => !usedWordsSession.has(m));
+          const poolMots = disponiblesMots.length >= 4 ? disponiblesMots : exMots;
+          const dur = Math.max(5, Math.round((weeklyConfig.duration||25)/types.length));
+
+          const sonsPrompt = `Tu es instituteur CE1/CE2. Génère un exercice sur le son ${son} niveau ${niv}.
+
+MÉCANIQUE DE L EXERCICE — LIS ATTENTIVEMENT :
+Chaque item = un mot courant connu des enfants CE1, avec les lettres du son ${son} remplacées par ___.
+L enfant doit retrouver et écrire le mot complet.
+
+EXEMPLE EXACT de ce que tu dois produire pour le son ${son} :
+${exTronque}
+
+RÈGLES ABSOLUES :
+1. title = "Sons ${son}"
+2. instructions = "Retrouve le mot complet et écris-le."
+3. example = "${exTronque}"
+4. lignes = exactement 6 items. Format STRICT de chaque ligne :
+   "[article optionnel] [mot_tronqué] → _______________"
+   - Le mot tronqué = mot réel français avec UNIQUEMENT les lettres du son ${son} remplacées par ___
+   - JAMAIS tronquer d autres lettres que celles du son ${son}
+   - JAMAIS inventer des mots — uniquement des mots français réels CE1
+   - JAMAIS écrire le mot complet dans lignes
+5. Utilise des mots parmi cette liste (mots CE1 courants pour ce son) : ${poolMots.slice(0,10).join(", ")}
+6. wordsUsed = les 6 mots COMPLETS (sans troncature) utilisés
+
+JSON uniquement :
+{"title":"Sons ${son}","emoji":"✏️","duration":"${dur} min","instructions":"Retrouve le mot complet et écris-le.","example":"${exTronque}","lignes":["[item 1] → _______________","[item 2] → _______________","[item 3] → _______________","[item 4] → _______________","[item 5] → _______________","[item 6] → _______________"],"parentNote":"","verbsUsed":[],"wordsUsed":["mot1","mot2","mot3","mot4","mot5","mot6"]}`;
+
+          try {
+            const raw = await callAPI(sonsPrompt, "exercice");
+            const clean = raw.replace(/```json|```/g,"").trim();
+            const obj = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
+            if (obj.title) {
+              exercises.push({type:st, format:'fleche', ...obj});
+              (obj.wordsUsed||[]).forEach(w => usedWordsSession.add(w.toLowerCase()));
+            }
+          } catch(e) { console.error("Erreur sons simples",st,e); }
+          continue;
+        }
+
         const dur = Math.max(5, Math.round((weeklyConfig.duration||25)/types.length));
         const regles = [];
 
@@ -605,7 +698,6 @@ export default function App() {
           };
           const titreConj = CONJ_TITLES[st] || `Conjugaison — ${temps}`;
 
-          // ── ÊTRE & AVOIR : verbes câblés, Groq ne choisit pas ──────────────
           const isEtreAvoir  = st.includes("etre_avoir");
           const isAllerFaire = st.includes("aller_faire");
           const isVoirSavoir = st.includes("voir_savoir");
@@ -634,7 +726,6 @@ Retourne EXACTEMENT ce JSON (remplace seulement le titre et les verbsUsed si né
             continue;
           }
 
-          // ── 2ème groupe : verbes câblés côté code, Groq ne choisit pas ───────
           if (st.includes("2eme_groupe")) {
             const VERBES_2EME = ["finir","choisir","grandir","réussir","obéir","rougir","grossir","nourrir","réfléchir","remplir","applaudir","ralentir","vieillir","blanchir","noircir","fleurir","maigrir","mugir","saisir","subir"];
             const disponibles = VERBES_2EME.filter(v => !usedVerbsSession.has(v));
@@ -664,7 +755,6 @@ Retourne EXACTEMENT ce JSON :
             continue;
           }
 
-          // ── Passé composé avec ÊTRE : liste nationale, verbes câblés ─────────
           if (st === "passe_compose_etre") {
             const VERBES_ETRE = ["aller","venir","partir","arriver","entrer","sortir","naître","mourir","tomber","rester","monter","descendre","passer","retourner","rentrer","revenir","repartir","devenir","parvenir"];
             const disponiblesE = VERBES_ETRE.filter(v => !usedVerbsSession.has(v));
@@ -694,7 +784,6 @@ Retourne EXACTEMENT ce JSON :
             continue;
           }
 
-          // ── 1er groupe, irréguliers, passé composé AVOIR : liste stricte ─────
           const interdits = usedVerbsSession.size ? `VERBES INTERDITS (déjà utilisés cette séance) : ${[...usedVerbsSession].join(", ")}. Choisis OBLIGATOIREMENT des verbes hors de cette liste.` : "";
 
           const groupeContrainte = st.includes("1er_groupe") ?
@@ -1052,13 +1141,12 @@ RÈGLES ABSOLUES :
 4. lignes = 4 items. Format EXACT : "[Phrase 1]. [Phrase 2]. (mot) → _______________"
 5. RÈGLE CRITIQUE : le mot de liaison entre parenthèses DOIT être logiquement cohérent avec les deux phrases.
    Définitions STRICTES à respecter :
-   - (donc) ou (alors) = la phrase 2 est une CONSÉQUENCE DIRECTE de la phrase 1. Ex : "Il pleut. Je prends mon parapluie. (donc)"
-   - (mais) = la phrase 2 CONTREDIT ou S OPPOSE à ce qu on attendrait après la phrase 1. Ex : "Il fait froid. Elle ne met pas de manteau. (mais)"
-   - (parce que) = la phrase 2 EXPLIQUE LA RAISON de la phrase 1. Ex : "Je suis fatigué. Je me couche tôt. (parce que)"
+   - (donc) ou (alors) = la phrase 2 est une CONSÉQUENCE DIRECTE de la phrase 1
+   - (mais) = la phrase 2 CONTREDIT ou S OPPOSE à ce qu on attendrait après la phrase 1
+   - (parce que) = la phrase 2 EXPLIQUE LA RAISON de la phrase 1
    - (et) = la phrase 2 S AJOUTE simplement à la phrase 1 sans opposition ni conséquence logique
-6. INTERDIT : une phrase comme "Elle est heureuse. Elle sourit. (mais)" — sourire quand on est heureux n est pas une opposition
-7. Utilise 4 mots de liaison DIFFÉRENTS parmi : donc, alors, mais, parce que
-8. Phrases courtes, vocabulaire CE1/CE2, NOUVELLES à chaque génération
+6. Utilise 4 mots de liaison DIFFÉRENTS parmi : donc, alors, mais, parce que
+7. Phrases courtes, vocabulaire CE1/CE2, NOUVELLES à chaque génération
 JSON uniquement :
 {"title":"Relier des phrases avec un mot de liaison","emoji":"✏️","duration":"${dur} min","instructions":"Relie les deux phrases avec le mot de liaison indiqué entre parenthèses.","example":"Le soleil brille. Je porte des lunettes de soleil. (donc) → Le soleil brille donc je porte des lunettes de soleil.","lignes":["[GÉNÈRE ICI] → _______________","[GÉNÈRE ICI] → _______________","[GÉNÈRE ICI] → _______________","[GÉNÈRE ICI] → _______________"],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
           try {
@@ -1324,7 +1412,7 @@ JSON uniquement :
 
   if(print&&session)return(
     <div style={{fontFamily:"Arial,sans-serif",padding:"10mm 12mm",color:"#1e293b",background:"white"}}>
-      <style>{`@page{size:A4;margin:10mm 12mm;}@media print{body{margin:0;}}`}</style>
+      <style>{`@page{size:A4;margin:10mm 12mm;}@media print{body{margin:0;background:white!important;}*{background:transparent!important;color:#1e293b!important;box-shadow:none!important;}nav{display:none!important;}}`}</style>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",borderBottom:"2px solid #4f46e5",paddingBottom:8,marginBottom:14}}>
         <div><div style={{fontSize:17,fontWeight:700,color:"#4f46e5"}}>📚 École de {CHILD_NAME}</div><div style={{fontSize:11,color:"#64748b",marginTop:2}}>{session.title}</div></div>
         <div style={{textAlign:"right",fontSize:11,color:"#64748b"}}><div>{new Date().toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</div><div>{prof.weeklyConfig.duration} min · {prof.weeklyConfig.difficulty}</div></div>
