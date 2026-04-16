@@ -602,7 +602,7 @@ export default function App() {
           "son_ou":        "B__CHE → BOUCHE (OU) | BALL__ → BALLON (ON)",
           "sons_an_en":    "__F__T → ENFANT (EN) | SERP__T → SERPENT (AN)",
           "sons_in_ain":   "LAP__ → LAPIN (IN) | M__ → MAIN (AIN)",
-          "sons_oi":       "R__ → ROI (OI) | L__N → LOIN (OIN)",
+          "sons_oi":       "R__ → ROI (OI) | L__ → LOIN (OIN)",
           "sons_eau_au":   "BAT__ → BATEAU (EAU) | __TOMNE → AUTOMNE (AU)",
           "sons_ill_gn":   "F__E → FILLE (ILL) | MONTA__E → MONTAGNE (GN)",
         };
