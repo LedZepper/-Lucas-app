@@ -611,18 +611,37 @@ export default function App() {
           const sonLabel = SONS_LABELS[st];
           const sonExemple = SONS_EXEMPLES[st];
           const dur = Math.max(5, Math.round((weeklyConfig.duration||25)/types.length));
+          const contenuBrut = modele || "";
 
-          // Corpus contient les paires MOT|TRONCATURE — on parse et on tire 6 au hasard
-          const pairesRaw = (modele || "").split("\n").map(l => l.trim()).filter(l => l.includes("|"));
-          const paires = pairesRaw.map(l => { const [mot, tronc] = l.split("|"); return { mot: mot.trim(), tronc: tronc.trim() }; }).filter(p => p.mot && p.tronc);
+          // Gestion séparateur ILL/GN pour équilibrage forcé
+          const hasGNSep = contenuBrut.includes("---GN---");
+          let selection = [];
 
-          // Exclure les mots déjà vus cette séance
-          const pairesDispos = paires.filter(p => !usedWordsSession.has(p.mot.toLowerCase()));
-          const pool = pairesDispos.length >= 6 ? pairesDispos : paires;
-
-          // Tirage aléatoire de 6 paires sans remise
-          const shuffled = [...pool].sort(() => Math.random() - 0.5);
-          const selection = shuffled.slice(0, 6);
+          if (hasGNSep) {
+            // Sépare les deux familles
+            const [blocILL, blocGN] = contenuBrut.split("---GN---");
+            const parsePaires = (bloc) => bloc.split("\n").map(l => l.trim()).filter(l => l.includes("|"))
+              .map(l => { const [mot, tronc] = l.split("|"); return { mot: mot.trim(), tronc: tronc.trim() }; })
+              .filter(p => p.mot && p.tronc);
+            const pairesILL = parsePaires(blocILL);
+            const pairesGN  = parsePaires(blocGN);
+            // Exclure déjà vus
+            const dispILL = pairesILL.filter(p => !usedWordsSession.has(p.mot.toLowerCase()));
+            const dispGN  = pairesGN.filter(p => !usedWordsSession.has(p.mot.toLowerCase()));
+            const poolILL = dispILL.length >= 3 ? dispILL : pairesILL;
+            const poolGN  = dispGN.length >= 3  ? dispGN  : pairesGN;
+            // Tirage forcé : 3 ILL + 3 GN
+            const tirILL = [...poolILL].sort(() => Math.random() - 0.5).slice(0, 3);
+            const tirGN  = [...poolGN].sort(() => Math.random() - 0.5).slice(0, 3);
+            selection = [...tirILL, ...tirGN].sort(() => Math.random() - 0.5);
+          } else {
+            // Tirage normal pour les autres sons
+            const pairesRaw = contenuBrut.split("\n").map(l => l.trim()).filter(l => l.includes("|"));
+            const paires = pairesRaw.map(l => { const [mot, tronc] = l.split("|"); return { mot: mot.trim(), tronc: tronc.trim() }; }).filter(p => p.mot && p.tronc);
+            const pairesDispos = paires.filter(p => !usedWordsSession.has(p.mot.toLowerCase()));
+            const pool = pairesDispos.length >= 6 ? pairesDispos : paires;
+            selection = [...pool].sort(() => Math.random() - 0.5).slice(0, 6);
+          }
 
           if (selection.length >= 3) {
             const lignes = selection.map(p => `${p.tronc} → _______________`);
