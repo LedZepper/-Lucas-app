@@ -330,7 +330,7 @@ function ExCard({ ex, dark=true }) {
                 <div style={{display:"flex", alignItems:"flex-start", gap:6, flexWrap:"wrap"}}>
                   <span style={{fontSize:dark?13:12, color:tc, paddingTop:2}}>{avant} →</span>
                   {estVide
-                    ? <div style={{flex:1, borderBottom:`1.5px solid ${lc}`, height:1, marginTop:10, minWidth:120}}></div>
+                    ? <span style={{fontSize:dark?13:12, color:lc}}>_______________________________________________</span>
                     : <span style={{fontSize:dark?13:12, color:ac}}>{apres}</span>
                   }
                 </div>
