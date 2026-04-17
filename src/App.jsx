@@ -326,11 +326,14 @@ function ExCard({ ex, dark=true }) {
             const apres = trim.slice(arrowIdx+1).trim();
             const estVide = apres === "" || /^_+$/.test(apres);
             return (
-              <div key={i} style={{marginBottom:dark?14:10}}>
-                <div style={{display:"flex", alignItems:"center", gap:6, flexWrap:"wrap"}}>
-                  <span style={{fontSize:dark?13:12, color:tc}}>{avant} →</span>
+              <div key={i} style={{marginBottom:dark?18:13}}>
+                <div style={{display:"flex", alignItems:"flex-start", gap:6, flexWrap:"wrap"}}>
+                  <span style={{fontSize:dark?13:12, color:tc, paddingTop:2}}>{avant} →</span>
                   {estVide
-                    ? <div style={{flex:1, borderBottom:`1.5px solid ${lc}`, height:1, minWidth:80, marginTop:4}}></div>
+                    ? <div style={{flex:1, minWidth:100}}>
+                        <div style={{borderBottom:`1.5px solid ${lc}`, height:1, marginTop:8}}></div>
+                        <div style={{borderBottom:`1px solid ${lc}44`, height:1, marginTop:16}}></div>
+                      </div>
                     : <span style={{fontSize:dark?13:12, color:ac}}>{apres}</span>
                   }
                 </div>
@@ -907,7 +910,7 @@ JSON uniquement :
         if (isNeg) {
           const negType = st.includes("plus")?"NE...PLUS":st.includes("jamais")?"NE...JAMAIS":"NE...PAS";
           const negMot  = st.includes("plus")?"ne … plus":st.includes("jamais")?"ne … jamais":"ne … pas";
-          const negEx   = st.includes("plus")?"Il joue au foot. → Il ne joue plus au foot.":st.includes("jamais")?"Elle mange des épinards. → Elle ne mange jamais d épinards.":"Il joue au foot. → Il ne joue pas au foot.";
+          const negEx   = st.includes("plus")?"Elle mange des épinards. → Elle ne mange plus d épinards.":st.includes("jamais")?"Elle mange des épinards. → Elle ne mange jamais d épinards.":"Il joue au foot. → Il ne joue pas au foot.";
           const negPrompt = `Tu es instituteur CE1/CE2. Génère un exercice de négation ${negType} niveau ${niv}.
 RÈGLES ABSOLUES :
 1. title = "Négation avec ${negType}"
@@ -1564,33 +1567,58 @@ RÈGLES ABSOLUES :
 - Niveau CE1/CE2, phrases adaptées à l âge`);
         }
 
+        // ─── FAMILLES DE MOTS : tirage forcé côté code ───────────────────────
         if (isFamilles) {
+          const estAvance = st.includes("avancees");
+
+          const MOTS_SIMPLES = [
+            "pain","lait","bois","main","dent","nuit","jour","neige","pluie","vent",
+            "herbe","champ","feu","mer","eau","terre","chat","chien","jardin","fleur",
+            "fruit","livre","école","ami","cheval","oiseau","poisson","arbre","soleil",
+            "pied","bras","dos","œil","nez","bouche","cœur","tête","bras","main"
+          ];
+          const MOTS_AVANCES = [
+            "lumière","nature","aventure","voyage","montagne","rivière","forêt","marché",
+            "cuisine","musique","science","histoire","dessin","château","village",
+            "médecin","pompier","jardinier","pêcheur","boulanger","facteur","sculpteur",
+            "peinture","lecture","écriture","commerce","voyage","liberté","courage","sagesse"
+          ];
+
           const FAMILLES_EXEMPLES = [
+            "FLEUR → fleuriste, fleurir, floral",
             "MER → marin, maritime, amerrir",
             "TERRE → terrain, enterrer, terrestre",
             "PAIN → boulangerie, boulanger, biscuit",
             "SOLEIL → ensoleillé, parasol, solaire",
             "CHAT → chaton, chatière, chatte",
             "MAISON → maisonnette, maçon, domicile",
-            "NUIT → nocturne, minuit, nuitée",
             "EAU → aquatique, arroser, mouillé",
-            "FLEUR → fleuriste, fleurir, floral",
+            "NUIT → nocturne, minuit, nuitée",
           ];
+
+          const pool = estAvance ? MOTS_AVANCES : MOTS_SIMPLES;
+          const disponibles = pool.filter(m => !usedWordsSession.has(m.toLowerCase()));
+          const source = disponibles.length >= 5 ? disponibles : pool;
+          const shuffled = [...source].sort(() => Math.random() - 0.5);
+          const motsCodes = shuffled.slice(0, 5);
+
           const exempleIdx = Math.floor(Math.random() * FAMILLES_EXEMPLES.length);
           const exempleChoisi = FAMILLES_EXEMPLES[exempleIdx];
-          const motExemple = exempleChoisi.split("→")[0].trim();
+
+          // On track immédiatement ces mots comme utilisés
+          motsCodes.forEach(m => usedWordsSession.add(m.toLowerCase()));
+
           regles.push(`TYPE : FAMILLES DE MOTS.
 RÈGLES ABSOLUES :
 1. instructions = "Trouve des mots de la même famille que le mot en majuscules."
-2. example = "${exempleChoisi}" (mot racine en majuscules → exemples de mots dérivés)
-3. lignes = 5 lignes format exact avec des mots simples que les enfants de CE1/CE2 connaissent bien.
-   Choisis parmi ces mots racines adaptés à l age : PAIN, LAIT, FLEUR, BOIS, MAISON, MAIN, DENT, NUIT, JOUR, NEIGE, PLUIE, VENT, HERBE, CHAMP, SOLEIL, TERRE, EAU, FEU, CHAT, CHIEN
-   Format : ["1. MOT →", "2. MOT →", "3. MOT →", "4. MOT →", "5. MOT →"]
-4. Les mots racines dans lignes doivent être DIFFÉRENTS de ${motExemple} (le mot de l example)
-5. JAMAIS écrire les mots dérivés dans lignes — l enfant les trouve lui-même
-6. parentNote = "" (vide)
-7. wordsUsed = [les 5 mots racines choisis pour lignes, en minuscules] — OBLIGATOIRE pour mémorisation
-${usedWordsSession.size ? `8. INTERDIT d utiliser ces mots racines déjà utilisés dans cette séance : ${[...usedWordsSession].join(", ")}` : ""}`);
+2. example = "${exempleChoisi}"
+3. lignes = EXACTEMENT ces 5 lignes dans cet ordre, SANS LES MODIFIER :
+   ["1. ${motsCodes[0].toUpperCase()} →", "2. ${motsCodes[1].toUpperCase()} →", "3. ${motsCodes[2].toUpperCase()} →", "4. ${motsCodes[3].toUpperCase()} →", "5. ${motsCodes[4].toUpperCase()} →"]
+   RÈGLE CRITIQUE : recopie EXACTEMENT ces 5 lignes dans lignes[]. Tu ne changes PAS les mots — ils sont imposés par le système.
+4. JAMAIS écrire les mots dérivés dans lignes — l enfant les trouve lui-même
+5. parentNote = "" (vide)
+6. wordsUsed = ["${motsCodes[0].toLowerCase()}","${motsCodes[1].toLowerCase()}","${motsCodes[2].toLowerCase()}","${motsCodes[3].toLowerCase()}","${motsCodes[4].toLowerCase()}"]`);
+
         } else if (isVocabType) {
           regles.push(`TYPE : VOCABULAIRE.
 RÈGLES ABSOLUES :
