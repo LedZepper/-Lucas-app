@@ -587,6 +587,18 @@ export default function App() {
         const isRemiseOrdre     = st === "remise_en_ordre";
         const isLiaison         = st === "liaison_phrases" || st.includes("liaison");
 
+        // ─── Détection des types d orthographe dédiés ────────────────────────
+        const isHomophoneAA      = st === "homophones_a_a";
+        const isHomophoneEtEst   = st === "homophones_et_est";
+        const isHomophoneSonSont = st === "homophones_son_sont";
+        const isHomophoneOuOu    = st === "homophones_ou_où";
+        const isHomophoneCesSes  = st === "homophones_ces_ses";
+        const isHomophoneOnOnt   = st === "homophones_on_ont";
+        const isHomophoneMaMa    = st === "homophones_ma_ma";
+        const isAccordAdjectif   = st === "accord_adjectif";
+        const isAccordPP         = st === "accord_participe_passe";
+        const isMotsInvariables  = st === "mots_invariables";
+
         // ─── SONS SIMPLES orthographe : génération DIRECTE sans Groq ────────
         const SONS_LABELS = {
           "sons_ou_et_on": "OU / ON",
@@ -613,29 +625,24 @@ export default function App() {
           const dur = Math.max(5, Math.round((weeklyConfig.duration||25)/types.length));
           const contenuBrut = modele || "";
 
-          // Gestion séparateur ILL/GN pour équilibrage forcé
           const hasGNSep = contenuBrut.includes("---GN---");
           let selection = [];
 
           if (hasGNSep) {
-            // Sépare les deux familles
             const [blocILL, blocGN] = contenuBrut.split("---GN---");
             const parsePaires = (bloc) => bloc.split("\n").map(l => l.trim()).filter(l => l.includes("|"))
               .map(l => { const [mot, tronc] = l.split("|"); return { mot: mot.trim(), tronc: tronc.trim() }; })
               .filter(p => p.mot && p.tronc);
             const pairesILL = parsePaires(blocILL);
             const pairesGN  = parsePaires(blocGN);
-            // Exclure déjà vus
             const dispILL = pairesILL.filter(p => !usedWordsSession.has(p.mot.toLowerCase()));
             const dispGN  = pairesGN.filter(p => !usedWordsSession.has(p.mot.toLowerCase()));
             const poolILL = dispILL.length >= 3 ? dispILL : pairesILL;
             const poolGN  = dispGN.length >= 3  ? dispGN  : pairesGN;
-            // Tirage forcé : 3 ILL + 3 GN
             const tirILL = [...poolILL].sort(() => Math.random() - 0.5).slice(0, 3);
             const tirGN  = [...poolGN].sort(() => Math.random() - 0.5).slice(0, 3);
             selection = [...tirILL, ...tirGN].sort(() => Math.random() - 0.5);
           } else {
-            // Tirage normal pour les autres sons
             const pairesRaw = contenuBrut.split("\n").map(l => l.trim()).filter(l => l.includes("|"));
             const paires = pairesRaw.map(l => { const [mot, tronc] = l.split("|"); return { mot: mot.trim(), tronc: tronc.trim() }; }).filter(p => p.mot && p.tronc);
             const pairesDispos = paires.filter(p => !usedWordsSession.has(p.mot.toLowerCase()));
@@ -651,7 +658,7 @@ export default function App() {
               format: 'fleche',
               title: `Sons ${sonLabel}`,
               emoji: "✏️",
-              duration: `${dur} min`,
+              duration: `${Math.max(5, Math.round((weeklyConfig.duration||25)/types.length))} min`,
               instructions: `Retrouve le mot complet et écris-le. Les lettres manquantes forment le son ${sonLabel}.`,
               example: sonExemple,
               lignes,
@@ -1152,7 +1159,256 @@ JSON uniquement :
           continue;
         }
 
+        // ═══════════════════════════════════════════════════════════════════════
+        // ─── HOMOPHONES : prompts dédiés ──────────────────────────────────────
+        // ═══════════════════════════════════════════════════════════════════════
+
+        // ─── A / À ────────────────────────────────────────────────────────────
+        if (isHomophoneAA) {
+          const aaPrompt = `Tu es instituteur CE1/CE2. Génère un exercice sur A (verbe avoir) et À (préposition) niveau ${niv}.
+RÈGLES ABSOLUES :
+1. title = "Homophones A / À"
+2. instructions = "Complète chaque phrase avec A ou À."
+3. Astuce pédagogique à mettre dans example : "Astuce : remplace par AVAIT — si ça marche, c est A (verbe avoir). Sinon c est À (préposition)."
+4. lignes = exactement 8 phrases numérotées. Chaque phrase a UN blanc ___ à compléter par A ou À.
+5. Mélange équilibré : environ 4 phrases avec A, 4 avec À.
+6. JAMAIS écrire la réponse dans lignes.
+7. Phrases variées, courtes, vocabulaire CE1. Sujets variés (il, elle, on, le chat, ma sœur…)
+8. JAMAIS deux fois le même contexte (ville/lieu répété, même verbe…)
+JSON uniquement :
+{"title":"Homophones A / À","emoji":"✏️","duration":"${dur} min","instructions":"Complète chaque phrase avec A ou À.","example":"Astuce : remplace par AVAIT — si ça marche, c est A (verbe avoir). Sinon c est À (préposition).","lignes":["1. Le chat ___ faim. →","2. Elle va ___ l école. →","3. Il ___ trouvé son stylo. →","4. Nous allons ___ la piscine. →","5. Mon frère ___ neuf ans. →","6. Elle pense ___ ses amis. →","7. Le chien ___ soif. →","8. Il marche ___ pied. →"],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+          try {
+            const raw = await callAPI(aaPrompt, "exercice");
+            const clean = raw.replace(/```json|```/g,"").trim();
+            const obj = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
+            if (obj.title) exercises.push({type:st, format:'trous', ...obj});
+          } catch(e) { console.error("Erreur homophones_a_a",st,e); }
+          continue;
+        }
+
+        // ─── ET / EST ─────────────────────────────────────────────────────────
+        if (isHomophoneEtEst) {
+          const etEstPrompt = `Tu es instituteur CE1/CE2. Génère un exercice sur ET (conjonction) et EST (verbe être) niveau ${niv}.
+RÈGLES ABSOLUES :
+1. title = "Homophones ET / EST"
+2. instructions = "Complète chaque phrase avec ET ou EST."
+3. example = "Astuce : remplace par ÉTAIT — si ça marche, c est EST (verbe être). Sinon c est ET (conjonction)."
+4. lignes = exactement 8 phrases numérotées. Chaque phrase a UN ou DEUX blancs ___ à compléter.
+5. Mélange : environ 4 phrases avec EST, 4 avec ET (dont 2 phrases avec deux blancs ET...ET).
+6. JAMAIS écrire la réponse dans lignes.
+7. Phrases courtes, vocabulaire CE1, sujets variés.
+JSON uniquement :
+{"title":"Homophones ET / EST","emoji":"✏️","duration":"${dur} min","instructions":"Complète chaque phrase avec ET ou EST.","example":"Astuce : remplace par ÉTAIT — si ça marche, c est EST (verbe être). Sinon c est ET (conjonction).","lignes":["1. La classe ___ silencieuse.","2. Le chat ___ le chien jouent ensemble.","3. Le ciel ___ bleu.","4. Elle ___ gentille ___ courageuse.","5. Mon sac ___ lourd.","6. Il mange une pomme ___ une banane.","7. La maison ___ grande.","8. Le soleil ___ chaud aujourd hui."],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+          try {
+            const raw = await callAPI(etEstPrompt, "exercice");
+            const clean = raw.replace(/```json|```/g,"").trim();
+            const obj = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
+            if (obj.title) exercises.push({type:st, format:'trous', ...obj});
+          } catch(e) { console.error("Erreur homophones_et_est",st,e); }
+          continue;
+        }
+
+        // ─── SON / SONT ───────────────────────────────────────────────────────
+        if (isHomophoneSonSont) {
+          const sonSontPrompt = `Tu es instituteur CE1/CE2. Génère un exercice sur SON (déterminant possessif) et SONT (verbe être au pluriel) niveau ${niv}.
+RÈGLES ABSOLUES :
+1. title = "Homophones SON / SONT"
+2. instructions = "Complète chaque phrase avec SON ou SONT."
+3. example = "Astuce : remplace par ILS SONT — si ça marche, c est SONT (verbe être). Sinon c est SON (possessif)."
+4. lignes = exactement 8 phrases numérotées. Chaque phrase a UN blanc ___ à compléter.
+5. Mélange équilibré : environ 4 phrases avec SON, 4 avec SONT.
+6. Pour SON : ___ précède un nom (son livre, son ami, son chien…)
+7. Pour SONT : sujet PLURIEL + SONT + attribut ou participe
+8. JAMAIS écrire la réponse dans lignes.
+JSON uniquement :
+{"title":"Homophones SON / SONT","emoji":"✏️","duration":"${dur} min","instructions":"Complète chaque phrase avec SON ou SONT.","example":"Astuce : remplace par ILS SONT — si ça marche, c est SONT (verbe être). Sinon c est SON (possessif).","lignes":["1. Les fleurs ___ belles.","2. Il garde ___ livre.","3. Les enfants ___ contents.","4. Elle aime ___ chien.","5. Mes amis ___ partis.","6. Il met ___ casque.","7. Les légumes ___ frais.","8. Elle adore ___ chat."],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+          try {
+            const raw = await callAPI(sonSontPrompt, "exercice");
+            const clean = raw.replace(/```json|```/g,"").trim();
+            const obj = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
+            if (obj.title) exercises.push({type:st, format:'trous', ...obj});
+          } catch(e) { console.error("Erreur homophones_son_sont",st,e); }
+          continue;
+        }
+
+        // ─── OU / OÙ ──────────────────────────────────────────────────────────
+        if (isHomophoneOuOu) {
+          const ouOuPrompt = `Tu es instituteur CE1/CE2. Génère un exercice sur OU (choix/alternative) et OÙ (lieu/moment) niveau ${niv}.
+RÈGLES ABSOLUES :
+1. title = "Homophones OU / OÙ"
+2. instructions = "Complète chaque phrase avec OU ou OÙ."
+3. example = "Astuce : remplace par OU BIEN — si ça marche, c est OU (choix). Sinon c est OÙ (lieu ou moment)."
+4. lignes = exactement 8 phrases numérotées. Chaque phrase a UN blanc ___ à compléter.
+5. Mélange équilibré : 4 phrases avec OU (choix entre deux choses), 4 phrases avec OÙ (lieu ou moment).
+6. RÈGLES CRITIQUES SUR LA CONSTRUCTION :
+   - OU (choix) : la phrase propose une ALTERNATIVE entre deux choses. Exemple : "Tu veux du lait ___ du jus ?"
+   - OÙ (lieu) : la phrase demande ou indique un lieu/moment. Exemple : "___ habites-tu ?" ou "Je ne sais pas ___ il est."
+   - TOUTE phrase avec un choix entre deux options DOIT se terminer par "?" si c est une question
+   - JAMAIS construire une phrase incohérente (ex: "Tu vas ___ tu restes" sans point d interrogation ni sens logique)
+7. JAMAIS écrire la réponse dans lignes.
+JSON uniquement :
+{"title":"Homophones OU / OÙ","emoji":"✏️","duration":"${dur} min","instructions":"Complète chaque phrase avec OU ou OÙ.","example":"Astuce : remplace par OU BIEN — si ça marche, c est OU (choix). Sinon c est OÙ (lieu ou moment).","lignes":["1. ___ ranges-tu tes affaires ?","2. Tu préfères le vélo ___ la trottinette ?","3. Je ne sais pas ___ il habite.","4. Elle choisit le chocolat ___ la vanille ?","5. ___ est passé mon cartable ?","6. Il va à l école ___ à la bibliothèque ?","7. C est là ___ j ai trouvé mon stylo.","8. Tu veux du pain ___ des céréales ?"],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+          try {
+            const raw = await callAPI(ouOuPrompt, "exercice");
+            const clean = raw.replace(/```json|```/g,"").trim();
+            const obj = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
+            if (obj.title) exercises.push({type:st, format:'trous', ...obj});
+          } catch(e) { console.error("Erreur homophones_ou_où",st,e); }
+          continue;
+        }
+
+        // ─── CES / SES ────────────────────────────────────────────────────────
+        if (isHomophoneCesSes) {
+          const cesSesPrompt = `Tu es instituteur CE1/CE2. Génère un exercice sur CES (démonstratif pluriel) et SES (possessif pluriel) niveau ${niv}.
+RÈGLES ABSOLUES :
+1. title = "Homophones CES / SES"
+2. instructions = "Complète chaque phrase avec CES ou SES."
+3. example = "Rappel : CES = démonstratif (ces chats → ces chats-là) | SES = possessif (ses chats → les chats de quelqu un)"
+4. lignes = exactement 8 phrases numérotées. Chaque phrase a UN seul blanc ___ à compléter.
+5. Mélange équilibré : 4 phrases avec CES, 4 phrases avec SES.
+6. Format STRICT : "[Numéro]. [Début de phrase] ___ [nom pluriel] [fin de phrase]."
+   JAMAIS de flèche après la phrase. JAMAIS de deuxième blanc. L enfant écrit juste CES ou SES dans le blank.
+7. Pour CES : sujet neutre ou "ces [noms]" sans possesseur explicite. Exemple : "Ces fleurs sont jolies."
+8. Pour SES : un possesseur est clairement mentionné dans la phrase. Exemple : "Il range ses affaires."
+9. JAMAIS écrire la réponse dans lignes.
+JSON uniquement :
+{"title":"Homophones CES / SES","emoji":"✏️","duration":"${dur} min","instructions":"Complète chaque phrase avec CES ou SES.","example":"Rappel : CES = démonstratif (ces chats → ces chats-là) | SES = possessif (ses chats → les chats de quelqu un)","lignes":["1. ___ oiseaux chantent dans les arbres.","2. Elle prend ___ crayons pour dessiner.","3. ___ maisons sont très grandes.","4. Il met ___ gants avant de sortir.","5. Regarde ___ belles étoiles !","6. Ma sœur range ___ jouets.","7. ___ enfants jouent dans le jardin.","8. Mon frère aime ___ amis."],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+          try {
+            const raw = await callAPI(cesSesPrompt, "exercice");
+            const clean = raw.replace(/```json|```/g,"").trim();
+            const obj = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
+            if (obj.title) exercises.push({type:st, format:'trous', ...obj});
+          } catch(e) { console.error("Erreur homophones_ces_ses",st,e); }
+          continue;
+        }
+
+        // ─── ON / ONT ─────────────────────────────────────────────────────────
+        if (isHomophoneOnOnt) {
+          const onOntPrompt = `Tu es instituteur CE1/CE2. Génère un exercice sur ON (pronom sujet) et ONT (verbe avoir au pluriel) niveau ${niv}.
+RÈGLES ABSOLUES :
+1. title = "Homophones ON / ONT"
+2. instructions = "Complète chaque phrase avec ON ou ONT."
+3. example = "Rappel : ON est un pronom comme NOUS (on mange = nous mangeons) | ONT = verbe avoir accordé avec ILS/ELLES (ils ont)"
+4. lignes = exactement 8 phrases numérotées. Chaque phrase a UN blanc ___ à compléter.
+5. Mélange équilibré : 4 phrases avec ON (sujet singulier), 4 phrases avec ONT (sujet pluriel explicite comme "les enfants", "ils", "elles", "mes amis"…)
+6. Pour ONT : le sujet pluriel DOIT être visible dans la phrase AVANT le blanc.
+7. Pour ON : ON est seul sujet de la phrase, remplaçable par NOUS.
+8. JAMAIS écrire la réponse dans lignes.
+JSON uniquement :
+{"title":"Homophones ON / ONT","emoji":"✏️","duration":"${dur} min","instructions":"Complète chaque phrase avec ON ou ONT.","example":"Rappel : ON est un pronom comme NOUS (on mange = nous mangeons) | ONT = verbe avoir accordé avec ILS/ELLES (ils ont)","lignes":["1. Les oiseaux ___ des ailes.","2. ___ joue au football après l école.","3. Les élèves ___ rendu leurs devoirs.","4. ___ mange des crêpes le jeudi.","5. Mes amis ___ un grand jardin.","6. ___ entend la musique de loin.","7. Les chiens ___ faim ce soir.","8. ___ part en vacances demain."],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+          try {
+            const raw = await callAPI(onOntPrompt, "exercice");
+            const clean = raw.replace(/```json|```/g,"").trim();
+            const obj = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
+            if (obj.title) exercises.push({type:st, format:'trous', ...obj});
+          } catch(e) { console.error("Erreur homophones_on_ont",st,e); }
+          continue;
+        }
+
+        // ─── MA / M'A ─────────────────────────────────────────────────────────
+        if (isHomophoneMaMa) {
+          const maMaPrompt = `Tu es instituteur CE1/CE2. Génère un exercice sur MA (déterminant possessif féminin) et M'A (pronom ME + verbe AVOIR).
+RÈGLES ABSOLUES :
+1. title = "Homophones MA / M'A"
+2. instructions = "Complète chaque phrase avec MA ou M'A. Astuce : remplace par MON — si ça marche avec un nom masculin, c est MA. Sinon c est M'A (quelqu un m a fait quelque chose)."
+3. example = "" (vide — pas d exemple)
+4. STRUCTURE IMPOSÉE : chaque phrase a EXACTEMENT DEUX blancs ___ — un pour MA et un pour M'A dans la même phrase.
+   - Le PREMIER blank est toujours MA (devant un nom féminin : ___ mère, ___ sœur, ___ maîtresse, ___ amie, ___ tante, ___ cousine, ___ voisine)
+   - Le DEUXIÈME blank est toujours M'A (verbe d action fait PAR ce sujet féminin envers le locuteur : ___ dit, ___ donné, ___ montré, ___ aidé, ___ appelé, ___ offert, ___ expliqué)
+5. Format EXACT de chaque ligne : "N. ___ [nom féminin] ___ [verbe au participe passé] [complément]."
+   Exemples valides :
+   - "___ mère ___ aidé à faire mes devoirs."
+   - "___ sœur ___ appelé ce matin."
+   - "___ maîtresse ___ expliqué la leçon."
+6. lignes = exactement 6 phrases numérotées respectant ce format.
+7. JAMAIS écrire MA ou M'A dans les lignes — uniquement des blancs ___.
+8. Phrases courtes, naturelles, vocabulaire CE1/CE2.
+JSON uniquement :
+{"title":"Homophones MA / M'A","emoji":"✏️","duration":"${dur} min","instructions":"Complète chaque phrase avec MA ou M'A. Astuce : remplace par MON — si ça marche avec un nom masculin, c est MA. Sinon c est M'A (quelqu un m a fait quelque chose).","example":"","lignes":["1. ___ mère ___ aidé à faire mes devoirs.","2. ___ sœur ___ appelé ce matin.","3. ___ maîtresse ___ expliqué la leçon.","4. ___ tante ___ offert un cadeau.","5. ___ amie ___ invité à son anniversaire.","6. ___ voisine ___ montré son jardin."],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+          try {
+            const raw = await callAPI(maMaPrompt, "exercice");
+            const clean = raw.replace(/```json|```/g,"").trim();
+            const obj = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
+            if (obj.title) exercises.push({type:st, format:'trous', ...obj});
+          } catch(e) { console.error("Erreur homophones_ma_ma",st,e); }
+          continue;
+        }
+
+        // ─── ACCORD DE L'ADJECTIF ─────────────────────────────────────────────
+        if (isAccordAdjectif) {
+          const accordAdjPrompt = `Tu es instituteur CE1/CE2. Génère un exercice d accord de l adjectif niveau ${niv}.
+RÈGLES ABSOLUES :
+1. title = "Accord de l adjectif"
+2. instructions = "Accorde l adjectif entre parenthèses avec le nom. Écris la forme correcte après la flèche."
+3. example = "Une fille (grand) → grande | Des garçons (petit) → petits"
+4. lignes = exactement 8 items. Format EXACT : "[groupe nominal avec adjectif entre parenthèses] → _______________"
+5. OBLIGATION : les adjectifs DOIVENT nécessiter un vrai accord. Choisis des adjectifs qui changent de forme :
+   - Au féminin : grand → grande, petit → petite, beau → belle, heureux → heureuse, doux → douce, vieux → vieille, gros → grosse, blanc → blanche
+   - Au pluriel : grand → grands/grandes, petit → petits/petites, heureux → heureux (invariable au pluriel masculin)
+   - JAMAIS choisir des adjectifs identiques au masculin et féminin comme "rapide", "calme", "sombre" — ils n entraînent aucun travail d accord
+6. Distribuer obligatoirement : 2 items masculin singulier, 2 féminin singulier, 2 masculin pluriel, 2 féminin pluriel.
+7. JAMAIS écrire la réponse après "→" dans lignes.
+JSON uniquement :
+{"title":"Accord de l adjectif","emoji":"✏️","duration":"${dur} min","instructions":"Accorde l adjectif entre parenthèses avec le nom. Écris la forme correcte après la flèche.","example":"Une fille (grand) → grande | Des garçons (petit) → petits","lignes":["1. Un garçon (heureux) → _______________","2. Une fille (heureux) → _______________","3. Des fleurs (beau) → _______________","4. Un vieux (gros) chien → _______________","5. Une maison (blanc) → _______________","6. Des livres (vieux) → _______________","7. Un gâteau (doux) → _______________","8. Des pommes (doux) → _______________"],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+          try {
+            const raw = await callAPI(accordAdjPrompt, "exercice");
+            const clean = raw.replace(/```json|```/g,"").trim();
+            const obj = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
+            if (obj.title) exercises.push({type:st, format:'fleche', ...obj});
+          } catch(e) { console.error("Erreur accord_adjectif",st,e); }
+          continue;
+        }
+
+        // ─── ACCORD DU PARTICIPE PASSÉ ────────────────────────────────────────
+        if (isAccordPP) {
+          const accordPPPrompt = `Tu es instituteur CE2/CM1. Génère un exercice d accord du participe passé niveau ${niv}.
+RÈGLES ABSOLUES :
+1. title = "Accord du participe passé"
+2. instructions = "Complète le participe passé en l accordant correctement avec le sujet (auxiliaire ÊTRE) ou le COD (auxiliaire AVOIR)."
+3. example = "Elle est parti___ → partie (auxiliaire ÊTRE : accord avec le sujet féminin) | Il a pris la pomme et il l a mang___ → mangée (auxiliaire AVOIR : accord avec le COD féminin placé avant)"
+4. lignes = exactement 6 phrases numérotées. Chaque phrase contient un participe passé TRONQUÉ (terminaison manquante) noté avec ___ à la fin du radical.
+5. Format : "N. [sujet] [auxiliaire] [radical_participe]___ [complément] → _______________"
+6. Distribuer : 3 phrases avec auxiliaire ÊTRE (accord avec le sujet), 3 avec auxiliaire AVOIR (accord avec le COD antéposé via pronom ou relatif)
+7. Utiliser des verbes simples CE2 : partir, arriver, tomber, manger, prendre, finir, lire, écrire
+8. JAMAIS écrire la réponse après "→" dans lignes.
+JSON uniquement :
+{"title":"Accord du participe passé","emoji":"✏️","duration":"${dur} min","instructions":"Complète le participe passé en l accordant correctement avec le sujet (auxiliaire ÊTRE) ou le COD (auxiliaire AVOIR).","example":"Elle est parti___ → partie (ÊTRE : accord sujet féminin)","lignes":["1. Elle est arriv___ en retard. → _______________","2. Les enfants sont parti___ en voyage. → _______________","3. Ma sœur est tomb___ dans l escalier. → _______________","4. La lettre que j ai écri___ est longue. → _______________","5. Les fleurs qu il a cueilli___ sont belles. → _______________","6. La tarte que nous avons mang___ était délicieuse. → _______________"],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+          try {
+            const raw = await callAPI(accordPPPrompt, "exercice");
+            const clean = raw.replace(/```json|```/g,"").trim();
+            const obj = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
+            if (obj.title) exercises.push({type:st, format:'fleche', ...obj});
+          } catch(e) { console.error("Erreur accord_participe_passe",st,e); }
+          continue;
+        }
+
+        // ─── MOTS INVARIABLES ─────────────────────────────────────────────────
+        if (isMotsInvariables) {
+          const motsInvPrompt = `Tu es instituteur CE1/CE2. Génère un exercice de reconnaissance des mots invariables niveau ${niv}.
+RÈGLES ABSOLUES :
+1. title = "Reconnaître les mots invariables"
+2. instructions = "Entoure le ou les mots invariables dans chaque phrase."
+3. example = "Rappel : les mots invariables ne changent jamais d orthographe : toujours, souvent, jamais, très, trop, bien, vite, ici, là, hier, demain, avec, sans, pour, dans, sur, sous, devant, derrière, car, mais, et, ou…"
+4. lignes = exactement 6 phrases numérotées. Chaque phrase est COMPLÈTE (pas de blanc). L enfant entoure directement les mots invariables.
+5. Chaque phrase doit contenir 1 à 2 mots invariables CLAIREMENT identifiables.
+6. Phrases LONGUES : minimum 8 mots chacune. Inclure des détails, des compléments, de la richesse lexicale.
+7. Varier les types de mots invariables : adverbes (toujours, souvent, vite, très), prépositions (dans, sur, avec, sans), conjonctions (mais, car, et), mots de temps (hier, demain, bientôt).
+8. JAMAIS mettre des blancs ___ dans les phrases — l enfant lit et entoure.
+JSON uniquement :
+{"title":"Reconnaître les mots invariables","emoji":"📚","duration":"${dur} min","instructions":"Entoure le ou les mots invariables dans chaque phrase.","example":"Rappel : les mots invariables ne changent jamais d orthographe : toujours, souvent, jamais, très, trop, bien, vite, ici, là, hier, demain, avec, sans, pour, dans, sur, sous, devant, derrière, car, mais, et, ou…","lignes":["1. Le chat dort toujours sur le canapé du salon.","2. Nous jouons souvent au football avec nos amis le mercredi.","3. Elle ne veut jamais aider son petit frère à ranger sa chambre.","4. Le livre est posé sur la table de la bibliothèque.","5. Hier, il a plu très fort pendant toute la récréation.","6. Nous allons bientôt partir en vacances à la mer avec la famille."],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+          try {
+            const raw = await callAPI(motsInvPrompt, "exercice");
+            const clean = raw.replace(/```json|```/g,"").trim();
+            const obj = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
+            if (obj.title) exercises.push({type:st, format:'libre', ...obj});
+          } catch(e) { console.error("Erreur mots_invariables",st,e); }
+          continue;
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
         // ─── PROMPT GÉNÉRIQUE ────────────────────────────────────────────────
+        // ═══════════════════════════════════════════════════════════════════════
+
         if (isTablesType) {
           regles.push(`TYPE : MULTIPLICATION — Tables mélangées de 1 à 10.
 - Exactement 20 items dans lignes (4 colonnes × 5)
@@ -1177,14 +1433,6 @@ JSON uniquement :
         }
 
         if (isEncadr) regles.push(`TYPE : NUMÉRATION. Minimum 6 items dans lignes. Utilise des nombres DIFFÉRENTS du modèle.`);
-
-        const isHomophone = st.includes("homophones") || st.includes("sons_") || st.includes("accord_");
-        if (isHomophone && !isMonnaie) {
-          regles.push(`TYPE : ORTHOGRAPHE/HOMOPHONES.
-- Génère des phrases ENTIÈREMENT NOUVELLES — jamais les mêmes que le modèle
-- Même règle grammaticale, situations et vocabulaire différents
-- Niveau CE1/CE2, phrases courtes et simples`);
-        }
 
         if (isMonnaie) {
           regles.push(`TYPE : MESURES MONNAIE.
