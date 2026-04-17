@@ -1326,25 +1326,24 @@ JSON uniquement :
 
         // ─── MA / M'A ─────────────────────────────────────────────────────────
         if (isHomophoneMaMa) {
-          const maMaPrompt = `Tu es instituteur CE1/CE2. Génère un exercice sur MA (déterminant possessif féminin) et M'A (pronom ME + verbe AVOIR).
+          const maMaPrompt = `Tu es instituteur CE1/CE2. Génère un exercice sur MA (déterminant possessif féminin) et M'A (pronom ME + verbe AVOIR au passé composé).
 RÈGLES ABSOLUES :
 1. title = "Homophones MA / M'A"
-2. instructions = "Complète chaque phrase avec MA ou M'A. Astuce : remplace par MON — si ça marche avec un nom masculin, c est MA. Sinon c est M'A (quelqu un m a fait quelque chose)."
-3. example = "" (vide — pas d exemple)
-4. lignes = exactement 6 phrases numérotées. CHAQUE phrase a EXACTEMENT DEUX blancs ___.
-5. VARIER OBLIGATOIREMENT l ordre des blancs selon ce modèle :
-   - Phrases 1, 3, 5 : "___ [nom féminin] ___ [verbe]..." → MA d abord, puis M'A
-   - Phrases 2, 4, 6 : "Il/Elle ___ [verbe] ___ [nom féminin]..." ou "Hier, ___ [verbe] ___ [nom féminin]..." → M'A d abord, puis MA
-   Exemples pour M'A en premier :
-   - "Il ___ montré ___ chambre." (M'A puis MA)
-   - "Hier, elle ___ prêté ___ veste." (M'A puis MA)
-   - "Elle ___ offert ___ poupée." (M'A puis MA)
-6. Noms féminins à utiliser : mère, sœur, maîtresse, tante, amie, cousine, voisine, grand-mère
-7. Verbes à utiliser : aidé, appelé, montré, expliqué, offert, prêté, donné, invité, accompagné, félicité
-8. JAMAIS écrire MA ou M'A dans les lignes — uniquement des blancs ___.
-9. Phrases courtes, naturelles, vocabulaire CE1/CE2.
+2. instructions = "Complète chaque phrase avec MA ou M'A. Astuce : remplace par MON — si ça marche, c est MA. Sinon c est M'A."
+3. example = "" (vide)
+4. lignes = exactement 8 phrases numérotées. CHAQUE phrase a UN SEUL blanc ___.
+5. Mélange : 4 phrases avec MA, 4 phrases avec M'A — dans un ordre VARIÉ (pas toutes les MA d abord).
+6. CONSTRUCTIONS VALIDES pour MA (déterminant devant un nom féminin) :
+   - "___ mère est revenue." / "J aime ___ maison." / "C est ___ faute." / "___ sœur chante bien."
+   - MA précède TOUJOURS un nom féminin singulier.
+7. CONSTRUCTIONS VALIDES pour M'A (quelqu un m a fait quelque chose — passé composé) :
+   - "Il ___ appelé hier." / "Elle ___ dit bonjour." / "Mon ami ___ aidé." / "La maîtresse ___ expliqué la leçon."
+   - M'A est TOUJOURS entre un sujet et un participe passé.
+8. VÉRIFICATION OBLIGATOIRE avant chaque ligne : teste mentalement la phrase avec MA et avec M'A — une seule doit fonctionner.
+9. JAMAIS écrire MA ou M'A dans les lignes — uniquement des blancs ___.
+10. Phrases courtes, naturelles, vocabulaire CE1.
 JSON uniquement :
-{"title":"Homophones MA / M'A","emoji":"✏️","duration":"${dur} min","instructions":"Complète chaque phrase avec MA ou M'A. Astuce : remplace par MON — si ça marche avec un nom masculin, c est MA. Sinon c est M'A (quelqu un m a fait quelque chose).","example":"","lignes":["1. ___ mère ___ aidé à faire mes devoirs.","2. Elle ___ prêté ___ veste ce matin.","3. ___ sœur ___ appelé pour me dire bonne nuit.","4. Il ___ montré ___ chambre préférée.","5. ___ maîtresse ___ expliqué la leçon.","6. Hier, elle ___ offert ___ poupée adorée."],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+{"title":"Homophones MA / M'A","emoji":"✏️","duration":"${dur} min","instructions":"Complète chaque phrase avec MA ou M'A. Astuce : remplace par MON — si ça marche, c est MA. Sinon c est M'A.","example":"","lignes":["1. Il ___ appelé hier soir.","2. ___ sœur est très gentille.","3. Elle ___ donné un beau cadeau.","4. ___ maison est grande.","5. Mon ami ___ aidé à porter mon sac.","6. ___ mère prépare le dîner.","7. La maîtresse ___ expliqué la leçon.","8. ___ chambre est bien rangée."],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
           try {
             const raw = await callAPI(maMaPrompt, "exercice");
             const clean = raw.replace(/```json|```/g,"").trim();
