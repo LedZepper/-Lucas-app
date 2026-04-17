@@ -330,10 +330,7 @@ function ExCard({ ex, dark=true }) {
                 <div style={{display:"flex", alignItems:"flex-start", gap:6, flexWrap:"wrap"}}>
                   <span style={{fontSize:dark?13:12, color:tc, paddingTop:2}}>{avant} →</span>
                   {estVide
-                    ? <div style={{flex:1, minWidth:100}}>
-                        <div style={{borderBottom:`1.5px solid ${lc}`, height:1, marginTop:8}}></div>
-                        <div style={{borderBottom:`1px solid ${lc}44`, height:1, marginTop:16}}></div>
-                      </div>
+                    ? <div style={{flex:1, borderBottom:`1.5px solid ${lc}`, height:1, marginTop:10, minWidth:120}}></div>
                     : <span style={{fontSize:dark?13:12, color:ac}}>{apres}</span>
                   }
                 </div>
@@ -1571,17 +1568,45 @@ RÈGLES ABSOLUES :
         if (isFamilles) {
           const estAvance = st.includes("avancees");
 
+          // MOTS_SIMPLES : ne contient PAS les mots utilisés dans FAMILLES_EXEMPLES
           const MOTS_SIMPLES = [
-            "pain","lait","bois","main","dent","nuit","jour","neige","pluie","vent",
-            "herbe","champ","feu","mer","eau","terre","chat","chien","jardin","fleur",
-            "fruit","livre","école","ami","cheval","oiseau","poisson","arbre","soleil",
-            "pied","bras","dos","œil","nez","bouche","cœur","tête","bras","main"
+            "lait","bois","main","dent","jour","neige","pluie","vent",
+            "herbe","champ","feu","chien","jardin","fruit","livre","ami",
+            "cheval","oiseau","poisson","arbre","pied","dos","nez","bouche",
+            "cœur","tête","bras","œil","balle","bord","bras","café",
+            "canne","ciel","clé","corps","côte","cours","fête","fil",
+            "fond","front","gare","glace","gomme","gorge","grain","grue",
+            "île","jeu","joue","lac","lame","lande","langue","larme",
+            "lune","manche","marche","mèche","miel","mine","mont","mur",
+            "nid","onde","ongle","oreille","page","parc","pas","patte",
+            "peau","peigne","pierre","piste","place","plage","plan","plante",
+            "plume","pont","port","pot","poudre","prise","prix","race",
+            "rage","rang","rate","robe","roc","ronde","roue","route",
+            "sable","sac","sapin","sel","selle","sens","signe","soie",
+            "son","sort","souche","soupe","source","tache","talon","temps",
+            "tente","tige","toit","ton","tour","trace","train","trait",
+            "trame","tranche","vague","val","valeur","verre","voie","voix"
           ];
           const MOTS_AVANCES = [
-            "lumière","nature","aventure","voyage","montagne","rivière","forêt","marché",
-            "cuisine","musique","science","histoire","dessin","château","village",
-            "médecin","pompier","jardinier","pêcheur","boulanger","facteur","sculpteur",
-            "peinture","lecture","écriture","commerce","voyage","liberté","courage","sagesse"
+            "lumière","nature","montagne","rivière","forêt","marché",
+            "cuisine","musique","science","histoire","dessin","village",
+            "lecture","écriture","commerce","liberté","courage","sagesse",
+            "beauté","bonheur","chaleur","chance","charme","chasse","chemin",
+            "chiffre","chose","classe","cloche","coeur","colère","combat",
+            "compte","confiance","connaissance","conseil","corps","couleur",
+            "crainte","danger","défense","désir","douceur","douleur","droit",
+            "effort","émotion","enfance","espace","esprit","étude","éveille",
+            "fardeau","fatigue","faveur","fierté","flamme","foi","force",
+            "forme","fraîcheur","franchise","génie","gloire","grandeur","grâce",
+            "harmonie","hauteur","honneur","humeur","image","intelligence",
+            "jalousie","jeunesse","joie","justice","largeur","lenteur","loi",
+            "longueur","loyauté","magie","malheur","mémoire","mérite","mesure",
+            "mode","monde","morale","mouvement","noblesse","norme","objet",
+            "ombre","opinion","patience","pauvreté","pensée","peur","pitié",
+            "plaisir","pouvoir","progrès","promesse","prudence","qualité","raison",
+            "réalité","richesse","rigueur","rôle","service","silence","simplicité",
+            "souvenir","symbole","talent","tendresse","terreur","vérité","vertu",
+            "victoire","vie","vigueur","violence","vision","vitesse","volonté"
           ];
 
           const FAMILLES_EXEMPLES = [
@@ -1654,7 +1679,7 @@ JSON uniquement :
         const clean = raw.replace(/```json|```/g,"").trim();
         const obj   = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
         if(obj.title) {
-          const fmt = isMonnaie ? 'trous' : exFormat;
+          const fmt = isMonnaie ? 'trous' : isFamilles ? 'fleche' : exFormat;
           exercises.push({type:st, format: fmt, ...obj});
           (obj.verbsUsed||[]).forEach(v => usedVerbsSession.add(v.toLowerCase()));
           (obj.wordsUsed||[]).forEach(w => usedWordsSession.add(w.toLowerCase()));
