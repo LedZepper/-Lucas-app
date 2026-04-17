@@ -254,19 +254,15 @@ const hideInstructions = t => isMath(t) || isConj(t);
 const hideExample      = t => (isMath(t) || isConj(t) || t?.includes("addition") || t?.includes("soustraction") || t?.includes("comprehension")) && !t?.includes("vs_passe_compose");
 const hideParentNote   = () => true;
 
-// Masque la phrase bleue si elle ne fait que répéter le titre
-function isInstructionRedondante(title, instructions) {
-  if (!title || !instructions) return false;
-  const norm = s => s.toLowerCase()
-    .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
-    .replace(/[^a-z0-9 ]/g," ")
-    .replace(/\s+/g," ").trim();
-  const t = norm(title);
-  const ins = norm(instructions);
-  const motsTitre = t.split(" ").filter(m => m.length > 3);
-  if (motsTitre.length === 0) return false;
-  const overlap = motsTitre.filter(m => ins.includes(m));
-  return overlap.length >= Math.ceil(motsTitre.length * 0.6);
+// Types pour lesquels la phrase bleue est toujours masquée
+const TYPES_SANS_INSTRUCTIONS = new Set([
+  "homophones_a_a","homophones_et_est","homophones_son_sont","homophones_ou_où",
+  "homophones_ces_ses","homophones_on_ont","homophones_ma_ma",
+  "accord_adjectif","accord_participe_passe","mots_invariables",
+  "sons_ou_et_on","sons_an_en","sons_in_ain","sons_oi","sons_eau_au","sons_ill_gn",
+]);
+function isInstructionRedondante(title, instructions, type) {
+  return !!type && TYPES_SANS_INSTRUCTIONS.has(type);
 }
 
 function ExCard({ ex, dark=true }) {
@@ -1390,18 +1386,19 @@ RÈGLES ABSOLUES :
 1. title = "Accord du participe passé"
 2. instructions = "Complète le participe passé en l accordant correctement avec le sujet (auxiliaire ÊTRE) ou le COD (auxiliaire AVOIR)."
 3. example = "Elle est parti___ → partie (auxiliaire ÊTRE : accord avec le sujet féminin) | Il a pris la pomme et il l a mang___ → mangée (auxiliaire AVOIR : accord avec le COD féminin placé avant)"
-4. lignes = exactement 6 phrases numérotées. Chaque phrase contient un participe passé TRONQUÉ (terminaison manquante) noté avec ___ à la fin du radical.
-5. Format : "N. [sujet] [auxiliaire] [radical_participe]___ [complément] → _______________"
+4. lignes = exactement 6 phrases numérotées. Chaque phrase contient un participe passé TRONQUÉ (terminaison manquante) notée ___ à la fin du radical.
+5. Format EXACT : "N. [sujet] [auxiliaire] [radical_participe]___ [complément]."
+   JAMAIS de flèche → dans les lignes. L enfant complète directement la terminaison sur le tiret.
 6. Distribuer : 3 phrases avec auxiliaire ÊTRE (accord avec le sujet), 3 avec auxiliaire AVOIR (accord avec le COD antéposé via pronom ou relatif)
 7. Utiliser des verbes simples CE2 : partir, arriver, tomber, manger, prendre, finir, lire, écrire
 8. JAMAIS écrire la réponse après "→" dans lignes.
 JSON uniquement :
-{"title":"Accord du participe passé","emoji":"✏️","duration":"${dur} min","instructions":"Complète le participe passé en l accordant correctement avec le sujet (auxiliaire ÊTRE) ou le COD (auxiliaire AVOIR).","example":"Elle est parti___ → partie (ÊTRE : accord sujet féminin)","lignes":["1. Elle est arriv___ en retard. → _______________","2. Les enfants sont parti___ en voyage. → _______________","3. Ma sœur est tomb___ dans l escalier. → _______________","4. La lettre que j ai écri___ est longue. → _______________","5. Les fleurs qu il a cueilli___ sont belles. → _______________","6. La tarte que nous avons mang___ était délicieuse. → _______________"],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+{"title":"Accord du participe passé","emoji":"✏️","duration":"${dur} min","instructions":"Complète le participe passé en l accordant correctement avec le sujet (auxiliaire ÊTRE) ou le COD (auxiliaire AVOIR).","example":"Elle est parti___ → partie (ÊTRE : accord sujet féminin)","lignes":["1. Elle est arriv___ en retard.","2. Les enfants sont parti___ en voyage.","3. Ma sœur est tomb___ dans l escalier.","4. La lettre que j ai écri___ est longue.","5. Les fleurs qu il a cueilli___ sont belles.","6. La tarte que nous avons mang___ était délicieuse."],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
           try {
             const raw = await callAPI(accordPPPrompt, "exercice");
             const clean = raw.replace(/```json|```/g,"").trim();
             const obj = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
-            if (obj.title) exercises.push({type:st, format:'fleche', ...obj});
+            if (obj.title) exercises.push({type:st, format:'trous', ...obj});
           } catch(e) { console.error("Erreur accord_participe_passe",st,e); }
           continue;
         }
@@ -1743,7 +1740,7 @@ JSON uniquement :
                   <span style={{fontSize:26}}>{ex.emoji}</span>
                   <div><div style={{fontWeight:700,fontSize:15,color:"#e2e8f0"}}>Exercice {i+1} — {ex.title}</div></div>
                 </div>
-                {!hideInstructions(ex.type)&&!isInstructionRedondante(ex.title,ex.instructions)&&<div style={{background:"rgba(99,102,241,.1)",borderRadius:12,padding:"10px 14px",marginBottom:10,fontSize:13,color:"#a5b4fc",fontStyle:"italic",borderLeft:"2px solid #6366f1"}}>📌 {ex.instructions}</div>}
+                {!hideInstructions(ex.type)&&!isInstructionRedondante(ex.title,ex.instructions,ex.type)&&<div style={{background:"rgba(99,102,241,.1)",borderRadius:12,padding:"10px 14px",marginBottom:10,fontSize:13,color:"#a5b4fc",fontStyle:"italic",borderLeft:"2px solid #6366f1"}}>📌 {ex.instructions}</div>}
                 {ex.example&&!hideExample(ex.type)&&<div style={{background:"rgba(52,211,153,.08)",borderRadius:12,padding:"10px 14px",marginBottom:12,fontSize:13,color:"#6ee7b7",borderLeft:"2px solid #34d399"}}>{ex.example}</div>}
                 <ExCard ex={ex} dark/>
               </div>
