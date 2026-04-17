@@ -1475,6 +1475,68 @@ JSON uniquement :
           continue;
         }
 
+        // ─── PRÉFIXES ET SUFFIXES : prompt dédié ─────────────────────────────
+        if (st === "prefixes_suffixes") {
+          const PREFIXES = ["RE-","DÉ-","IN-","PRÉ-","SUR-","SOUS-","ANTI-","SUPER-"];
+          const SUFFIXES = ["-EUR","-TION","-AGE","-MENT","-ETTE","-ABLE","-ISE","-ISTE"];
+          const prefChoisi = PREFIXES[Math.floor(Math.random()*PREFIXES.length)];
+          const sufChoisi  = SUFFIXES[Math.floor(Math.random()*SUFFIXES.length)];
+          const prefixesSuffixesPrompt = `Tu es instituteur CE2/CM1. Génère un exercice sur les préfixes et suffixes niveau ${niv}.
+RÈGLES ABSOLUES :
+1. title = "Préfixes et suffixes"
+2. instructions = "Forme des mots avec le préfixe ${prefChoisi} ou le suffixe ${sufChoisi}."
+3. example = "Préfixe ${prefChoisi} = [signification courte] → [exemple1] | [exemple2] | [exemple3]\\nSuffixe ${sufChoisi} = [signification courte] → [exemple1] | [exemple2] | [exemple3]"
+   RÈGLE : les exemples dans example NE DOIVENT PAS apparaître dans lignes.
+4. lignes = exactement 6 items :
+   - lignes[0] = "Forme des mots avec le préfixe ${prefChoisi} :"
+   - lignes[1] à lignes[3] = 3 verbes ou noms simples CE2 + " → _______________" (l enfant ajoute le préfixe)
+   - lignes[4] = "Forme des mots avec le suffixe ${sufChoisi} :"
+   - lignes[5] à lignes[7] = 3 verbes ou noms simples CE2 + " → _______________" (l enfant ajoute le suffixe)
+5. RÈGLE CRITIQUE : les mots de base dans lignes[1-3] et lignes[5-7] doivent être DIFFÉRENTS des exemples dans example.
+6. Vérifie que chaque combinaison préfixe+mot ou mot+suffixe donne un vrai mot français.
+7. parentNote = "" (vide)
+JSON uniquement :
+{"title":"Préfixes et suffixes","emoji":"📚","duration":"${dur} min","instructions":"Forme des mots avec le préfixe ${prefChoisi} ou le suffixe ${sufChoisi}.","example":"[GÉNÈRE L EXEMPLE ICI]","lignes":["Forme des mots avec le préfixe ${prefChoisi} :","1. [mot] → _______________","2. [mot] → _______________","3. [mot] → _______________","Forme des mots avec le suffixe ${sufChoisi} :","4. [mot] → _______________","5. [mot] → _______________","6. [mot] → _______________"],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+          try {
+            const raw = await callAPI(prefixesSuffixesPrompt, "exercice");
+            const clean = raw.replace(/```json|```/g,"").trim();
+            const obj = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
+            if (obj.title) exercises.push({type:st, format:'fleche', ...obj});
+          } catch(e) { console.error("Erreur prefixes_suffixes",st,e); }
+          continue;
+        }
+
+        // ─── NIVEAUX DE LANGUE : prompt dédié ────────────────────────────────
+        if (st === "niveaux_de_langue") {
+          const CONFIGS = [
+            { de:"familier", vers:"courant",  ex:"J ai les crocs ! → J ai très faim !" },
+            { de:"familier", vers:"soutenu",  ex:"C est ouf ! → C est remarquable !" },
+            { de:"courant",  vers:"soutenu",  ex:"Je suis fatigué. → Je suis épuisé." },
+            { de:"soutenu",  vers:"courant",  ex:"Je me restaure. → Je mange." },
+          ];
+          const cfg = CONFIGS[Math.floor(Math.random()*CONFIGS.length)];
+          const niveauxPrompt = `Tu es instituteur CE2/CM1. Génère un exercice de niveaux de langue niveau ${niv}.
+RÈGLES ABSOLUES :
+1. title = "Niveaux de langue"
+2. instructions = "Réécris chaque phrase en langage ${cfg.vers}."
+3. example = "Exemple : ${cfg.ex}"
+4. lignes = exactement 6 phrases numérotées en langage ${cfg.de}, chacune se terminant par " → _______________"
+5. Format : "N. [Phrase en langage ${cfg.de}.] → _______________"
+6. Les phrases doivent être NATURELLES et adaptées CE2 — pas trop argotiques ni trop complexes.
+7. Varier les situations : école, famille, sport, repas, amis.
+8. JAMAIS écrire la traduction après "→" dans lignes — l enfant la trouve lui-même.
+9. parentNote = "" (vide)
+JSON uniquement :
+{"title":"Niveaux de langue","emoji":"📚","duration":"${dur} min","instructions":"Réécris chaque phrase en langage ${cfg.vers}.","example":"Exemple : ${cfg.ex}","lignes":["1. [PHRASE ${cfg.de.toUpperCase()}] → _______________","2. [PHRASE ${cfg.de.toUpperCase()}] → _______________","3. [PHRASE ${cfg.de.toUpperCase()}] → _______________","4. [PHRASE ${cfg.de.toUpperCase()}] → _______________","5. [PHRASE ${cfg.de.toUpperCase()}] → _______________","6. [PHRASE ${cfg.de.toUpperCase()}] → _______________"],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+          try {
+            const raw = await callAPI(niveauxPrompt, "exercice");
+            const clean = raw.replace(/```json|```/g,"").trim();
+            const obj = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
+            if (obj.title) exercises.push({type:st, format:'fleche', ...obj});
+          } catch(e) { console.error("Erreur niveaux_de_langue",st,e); }
+          continue;
+        }
+
         // ═══════════════════════════════════════════════════════════════════════
         // ─── PROMPT GÉNÉRIQUE ────────────────────────────────────────────────
         // ═══════════════════════════════════════════════════════════════════════
