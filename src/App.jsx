@@ -1171,6 +1171,53 @@ JSON uniquement :
         }
 
         // ═══════════════════════════════════════════════════════════════════════
+        // ─── DICTÉES : prompts dédiés ─────────────────────────────────────────
+        // ═══════════════════════════════════════════════════════════════════════
+
+        if (isDictee) {
+          const isDicteeSons  = st === "dictee_sons_simples";
+          const isDicteeHomo  = st === "dictee_homophones";
+          const isDicteeAvanc = st === "dictee_avancee";
+
+          const themesSons  = ["la nature","les animaux","la maison","les saisons","l école"];
+          const themesHomo  = ["la journée d école","la famille","le marché","le matin","les vacances"];
+          const themesAvanc = ["une aventure","un voyage","le sport","la fête","une découverte"];
+          const pick = arr => arr[Math.floor(Math.random()*arr.length)];
+
+          const theme = isDicteeSons ? pick(themesSons) : isDicteeHomo ? pick(themesHomo) : pick(themesAvanc);
+
+          const contrainte = isDicteeSons
+            ? "Phrases simples CE1 (5-8 mots). Sons travaillés : ou, on, an, en, in, eau, au. Vocabulaire du quotidien."
+            : isDicteeHomo
+            ? "Chaque phrase doit contenir AU MOINS UN homophone parmi : a/à, et/est, son/sont, ou/où, ces/ses, on/ont. Niveau CE1/CE2."
+            : "Phrases complexes niveau CE2/CM1 (8-12 mots). Inclure : passé composé, accords, vocabulaire varié.";
+
+          const dicteePrompt = `Tu es instituteur CE1/CE2. Génère une dictée niveau ${niv}.
+RÈGLES ABSOLUES :
+1. title = "Dictée — [thème]" (remplace [thème] par le thème choisi, avec une majuscule)
+2. instructions = "Note pour le parent : lire chaque phrase lentement 2 fois."
+3. example = "" (vide)
+4. lignes = exactement 7 éléments dans cet ordre STRICT :
+   - lignes[0] = "Thème : ${theme}"
+   - lignes[1] = "---"
+   - lignes[2] à lignes[6] = 5 phrases numérotées "N. [phrase]"
+5. CONTRAINTE TYPE : ${contrainte}
+6. Phrases ENTIÈREMENT NOUVELLES — jamais les mêmes que le modèle.
+7. Phrases grammaticalement correctes, naturelles, niveau ${niv}.
+8. JAMAIS de lignes vides ou de tirets supplémentaires dans lignes.
+JSON uniquement :
+{"title":"Dictée — ${theme}","emoji":"🎧","duration":"${dur} min","instructions":"Note pour le parent : lire chaque phrase lentement 2 fois.","example":"","lignes":["Thème : ${theme}","---","1. [PHRASE 1]","2. [PHRASE 2]","3. [PHRASE 3]","4. [PHRASE 4]","5. [PHRASE 5]"],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+
+          try {
+            const raw = await callAPI(dicteePrompt, "exercice");
+            const clean = raw.replace(/\`\`\`json|\`\`\`/g,"").trim();
+            const obj = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
+            if (obj.title) exercises.push({type:st, format:'dictee', ...obj});
+          } catch(e) { console.error("Erreur dictee",st,e); }
+          continue;
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
         // ─── HOMOPHONES : prompts dédiés ──────────────────────────────────────
         // ═══════════════════════════════════════════════════════════════════════
 
