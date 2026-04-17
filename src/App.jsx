@@ -254,6 +254,21 @@ const hideInstructions = t => isMath(t) || isConj(t);
 const hideExample      = t => (isMath(t) || isConj(t) || t?.includes("addition") || t?.includes("soustraction") || t?.includes("comprehension")) && !t?.includes("vs_passe_compose");
 const hideParentNote   = () => true;
 
+// Masque la phrase bleue si elle ne fait que répéter le titre
+function isInstructionRedondante(title, instructions) {
+  if (!title || !instructions) return false;
+  const norm = s => s.toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+    .replace(/[^a-z0-9 ]/g," ")
+    .replace(/\s+/g," ").trim();
+  const t = norm(title);
+  const ins = norm(instructions);
+  const motsTitre = t.split(" ").filter(m => m.length > 3);
+  if (motsTitre.length === 0) return false;
+  const overlap = motsTitre.filter(m => ins.includes(m));
+  return overlap.length >= Math.ceil(motsTitre.length * 0.6);
+}
+
 function ExCard({ ex, dark=true }) {
   if (!ex) return null;
   const fmt = ex.format || 'libre';
@@ -562,7 +577,7 @@ export default function App() {
         const modele = corpusData?.contenu || null;
         const exFormat = corpusData?.format || 'libre';
 
-        const isConjType  = (st.includes("present")||st.includes("imparfait")||st.includes("futur")||st.includes("passe")||st.includes("conditionnel")) && !st.includes("vs_passe_compose") && !st.includes("identification_temps");
+        const isConjType  = (st.includes("present")||st.includes("imparfait")||st.includes("futur")||st.includes("passe")||st.includes("conditionnel")) && !st.includes("vs_passe_compose") && !st.includes("identification_temps") && !st.includes("accord_participe");
         const isIdentTemps = st === "identification_temps_cm1";
         const isCalcType  = ["multiplication","soustraction","addition","division"].some(t=>st.includes(t));
         const isTablesType = st.includes("tables_melange");
@@ -1239,15 +1254,23 @@ RÈGLES ABSOLUES :
 2. instructions = "Complète chaque phrase avec OU ou OÙ."
 3. example = "Astuce : remplace par OU BIEN — si ça marche, c est OU (choix). Sinon c est OÙ (lieu ou moment)."
 4. lignes = exactement 8 phrases numérotées. Chaque phrase a UN blanc ___ à compléter.
-5. Mélange équilibré : 4 phrases avec OU (choix entre deux choses), 4 phrases avec OÙ (lieu ou moment).
-6. RÈGLES CRITIQUES SUR LA CONSTRUCTION :
-   - OU (choix) : la phrase propose une ALTERNATIVE entre deux choses. Exemple : "Tu veux du lait ___ du jus ?"
-   - OÙ (lieu) : la phrase demande ou indique un lieu/moment. Exemple : "___ habites-tu ?" ou "Je ne sais pas ___ il est."
-   - TOUTE phrase avec un choix entre deux options DOIT se terminer par "?" si c est une question
-   - JAMAIS construire une phrase incohérente (ex: "Tu vas ___ tu restes" sans point d interrogation ni sens logique)
-7. JAMAIS écrire la réponse dans lignes.
+5. Mélange équilibré : 4 phrases avec OU (choix), 4 phrases avec OÙ (lieu/moment).
+6. CONSTRUCTIONS AUTORISÉES :
+   - OU (choix) UNIQUEMENT sous ces formes :
+     * Question directe : "Tu préfères X ___ Y ?" ou "Il choisit X ___ Y ?"
+     * "Tu veux X ___ Y ?" / "Elle prend X ___ Y ?"
+   - OÙ (lieu/moment) UNIQUEMENT sous ces formes :
+     * Question directe : "___ habites-tu ?" / "___ est ton sac ?"
+     * Subordonnée simple : "Je ne sais pas ___ il est." / "C est là ___ je joue."
+7. CONSTRUCTIONS INTERDITES :
+   - JAMAIS "C est ___ que..." (relative ambiguë)
+   - JAMAIS "Il va à X ___ à Y ?" (trop complexe)
+   - JAMAIS une phrase qui commence par un sujet + verbe + ___ sans que le choix soit évident
+   - JAMAIS deux propositions sans que le sens de OU soit immédiatement clair
+8. Chaque phrase OU (choix) DOIT se terminer par "?"
+9. JAMAIS écrire la réponse dans lignes.
 JSON uniquement :
-{"title":"Homophones OU / OÙ","emoji":"✏️","duration":"${dur} min","instructions":"Complète chaque phrase avec OU ou OÙ.","example":"Astuce : remplace par OU BIEN — si ça marche, c est OU (choix). Sinon c est OÙ (lieu ou moment).","lignes":["1. ___ ranges-tu tes affaires ?","2. Tu préfères le vélo ___ la trottinette ?","3. Je ne sais pas ___ il habite.","4. Elle choisit le chocolat ___ la vanille ?","5. ___ est passé mon cartable ?","6. Il va à l école ___ à la bibliothèque ?","7. C est là ___ j ai trouvé mon stylo.","8. Tu veux du pain ___ des céréales ?"],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+{"title":"Homophones OU / OÙ","emoji":"✏️","duration":"${dur} min","instructions":"Complète chaque phrase avec OU ou OÙ.","example":"Astuce : remplace par OU BIEN — si ça marche, c est OU (choix). Sinon c est OÙ (lieu ou moment).","lignes":["1. ___ ranges-tu tes affaires ?","2. Tu préfères le chocolat ___ la vanille ?","3. Je ne sais pas ___ il habite.","4. Elle choisit le vélo ___ la trottinette ?","5. ___ est passé mon cartable ?","6. Tu veux du pain ___ des céréales ?","7. C est là ___ je joue avec mes amis.","8. Il préfère le foot ___ le basket ?"],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
           try {
             const raw = await callAPI(ouOuPrompt, "exercice");
             const clean = raw.replace(/```json|```/g,"").trim();
@@ -1312,19 +1335,20 @@ RÈGLES ABSOLUES :
 1. title = "Homophones MA / M'A"
 2. instructions = "Complète chaque phrase avec MA ou M'A. Astuce : remplace par MON — si ça marche avec un nom masculin, c est MA. Sinon c est M'A (quelqu un m a fait quelque chose)."
 3. example = "" (vide — pas d exemple)
-4. STRUCTURE IMPOSÉE : chaque phrase a EXACTEMENT DEUX blancs ___ — un pour MA et un pour M'A dans la même phrase.
-   - Le PREMIER blank est toujours MA (devant un nom féminin : ___ mère, ___ sœur, ___ maîtresse, ___ amie, ___ tante, ___ cousine, ___ voisine)
-   - Le DEUXIÈME blank est toujours M'A (verbe d action fait PAR ce sujet féminin envers le locuteur : ___ dit, ___ donné, ___ montré, ___ aidé, ___ appelé, ___ offert, ___ expliqué)
-5. Format EXACT de chaque ligne : "N. ___ [nom féminin] ___ [verbe au participe passé] [complément]."
-   Exemples valides :
-   - "___ mère ___ aidé à faire mes devoirs."
-   - "___ sœur ___ appelé ce matin."
-   - "___ maîtresse ___ expliqué la leçon."
-6. lignes = exactement 6 phrases numérotées respectant ce format.
-7. JAMAIS écrire MA ou M'A dans les lignes — uniquement des blancs ___.
-8. Phrases courtes, naturelles, vocabulaire CE1/CE2.
+4. lignes = exactement 6 phrases numérotées. CHAQUE phrase a EXACTEMENT DEUX blancs ___.
+5. VARIER OBLIGATOIREMENT l ordre des blancs selon ce modèle :
+   - Phrases 1, 3, 5 : "___ [nom féminin] ___ [verbe]..." → MA d abord, puis M'A
+   - Phrases 2, 4, 6 : "Il/Elle ___ [verbe] ___ [nom féminin]..." ou "Hier, ___ [verbe] ___ [nom féminin]..." → M'A d abord, puis MA
+   Exemples pour M'A en premier :
+   - "Il ___ montré ___ chambre." (M'A puis MA)
+   - "Hier, elle ___ prêté ___ veste." (M'A puis MA)
+   - "Elle ___ offert ___ poupée." (M'A puis MA)
+6. Noms féminins à utiliser : mère, sœur, maîtresse, tante, amie, cousine, voisine, grand-mère
+7. Verbes à utiliser : aidé, appelé, montré, expliqué, offert, prêté, donné, invité, accompagné, félicité
+8. JAMAIS écrire MA ou M'A dans les lignes — uniquement des blancs ___.
+9. Phrases courtes, naturelles, vocabulaire CE1/CE2.
 JSON uniquement :
-{"title":"Homophones MA / M'A","emoji":"✏️","duration":"${dur} min","instructions":"Complète chaque phrase avec MA ou M'A. Astuce : remplace par MON — si ça marche avec un nom masculin, c est MA. Sinon c est M'A (quelqu un m a fait quelque chose).","example":"","lignes":["1. ___ mère ___ aidé à faire mes devoirs.","2. ___ sœur ___ appelé ce matin.","3. ___ maîtresse ___ expliqué la leçon.","4. ___ tante ___ offert un cadeau.","5. ___ amie ___ invité à son anniversaire.","6. ___ voisine ___ montré son jardin."],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+{"title":"Homophones MA / M'A","emoji":"✏️","duration":"${dur} min","instructions":"Complète chaque phrase avec MA ou M'A. Astuce : remplace par MON — si ça marche avec un nom masculin, c est MA. Sinon c est M'A (quelqu un m a fait quelque chose).","example":"","lignes":["1. ___ mère ___ aidé à faire mes devoirs.","2. Elle ___ prêté ___ veste ce matin.","3. ___ sœur ___ appelé pour me dire bonne nuit.","4. Il ___ montré ___ chambre préférée.","5. ___ maîtresse ___ expliqué la leçon.","6. Hier, elle ___ offert ___ poupée adorée."],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
           try {
             const raw = await callAPI(maMaPrompt, "exercice");
             const clean = raw.replace(/```json|```/g,"").trim();
@@ -1384,18 +1408,21 @@ JSON uniquement :
 
         // ─── MOTS INVARIABLES ─────────────────────────────────────────────────
         if (isMotsInvariables) {
-          const motsInvPrompt = `Tu es instituteur CE1/CE2. Génère un exercice de reconnaissance des mots invariables niveau ${niv}.
+          const motsInvPrompt = `Tu es instituteur CE1/CE2. Génère un exercice de reconnaissance des mots invariables.
 RÈGLES ABSOLUES :
 1. title = "Reconnaître les mots invariables"
 2. instructions = "Entoure le ou les mots invariables dans chaque phrase."
-3. example = "Rappel : les mots invariables ne changent jamais d orthographe : toujours, souvent, jamais, très, trop, bien, vite, ici, là, hier, demain, avec, sans, pour, dans, sur, sous, devant, derrière, car, mais, et, ou…"
-4. lignes = exactement 6 phrases numérotées. Chaque phrase est COMPLÈTE (pas de blanc). L enfant entoure directement les mots invariables.
-5. Chaque phrase doit contenir 1 à 2 mots invariables CLAIREMENT identifiables.
-6. Phrases LONGUES : minimum 8 mots chacune. Inclure des détails, des compléments, de la richesse lexicale.
-7. Varier les types de mots invariables : adverbes (toujours, souvent, vite, très), prépositions (dans, sur, avec, sans), conjonctions (mais, car, et), mots de temps (hier, demain, bientôt).
-8. JAMAIS mettre des blancs ___ dans les phrases — l enfant lit et entoure.
+3. example = "Rappel : toujours, souvent, jamais, très, bien, vite, hier, demain, avec, sans, pour, dans, sur, sous, mais, car sont des mots invariables."
+4. lignes = exactement 6 phrases. MÉTHODE OBLIGATOIRE pour chaque phrase :
+   ÉTAPE 1 — Choisis 1 ou 2 mots invariables dans cette liste SEULEMENT : toujours, souvent, jamais, très, bien, vite, hier, demain, avec, sans, pour, dans, sur, sous, mais, car, bientôt, encore, dehors, ensemble
+   ÉTAPE 2 — Construis une phrase naturelle CE1 qui utilise CE(S) mot(s) invariable(s)
+   ÉTAPE 3 — Vérifie que la phrase a du sens et contient bien le(s) mot(s) choisi(s)
+5. Phrases longues : minimum 8 mots chacune. Situations du quotidien : école, maison, famille, sport, animaux.
+6. JAMAIS de blancs ___ — phrases complètes à lire et annoter.
+7. JAMAIS utiliser "récréation" seul ni "journée de récréation" — trop vague.
+8. Varier les mots invariables sur les 6 phrases — pas deux fois le même.
 JSON uniquement :
-{"title":"Reconnaître les mots invariables","emoji":"📚","duration":"${dur} min","instructions":"Entoure le ou les mots invariables dans chaque phrase.","example":"Rappel : les mots invariables ne changent jamais d orthographe : toujours, souvent, jamais, très, trop, bien, vite, ici, là, hier, demain, avec, sans, pour, dans, sur, sous, devant, derrière, car, mais, et, ou…","lignes":["1. Le chat dort toujours sur le canapé du salon.","2. Nous jouons souvent au football avec nos amis le mercredi.","3. Elle ne veut jamais aider son petit frère à ranger sa chambre.","4. Le livre est posé sur la table de la bibliothèque.","5. Hier, il a plu très fort pendant toute la récréation.","6. Nous allons bientôt partir en vacances à la mer avec la famille."],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+{"title":"Reconnaître les mots invariables","emoji":"📚","duration":"${dur} min","instructions":"Entoure le ou les mots invariables dans chaque phrase.","example":"Rappel : toujours, souvent, jamais, très, bien, vite, hier, demain, avec, sans, pour, dans, sur, sous, mais, car sont des mots invariables.","lignes":["1. Le chat dort toujours sur le canapé du salon.","2. Nous jouons souvent au football avec nos amis le mercredi.","3. Elle ne veut jamais manger de carottes sans sauce.","4. Hier, il a plu très fort pendant toute la matinée.","5. Mon frère range ses affaires dans son armoire, mais il oublie ses chaussures.","6. Nous allons bientôt partir en vacances avec toute la famille."],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
           try {
             const raw = await callAPI(motsInvPrompt, "exercice");
             const clean = raw.replace(/```json|```/g,"").trim();
@@ -1716,7 +1743,7 @@ JSON uniquement :
                   <span style={{fontSize:26}}>{ex.emoji}</span>
                   <div><div style={{fontWeight:700,fontSize:15,color:"#e2e8f0"}}>Exercice {i+1} — {ex.title}</div></div>
                 </div>
-                {!hideInstructions(ex.type)&&<div style={{background:"rgba(99,102,241,.1)",borderRadius:12,padding:"10px 14px",marginBottom:10,fontSize:13,color:"#a5b4fc",fontStyle:"italic",borderLeft:"2px solid #6366f1"}}>📌 {ex.instructions}</div>}
+                {!hideInstructions(ex.type)&&!isInstructionRedondante(ex.title,ex.instructions)&&<div style={{background:"rgba(99,102,241,.1)",borderRadius:12,padding:"10px 14px",marginBottom:10,fontSize:13,color:"#a5b4fc",fontStyle:"italic",borderLeft:"2px solid #6366f1"}}>📌 {ex.instructions}</div>}
                 {ex.example&&!hideExample(ex.type)&&<div style={{background:"rgba(52,211,153,.08)",borderRadius:12,padding:"10px 14px",marginBottom:12,fontSize:13,color:"#6ee7b7",borderLeft:"2px solid #34d399"}}>{ex.example}</div>}
                 <ExCard ex={ex} dark/>
               </div>
