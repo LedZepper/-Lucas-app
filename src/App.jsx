@@ -123,7 +123,7 @@ const LABELS = {
   "tables_melange":"Tables de multiplication mélangées","multiplication_posee_1chiffre":"Multiplication posée (1 chiffre)","multiplication_posee_2chiffres":"Multiplication posée (2 chiffres)",
   "soustraction_retenue":"Soustraction avec retenue","soustraction_grands_nombres":"Soustraction grands nombres","soustraction_cm1":"Soustraction CM1",
   "addition_retenue":"Addition avec retenue","addition_grands_nombres":"Addition grands nombres","addition_cm1":"Addition CM1",
-  "comprehension_texte_court":"Compréhension texte court","comprehension_inference":"Compréhension — Inférences","comprehension_avancee":"Compréhension avancée (CM1)","remise_en_ordre":"Remettre les phrases dans l ordre","resume_texte":"Résumé de texte",
+  "comprehension_texte_court":"Compréhension de texte","comprehension_inference":"Compréhension — Inférences","comprehension_avancee":"Compréhension avancée","remise_en_ordre":"Remettre les phrases dans l ordre","resume_texte":"Résumé de texte",
   "sons_ou_et_on":"Sons OU / ON","sons_an_en":"Sons AN / EN","sons_in_ain":"Sons IN / AIN",
   "sons_oi":"Sons OI / OIN","sons_eau_au":"Sons EAU / AU","sons_ill_gn":"Sons ILL / GN",
   "homophones_a_a":"Homophones A / À","homophones_et_est":"Homophones ET / EST","homophones_son_sont":"Homophones SON / SONT",
@@ -465,6 +465,47 @@ function ExCard({ ex, dark=true }) {
     );
   }
 
+  // ─── FORMAT LECTURE (comprehension + resume) ──────────────────────────────
+  if (fmt === 'lecture') {
+    const texte = lignes[0] || "";
+    const separateur = lignes[1] === "---";
+    const suite = separateur ? lignes.slice(2) : lignes.slice(1);
+    const questions = suite.filter(l => l.trim());
+    return (
+      <div>
+        <div style={{fontSize:dark?14:13, color:tc, lineHeight:1.9, marginBottom:20, padding:"12px 14px", background:dark?"rgba(255,255,255,.04)":"#f8fafc", borderRadius:10, borderLeft:`3px solid ${ac}`}}>
+          {texte}
+        </div>
+        <div style={{borderTop:`1px solid ${lc}30`, paddingTop:14}}>
+          {questions.map((q,i) => {
+            const parts = q.split(/_{3,}/);
+            if (parts.length > 1) {
+              return (
+                <div key={i} style={{marginBottom:dark?12:9}}>
+                  <div style={{display:"flex", alignItems:"baseline", flexWrap:"wrap", gap:4, fontSize:dark?13:12, color:tc, lineHeight:1.8}}>
+                    {parts.map((part, pi) => (
+                      <span key={pi} style={{display:"contents"}}>
+                        <span>{part}</span>
+                        {pi < parts.length-1 && <span style={{display:"inline-block", borderBottom:`1.5px solid ${lc}`, minWidth:80, height:1, marginBottom:3, flexShrink:0}}></span>}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              );
+            }
+            return (
+              <div key={i} style={{marginBottom:dark?16:12}}>
+                <div style={{fontSize:dark?13:12, color:tc, fontWeight:600, marginBottom:6}}>{q}</div>
+                <div style={{borderBottom:`1.5px solid ${lc}`, height:1, marginBottom:4}}></div>
+                <div style={{borderBottom:`1.5px solid ${lc}`, height:1}}></div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
   if (!lignes.length) return <div style={{fontSize:14, color:tc, lineHeight:2, whiteSpace:"pre-line"}}>{ex.content||""}</div>;
   return (
     <div>
@@ -597,6 +638,12 @@ export default function App() {
         const isPonctuation     = st === "ponctuation";
         const isRemiseOrdre     = st === "remise_en_ordre";
         const isLiaison         = st === "liaison_phrases" || st.includes("liaison");
+
+        // ─── Détection des types lecture ──────────────────────────────────────
+        const isComprehensionCourt   = st === "comprehension_texte_court";
+        const isComprehensionInfer   = st === "comprehension_inference";
+        const isComprehensionAvancee = st === "comprehension_avancee";
+        const isResumeTexte          = st === "resume_texte";
 
         // ─── Détection des types d orthographe dédiés ────────────────────────
         const isHomophoneAA      = st === "homophones_a_a";
@@ -1123,17 +1170,28 @@ JSON uniquement :
 
         // ─── REMISE EN ORDRE DES PHRASES : prompt dédié ──────────────────────
         if (isRemiseOrdre) {
-          const remiseOrdrePrompt = `Tu es instituteur CE1/CE2. Génère un exercice de remise en ordre de phrases pour reconstituer une histoire niveau ${niv}.
+          const THEMES_REMISE = [
+            "une randonnée en montagne","une sortie à la pêche","préparer un gâteau",
+            "une journée à la plage","observer les étoiles la nuit","découvrir un trésor caché",
+            "soigner un animal blessé","construire une cabane dans les bois",
+            "préparer un spectacle de magie","une course de vélo","explorer une grotte",
+            "planter un jardin potager","une nuit dans une tente","attraper des lucioles",
+            "fabriquer un cerf-volant","une partie de pêche au crabe","traverser une forêt mystérieuse",
+          ];
+          const themeRemise = THEMES_REMISE[Math.floor(Math.random() * THEMES_REMISE.length)];
+          const remiseOrdrePrompt = `Tu es instituteur CE1/CE2. Génère un exercice de remise en ordre de phrases pour reconstituer une histoire.
+THÈME IMPOSÉ : "${themeRemise}"
 RÈGLES ABSOLUES :
 1. title = "Remets les phrases dans l ordre"
 2. instructions = "Remets les phrases dans le bon ordre pour raconter l histoire. Écris un numéro devant chaque phrase (de 1 à 5)."
 3. example = "" (vide)
 4. lignes = 5 phrases dans le MAUVAIS ordre. Chaque phrase commence par "___ " (espace pour écrire le numéro)
-5. L histoire doit avoir un début, un milieu et une fin logiques — 5 phrases qui racontent une mini-histoire cohérente
-6. Vocabulaire CE1/CE2, phrases courtes
+5. L histoire doit avoir un début, un milieu et une fin logiques — 5 phrases qui racontent une mini-histoire COHÉRENTE sur le thème "${themeRemise}"
+6. Vocabulaire CE1/CE2, phrases courtes mais vivantes
 7. JAMAIS numéroter les phrases dans lignes — l enfant met les numéros lui-même
+8. JAMAIS utiliser "Léo rentre de l école" ou des situations scolaires banales — l histoire doit être aventureuse et engageante
 JSON uniquement :
-{"title":"Remets les phrases dans l ordre","emoji":"📖","duration":"${dur} min","instructions":"Remets les phrases dans le bon ordre pour raconter l histoire. Écris un numéro devant chaque phrase (de 1 à 5).","example":"","lignes":["___ Il mange son goûter avec plaisir.","___ Léo rentre de l école.","___ Sa maman lui prépare du pain et du chocolat.","___ Il pose son sac et enlève ses chaussures.","___ Il dit bonjour à sa maman."],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+{"title":"Remets les phrases dans l ordre","emoji":"📖","duration":"${dur} min","instructions":"Remets les phrases dans le bon ordre pour raconter l histoire. Écris un numéro devant chaque phrase (de 1 à 5).","example":"","lignes":["___ [PHRASE MÉLANGÉE 1]","___ [PHRASE MÉLANGÉE 2]","___ [PHRASE MÉLANGÉE 3]","___ [PHRASE MÉLANGÉE 4]","___ [PHRASE MÉLANGÉE 5]"],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
           try {
             const raw = await callAPI(remiseOrdrePrompt, "exercice");
             const clean = raw.replace(/```json|```/g,"").trim();
@@ -1538,6 +1596,167 @@ JSON uniquement :
         }
 
         // ═══════════════════════════════════════════════════════════════════════
+        // ─── LECTURE : 5 prompts dédiés ───────────────────────────────────────
+        // ═══════════════════════════════════════════════════════════════════════
+
+        // ─── COMPRÉHENSION DE TEXTE (questions ouvertes) ─────────────────────
+        if (isComprehensionCourt) {
+          const THEMES_COURT = [
+            "un scientifique qui découvre un insecte jamais vu","une pieuvre géante au fond de l océan",
+            "un enfant qui trouve un message dans une bouteille","la migration des oiseaux en automne",
+            "un volcan qui entre en éruption","des archéologues qui fouillent des ruines antiques",
+            "un chevalier perdu dans une forêt enchantée","la fabrication du chocolat",
+            "un astronaute qui perd un gant dans l espace","des fourmis qui construisent une ville souterraine",
+            "un plongeur qui explore une épave coulée","la vie des Vikings il y a mille ans",
+            "un robot qui apprend à faire du vélo","des dauphins qui sauvent un nageur",
+            "un enfant qui découvre une grotte préhistorique","comment les abeilles fabriquent le miel",
+          ];
+          const theme = THEMES_COURT[Math.floor(Math.random() * THEMES_COURT.length)];
+          const compCourtPrompt = `Tu es instituteur CE1/CE2. Génère un exercice de compréhension de texte niveau ${niv}.
+THÈME IMPOSÉ : "${theme}"
+RÈGLES ABSOLUES :
+1. title = "Compréhension de texte — [titre court accrocheur lié au thème]"
+2. instructions = "Lis attentivement le texte puis réponds aux questions par des phrases complètes."
+3. example = "" (vide)
+4. lignes = exactement 6 éléments :
+   - lignes[0] = le texte narratif COMPLET en une seule chaîne (phrases séparées par des espaces). 7 à 9 phrases. Le texte doit être VIVANT, ENGAGEANT, avec des détails précis et une mini-intrigue. Vocabulaire riche mais accessible CE2. JAMAIS une histoire d enfant qui va à l école ou rentre de l école.
+   - lignes[1] = "---"
+   - lignes[2] à lignes[5] = 4 questions VARIÉES et PRÉCISES sur ce texte spécifique. Les questions doivent obliger à relire le texte. Format : "N. [Question ?]"
+     * Question 1 : sur les personnages ou l élément central
+     * Question 2 : sur un détail précis du texte (lieu, objet, action)
+     * Question 3 : sur la chronologie ou le déroulement
+     * Question 4 : sur la fin ou la conclusion
+5. JAMAIS utiliser des questions génériques comme "Qui sont les personnages principaux ?" — les questions doivent être spécifiques au texte généré.
+6. parentNote = "" (vide)
+JSON uniquement :
+{"title":"[TITRE ACCROCHEUR]","emoji":"📖","duration":"${dur} min","instructions":"Lis attentivement le texte puis réponds aux questions par des phrases complètes.","example":"","lignes":["[TEXTE VIVANT SUR : ${theme}]","---","1. [QUESTION SPÉCIFIQUE AU TEXTE]","2. [QUESTION SPÉCIFIQUE AU TEXTE]","3. [QUESTION SPÉCIFIQUE AU TEXTE]","4. [QUESTION SPÉCIFIQUE AU TEXTE]"],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+          try {
+            const raw = await callAPI(compCourtPrompt, "exercice");
+            const clean = raw.replace(/```json|```/g,"").trim();
+            const obj = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
+            if (obj.title) exercises.push({type:st, format:'lecture', ...obj});
+          } catch(e) { console.error("Erreur comprehension_texte_court",st,e); }
+          continue;
+        }
+
+        // ─── COMPRÉHENSION INFÉRENCES ─────────────────────────────────────────
+        if (isComprehensionInfer) {
+          const THEMES_INFER = [
+            "un explorateur perdu dans la jungle","une astronaute en mission sur Mars",
+            "un détective qui résout une énigme","un naufragé sur une île déserte",
+            "un enfant qui reçoit une lettre mystérieuse","un trésor caché sous une vieille maison",
+            "un animal sauvage qui s approche d un village","un inventeur qui teste sa machine volante",
+            "un magicien dont les tours ne fonctionnent plus","un sous-marin qui descend dans les abysses",
+            "un voleur de tableaux dans un musée","une expédition au pôle Nord",
+            "un enfant qui découvre un passage secret","des chevaliers qui cherchent un dragon",
+            "un phare isolé sur une île battue par les vents","une fusée qui décolle vers une étoile inconnue",
+          ];
+          const theme = THEMES_INFER[Math.floor(Math.random() * THEMES_INFER.length)];
+          const compInferPrompt = `Tu es instituteur CE2. Génère un exercice de compréhension avec inférences niveau ${niv}.
+THÈME IMPOSÉ : "${theme}"
+RÈGLES ABSOLUES :
+1. title = "Compréhension — Lis entre les lignes : [titre court lié au thème]"
+2. instructions = "Lis le texte attentivement. Certaines réponses ne sont pas écrites directement — tu dois les déduire !"
+3. example = "" (vide)
+4. lignes = exactement 6 éléments :
+   - lignes[0] = le texte narratif COMPLET en une seule chaîne (7 à 9 phrases). Le texte doit être RICHE EN INDICES IMPLICITES : émotions suggérées par les actions, lieux décrits sans être nommés, intentions des personnages à deviner. JAMAIS tout expliquer explicitement.
+   - lignes[1] = "---"
+   - lignes[2] à lignes[5] = 4 questions d INFÉRENCE spécifiques à CE texte. Format : "N. [Question ?]"
+     * Question 1 : "Pourquoi penses-tu que [personnage] [action] ?" (cause implicite)
+     * Question 2 : "Qu est-ce qui montre que [état/émotion] dans le texte ?" (indices)
+     * Question 3 : "À ton avis, que va-t-il se passer ensuite ?" (prédiction)
+     * Question 4 : question ouverte sur les motivations ou le sens caché d une action
+5. Les questions doivent OBLIGER à réfléchir, pas à recopier une phrase du texte.
+6. parentNote = "" (vide)
+JSON uniquement :
+{"title":"[TITRE]","emoji":"🔍","duration":"${dur} min","instructions":"Lis le texte attentivement. Certaines réponses ne sont pas écrites directement — tu dois les déduire !","example":"","lignes":["[TEXTE RICHE EN INDICES SUR : ${theme}]","---","1. [QUESTION INFÉRENCE]","2. [QUESTION INFÉRENCE]","3. [QUESTION INFÉRENCE]","4. [QUESTION INFÉRENCE]"],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+          try {
+            const raw = await callAPI(compInferPrompt, "exercice");
+            const clean = raw.replace(/```json|```/g,"").trim();
+            const obj = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
+            if (obj.title) exercises.push({type:st, format:'lecture', ...obj});
+          } catch(e) { console.error("Erreur comprehension_inference",st,e); }
+          continue;
+        }
+
+        // ─── COMPRÉHENSION AVANCÉE ────────────────────────────────────────────
+        if (isComprehensionAvancee) {
+          const THEMES_AVANCE = [
+            "la Révolution française racontée par un enfant de Paris","un scientifique qui clone un mammouth",
+            "une intelligence artificielle qui devient curieuse","les Romains arrivent en Gaule",
+            "un journaliste infiltré dans une cité souterraine","la première femme à gravir l Everest",
+            "un procès où l accusé est un robot","des archéologues découvrent une civilisation inconnue",
+            "un enfant qui reçoit des pouvoirs qu il ne comprend pas","la construction de la tour Eiffel",
+            "un détective du futur résout un crime","une colonie humaine sur une planète étrange",
+            "la dernière baleine bleue de l océan","un contrebandier de livres au Moyen Âge",
+            "un hacker de 12 ans qui démasque une fraude","des chercheurs piégés dans une grotte inondée",
+          ];
+          const theme = THEMES_AVANCE[Math.floor(Math.random() * THEMES_AVANCE.length)];
+          const compAvPrompt = `Tu es instituteur CM1. Génère un exercice de compréhension de texte avancé.
+THÈME IMPOSÉ : "${theme}"
+RÈGLES ABSOLUES :
+1. title = "Compréhension avancée — [titre accrocheur]"
+2. instructions = "Lis attentivement ce texte plus difficile. Réponds aux questions avec des phrases complètes et développées."
+3. example = "" (vide)
+4. lignes = exactement 6 éléments :
+   - lignes[0] = texte dense et complexe en une seule chaîne (9 à 11 phrases). Vocabulaire CM1 : mots moins courants, phrases avec subordonnées, chronologie non linéaire possible, ton plus littéraire. Le texte doit être captivant et traiter le thème avec profondeur.
+   - lignes[1] = "---"
+   - lignes[2] à lignes[5] = 4 questions exigeantes, spécifiques à CE texte. Format : "N. [Question ?]"
+     * Question 1 : compréhension littérale d un passage précis
+     * Question 2 : inférence sur les motivations d un personnage
+     * Question 3 : question sur le vocabulaire ("Que signifie le mot [X] dans le texte ?")
+     * Question 4 : question de jugement ("À ton avis... Justifie ta réponse avec le texte.")
+5. Les questions doivent être clairement CM1 — pas de questions auxquelles un CE1 pourrait répondre.
+6. parentNote = "" (vide)
+JSON uniquement :
+{"title":"[TITRE]","emoji":"📚","duration":"${dur} min","instructions":"Lis attentivement ce texte plus difficile. Réponds aux questions avec des phrases complètes et développées.","example":"","lignes":["[TEXTE DENSE ET COMPLEXE SUR : ${theme}]","---","1. [QUESTION COMPRÉHENSION LITTÉRALE]","2. [QUESTION INFÉRENCE]","3. [QUESTION VOCABULAIRE]","4. [QUESTION JUGEMENT]"],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+          try {
+            const raw = await callAPI(compAvPrompt, "exercice");
+            const clean = raw.replace(/```json|```/g,"").trim();
+            const obj = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
+            if (obj.title) exercises.push({type:st, format:'lecture', ...obj});
+          } catch(e) { console.error("Erreur comprehension_avancee",st,e); }
+          continue;
+        }
+
+        // ─── RÉSUMÉ DE TEXTE ──────────────────────────────────────────────────
+        if (isResumeTexte) {
+          const THEMES_RESUME = [
+            "les castors qui construisent un barrage","comment fonctionne un tremblement de terre",
+            "la vie des pingouins en Antarctique","comment les plantes carnivores attrapent des insectes",
+            "les grottes de Lascaux et leurs peintures","comment les araignées tissent leur toile",
+            "la migration des saumons","les volcans sous-marins",
+            "comment les chauves-souris voient dans le noir","la vie d une ruche en été",
+            "les mystères du fond de l océan","comment les tornades se forment",
+            "les fourmis coupeuses de feuilles","la vie secrète des pieuvres",
+            "comment les oiseaux savent où migrer","les records du monde animal",
+          ];
+          const theme = THEMES_RESUME[Math.floor(Math.random() * THEMES_RESUME.length)];
+          const resumePrompt = `Tu es instituteur CE2. Génère un exercice de résumé guidé niveau ${niv}.
+THÈME IMPOSÉ : "${theme}"
+RÈGLES ABSOLUES :
+1. title = "Résumé guidé — [titre court lié au thème]"
+2. instructions = "Lis le texte. Ensuite, complète le résumé en retrouvant les mots manquants dans le texte."
+3. example = "" (vide)
+4. lignes = exactement 5 éléments :
+   - lignes[0] = un texte informatif ORIGINAL et ENTIÈREMENT NOUVEAU sur le thème "${theme}" (jamais repris du corpus). 6 à 8 phrases. Texte documentaire simple, ton encyclopédique accessible CE2. Contient des informations précises et des mots-clés importants.
+   - lignes[1] = "---"
+   - lignes[2] à lignes[4] = 3 phrases de résumé du texte, CHACUNE avec exactement UN mot-clé manquant noté ___. Les mots manquants doivent être des MOTS-CLÉS importants du texte (noms propres, termes spécifiques, chiffres, actions centrales). Format : "[phrase de résumé avec UN seul ___]"
+5. RÈGLE CRITIQUE : les 3 mots manquants doivent OBLIGATOIREMENT être présents dans le texte de lignes[0]. L enfant retrouve ces mots en relisant le texte.
+6. JAMAIS mettre des synonymes comme mots manquants — seulement des mots exacts du texte.
+7. parentNote = "" (vide)
+JSON uniquement :
+{"title":"[TITRE]","emoji":"✏️","duration":"${dur} min","instructions":"Lis le texte. Ensuite, complète le résumé en retrouvant les mots manquants dans le texte.","example":"","lignes":["[TEXTE INFORMATIF ORIGINAL SUR : ${theme}]","---","[PHRASE RÉSUMÉ 1 avec ___]","[PHRASE RÉSUMÉ 2 avec ___]","[PHRASE RÉSUMÉ 3 avec ___]"],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+          try {
+            const raw = await callAPI(resumePrompt, "exercice");
+            const clean = raw.replace(/```json|```/g,"").trim();
+            const obj = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
+            if (obj.title) exercises.push({type:st, format:'lecture', ...obj});
+          } catch(e) { console.error("Erreur resume_texte",st,e); }
+          continue;
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
         // ─── PROMPT GÉNÉRIQUE ────────────────────────────────────────────────
         // ═══════════════════════════════════════════════════════════════════════
 
@@ -1575,18 +1794,6 @@ RÈGLES ABSOLUES :
 4. Format problemes : phrase courte avec ___ a la fin
 5. Tout doit tenir en une ligne courte — pas de phrases longues
 6. Utilise des montants realistes CE1/CE2 (max 10€)`);
-        }
-
-        const isLecture = st.includes("comprehension");
-        if (isLecture) {
-          regles.push(`TYPE : COMPRÉHENSION DE TEXTE.
-RÈGLES ABSOLUES :
-1. lignes = UN SEUL bloc texte suivi de 4 questions numérotées
-2. lignes[0] = texte narratif complet EN UNE SEULE CHAÎNE (phrases séparées par des espaces, pas de retours à la ligne) — 6 à 8 phrases simples, niveau CE1/CE2
-3. lignes[1] = "" (ligne vide séparatrice)
-4. lignes[2] à lignes[5] = les 4 questions : "1. Qui sont les personnages ?", "2. Où se passe l histoire ?", "3. Que se passe-t-il ?", "4. Comment se termine l histoire ?"
-5. example = "" (vide)
-6. instructions = "Lis attentivement le texte puis réponds aux questions par des phrases complètes."`);
         }
 
         if (isProbl) {
@@ -1630,12 +1837,11 @@ RÈGLES ABSOLUES :
         if (isFamilles) {
           const estAvance = st.includes("avancees");
 
-          // MOTS_SIMPLES : ne contient PAS les mots utilisés dans FAMILLES_EXEMPLES
           const MOTS_SIMPLES = [
             "lait","bois","main","dent","jour","neige","pluie","vent",
             "herbe","champ","feu","chien","jardin","fruit","livre","ami",
             "cheval","oiseau","poisson","arbre","pied","dos","nez","bouche",
-            "cœur","tête","bras","œil","balle","bord","bras","café",
+            "cœur","tête","bras","œil","balle","bord","café",
             "canne","ciel","clé","corps","côte","cours","fête","fil",
             "fond","front","gare","glace","gomme","gorge","grain","grue",
             "île","jeu","joue","lac","lame","lande","langue","larme",
@@ -1692,7 +1898,6 @@ RÈGLES ABSOLUES :
           const exempleIdx = Math.floor(Math.random() * FAMILLES_EXEMPLES.length);
           const exempleChoisi = FAMILLES_EXEMPLES[exempleIdx];
 
-          // On track immédiatement ces mots comme utilisés
           motsCodes.forEach(m => usedWordsSession.add(m.toLowerCase()));
 
           regles.push(`TYPE : FAMILLES DE MOTS.
