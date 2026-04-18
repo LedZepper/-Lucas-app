@@ -495,9 +495,9 @@ function ExCard({ ex, dark=true }) {
             }
             return (
               <div key={i} style={{marginBottom:dark?16:12}}>
-                <div style={{fontSize:dark?13:12, color:tc, fontWeight:600, marginBottom:6}}>{q}</div>
-                <div style={{borderBottom:`1.5px solid ${lc}`, height:1, marginBottom:4}}></div>
-                <div style={{borderBottom:`1.5px solid ${lc}`, height:1}}></div>
+                <div style={{fontSize:dark?13:12, color:tc, fontWeight:600, marginBottom:4}}>{q}</div>
+                <div style={{fontSize:dark?13:12, color:lc, lineHeight:2}}>_______________________________________________</div>
+                <div style={{fontSize:dark?13:12, color:lc, lineHeight:2}}>_______________________________________________</div>
               </div>
             );
           })}
@@ -512,6 +512,16 @@ function ExCard({ ex, dark=true }) {
       {lignes.map((l,i) => {
         const trim = l.trim();
         if (!trim) return <div key={i} style={{height:6}}></div>;
+        // Lignes remise en ordre : commencent par "___ " → flex avec blank fixe à gauche
+        if (/^_{2,}\s+\S/.test(trim)) {
+          const texteApres = trim.replace(/^_{2,}\s+/, "");
+          return (
+            <div key={i} style={{display:"flex", alignItems:"flex-start", gap:8, marginBottom:dark?12:9}}>
+              <span style={{fontSize:dark?13:12, color:lc, flexShrink:0, minWidth:28, marginTop:2}}>____</span>
+              <span style={{fontSize:dark?13:12, color:tc, lineHeight:1.7}}>{texteApres}</span>
+            </div>
+          );
+        }
         const parts = trim.split(/_{3,}/);
         if (parts.length > 1) {
           return (
