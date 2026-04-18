@@ -22,7 +22,7 @@ const CATEGORIES = {
     "homophones_ces_ses","homophones_on_ont","homophones_ma_ma",
     "accord_adjectif","accord_participe_passe","mots_invariables"
   ],
-  "Dictée": ["dictee_sons_simples","dictee_homophones","dictee_avancee"],
+  "Dictée": ["dictee_sons_simples","dictee_homophones","dictee_avancee","dictee_mots_semaine"],
   "Vocabulaire": ["familles_de_mots","familles_de_mots_avancees","synonymes","antonymes","sens_contexte","prefixes_suffixes","niveaux_de_langue"],
   "Lecture": ["comprehension_texte_court","comprehension_inference","comprehension_avancee","remise_en_ordre","resume_texte"],
   "Multiplication": ["tables_melange","multiplication_posee_1chiffre","multiplication_posee_2chiffres"],
@@ -123,6 +123,7 @@ const LABELS = {
   "tables_melange":"Tables de multiplication mélangées","multiplication_posee_1chiffre":"Multiplication posée (1 chiffre)","multiplication_posee_2chiffres":"Multiplication posée (2 chiffres)",
   "soustraction_retenue":"Soustraction avec retenue","soustraction_grands_nombres":"Soustraction grands nombres","soustraction_cm1":"Soustraction CM1",
   "addition_retenue":"Addition avec retenue","addition_grands_nombres":"Addition grands nombres","addition_cm1":"Addition CM1",
+  "dictee_mots_semaine":"Dictée de mots",
   "comprehension_texte_court":"Compréhension de texte","comprehension_inference":"Compréhension — Inférences","comprehension_avancee":"Compréhension avancée","remise_en_ordre":"Remettre les phrases dans l ordre","resume_texte":"Résumé de texte",
   "sons_ou_et_on":"Sons OU / ON","sons_an_en":"Sons AN / EN","sons_in_ain":"Sons IN / AIN",
   "sons_oi":"Sons OI / OIN","sons_eau_au":"Sons EAU / AU","sons_ill_gn":"Sons ILL / GN",
@@ -448,6 +449,29 @@ function ExCard({ ex, dark=true }) {
     );
   }
 
+  // ─── FORMAT DICTÉE DE MOTS (2 colonnes, 10 lignes) ───────────────────────
+  if (fmt === 'dictee_mots') {
+    const col1 = lignes.slice(0, 5);
+    const col2 = lignes.slice(5, 10);
+    return (
+      <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:"0 32px"}}>
+        {[col1, col2].map((col, ci) => (
+          <div key={ci}>
+            {col.map((l, i) => {
+              const num = ci === 0 ? i + 1 : i + 6;
+              return (
+                <div key={i} style={{display:"flex", alignItems:"baseline", gap:6, marginBottom:dark?14:11}}>
+                  <span style={{fontSize:dark?13:12, color:lc, flexShrink:0, minWidth:20}}>{num}.</span>
+                  <span style={{fontSize:dark?13:12, color:lc, letterSpacing:1}}>___________________________</span>
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   if (fmt === 'dictee') {
     const motsCle = lignes.find(l => l.includes("MOTS À PRÉPARER") || l.includes("MOTS A PREPARER"));
     const texte = lignes.filter(l => !l.includes("MOTS À PRÉPARER") && !l.includes("MOTS A PREPARER") && l.trim());
@@ -740,6 +764,37 @@ export default function App() {
 
         const dur = Math.max(5, Math.round((weeklyConfig.duration||25)/types.length));
         const regles = [];
+
+        // ─── DICTÉE DE MOTS DE LA SEMAINE : statique, sans Groq ──────────────
+        if (st === "dictee_mots_semaine") {
+          const dur = Math.max(5, Math.round((weeklyConfig.duration||25)/types.length));
+          const lignes = [
+            "1. _______________________________________________",
+            "2. _______________________________________________",
+            "3. _______________________________________________",
+            "4. _______________________________________________",
+            "5. _______________________________________________",
+            "6. _______________________________________________",
+            "7. _______________________________________________",
+            "8. _______________________________________________",
+            "9. _______________________________________________",
+            "10. _______________________________________________",
+          ];
+          exercises.push({
+            type: st,
+            format: 'dictee_mots',
+            title: "Dictée de mots",
+            emoji: "✏️",
+            duration: `${dur} min`,
+            instructions: "Le parent dicte les mots de la semaine.",
+            example: "",
+            lignes,
+            parentNote: "",
+            verbsUsed: [],
+            wordsUsed: [],
+          });
+          continue;
+        }
 
         // ─── BLOC CONJUGAISON DÉDIÉ ───────────────────────────────────────────
         if (isConjType && !isTranspo) {
