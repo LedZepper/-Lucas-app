@@ -671,6 +671,8 @@ export default function App() {
         const isPonctuation     = st === "ponctuation";
         const isRemiseOrdre     = st === "remise_en_ordre";
         const isLiaison         = st === "liaison_phrases" || st.includes("liaison");
+        const isMultiPosee1     = st === "multiplication_posee_1chiffre";
+        const isMultiPosee2     = st === "multiplication_posee_2chiffres";
 
         // ─── Détection des types lecture ──────────────────────────────────────
         const isComprehensionCourt   = st === "comprehension_texte_court";
@@ -1289,6 +1291,56 @@ JSON uniquement :
             const obj = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
             if (obj.title) exercises.push({type:st, format:'fleche', ...obj});
           } catch(e) { console.error("Erreur liaison_phrases",st,e); }
+          continue;
+        }
+
+        // ─── MULTIPLICATION POSÉE 1 CHIFFRE : prompt dédié ───────────────────
+        if (isMultiPosee1) {
+          const multiPrompt1 = `Tu es instituteur CE2. Génère un exercice de multiplication POSÉE avec un multiplicateur à 1 chiffre.
+RÈGLES ABSOLUES :
+1. title = "Multiplication posée (1 chiffre)"
+2. instructions = "Pose et calcule chaque multiplication."
+3. example = "  34\\n×  5\\n----\\n 170"
+4. lignes = exactement 6 opérations. Format STRICT de chaque ligne : "NNN × N ="
+   - Le premier nombre est un nombre à 2 ou 3 chiffres (entre 12 et 999)
+   - Le deuxième nombre est UN SEUL CHIFFRE (entre 2 et 9)
+   - JAMAIS de tables simples type "7 × 8" — le premier nombre doit TOUJOURS avoir au moins 2 chiffres
+   - JAMAIS écrire le résultat dans lignes
+5. Exemples corrects : "34 × 5 =", "127 × 4 =", "56 × 8 ="
+6. Exemples INTERDITS : "7 × 8 =", "3 × 6 =", "9 × 4 ="
+JSON uniquement :
+{"title":"Multiplication posée (1 chiffre)","emoji":"🔢","duration":"${dur} min","instructions":"Pose et calcule chaque multiplication.","example":"  34\\n×  5\\n----\\n 170","lignes":["34 × 5 =","127 × 4 =","56 × 8 =","93 × 7 =","248 × 3 =","67 × 6 ="],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+          try {
+            const raw = await callAPI(multiPrompt1, "exercice");
+            const clean = raw.replace(/```json|```/g,"").trim();
+            const obj = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
+            if (obj.title) exercises.push({type:st, format:'calcul', ...obj});
+          } catch(e) { console.error("Erreur multiplication_posee_1chiffre",st,e); }
+          continue;
+        }
+
+        // ─── MULTIPLICATION POSÉE 2 CHIFFRES : prompt dédié ──────────────────
+        if (isMultiPosee2) {
+          const multiPrompt2 = `Tu es instituteur CE2/CM1. Génère un exercice de multiplication POSÉE avec un multiplicateur à 2 chiffres.
+RÈGLES ABSOLUES :
+1. title = "Multiplication posée (2 chiffres)"
+2. instructions = "Pose et calcule chaque multiplication."
+3. example = "  17\\n× 19\\n----\\n 323"
+4. lignes = exactement 6 opérations. Format STRICT de chaque ligne : "NNN × NN ="
+   - Le premier nombre est entre 12 et 999
+   - Le deuxième nombre est OBLIGATOIREMENT à 2 chiffres (entre 11 et 99)
+   - JAMAIS un multiplicateur à 1 chiffre
+   - JAMAIS écrire le résultat dans lignes
+5. Exemples corrects : "17 × 19 =", "43 × 25 =", "136 × 32 ="
+6. Exemples INTERDITS : "7 × 8 =", "34 × 5 =" (multiplicateur à 1 chiffre)
+JSON uniquement :
+{"title":"Multiplication posée (2 chiffres)","emoji":"🔢","duration":"${dur} min","instructions":"Pose et calcule chaque multiplication.","example":"  17\\n× 19\\n----\\n 323","lignes":["17 × 19 =","43 × 25 =","56 × 32 =","28 × 47 =","134 × 23 =","67 × 54 ="],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+          try {
+            const raw = await callAPI(multiPrompt2, "exercice");
+            const clean = raw.replace(/```json|```/g,"").trim();
+            const obj = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
+            if (obj.title) exercises.push({type:st, format:'calcul', ...obj});
+          } catch(e) { console.error("Erreur multiplication_posee_2chiffres",st,e); }
           continue;
         }
 
