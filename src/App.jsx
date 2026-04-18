@@ -495,9 +495,8 @@ function ExCard({ ex, dark=true }) {
             }
             return (
               <div key={i} style={{marginBottom:dark?16:12}}>
-                <div style={{fontSize:dark?13:12, color:tc, fontWeight:600, marginBottom:4}}>{q}</div>
-                <div style={{fontSize:dark?13:12, color:lc, lineHeight:2}}>_______________________________________________</div>
-                <div style={{fontSize:dark?13:12, color:lc, lineHeight:2}}>_______________________________________________</div>
+                <div style={{fontSize:dark?13:12, color:tc, fontWeight:600, marginBottom:6}}>{q}</div>
+                <div style={{fontSize:dark?13:12, color:lc, letterSpacing:1}}>_________________________________________________________________________</div>
               </div>
             );
           })}
