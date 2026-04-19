@@ -28,7 +28,7 @@ const CATEGORIES = {
   "Multiplication": ["tables_melange","multiplication_posee_1chiffre","multiplication_posee_2chiffres"],
   "Soustraction": ["soustraction_retenue","soustraction_grands_nombres","soustraction_cm1"],
   "Addition": ["addition_retenue","addition_grands_nombres","addition_cm1"],
-  "Division": ["division_exacte","division_euclidienne","division_posee"],
+  "Division": ["division_exacte","division_euclidienne"],
   "Fractions": ["fractions_representation","fractions_ecriture","fractions_operations","fractions_decimales"],
   "Mesures": ["mesures_longueurs","mesures_masses","mesures_durees","mesures_monnaie","mesures_longueurs_cm1","mesures_durees_cm1"],
   "Problèmes": ["probleme_additif","probleme_multiplicatif","probleme_2_etapes","probleme_partage","probleme_cm1_complexe","probleme_fractions_cm1","probleme_grandeurs_cm1"],
@@ -41,7 +41,7 @@ const AUTO_TYPES = {
   "CE1/CE2":    ["present_aller_faire","imparfait_etre_avoir","tables_melange","transposition","negation_ne_pas"],
   "CE2":        ["futur_simple_1er_groupe","soustraction_grands_nombres","tables_melange","negation_ne_plus","passe_compose_avoir_1er_groupe"],
   "CE2 avance": ["passe_compose_etre","soustraction_grands_nombres","multiplication_posee_1chiffre","accord_sujet_verbe","comprehension_texte_court"],
-  "CM1":        ["passe_compose_ete","division_posee","multiplication_posee_2chiffres","complement_circonstanciel","imparfait_vs_passe_compose_cm1"],
+  "CM1":        ["passe_compose_ete","multiplication_posee_2chiffres","complement_circonstanciel","imparfait_vs_passe_compose_cm1"],
 };
 
 async function sbLoad() {
@@ -123,6 +123,7 @@ const LABELS = {
   "tables_melange":"Tables de multiplication mélangées","multiplication_posee_1chiffre":"Multiplication posée (1 chiffre)","multiplication_posee_2chiffres":"Multiplication posée (2 chiffres)",
   "soustraction_retenue":"Soustraction avec retenue","soustraction_grands_nombres":"Soustraction grands nombres","soustraction_cm1":"Soustraction avancée",
   "addition_retenue":"Addition avec retenue","addition_grands_nombres":"Addition grands nombres","addition_cm1":"Addition avancée",
+  "division_exacte":"Division exacte","division_euclidienne":"Division avec reste",
   "dictee_mots_semaine":"Dictée de mots",
   "comprehension_texte_court":"Compréhension de texte","comprehension_inference":"Compréhension — Inférences","comprehension_avancee":"Compréhension avancée","remise_en_ordre":"Remettre les phrases dans l ordre","resume_texte":"Résumé de texte",
   "sons_ou_et_on":"Sons OU / ON","sons_an_en":"Sons AN / EN","sons_in_ain":"Sons IN / AIN",
@@ -403,6 +404,40 @@ function ExCard({ ex, dark=true }) {
       .map(l => l.replace(/^\d+[\.\)]\s*/, "").replace(/_{2,}/g, "").trimEnd())
       .filter(Boolean)
       .slice(0, isMulti ? 20 : nbItems);
+
+    // ─── Rendu division euclidienne : format "= ___ reste ___" ────────────
+    const isDivEuclidCard = ex.type === "division_euclidienne";
+    const isDivExacteCard = ex.type === "division_exacte";
+    const rappelDiv = isDivExacteCard
+      ? "Astuce : c'est la multiplication à l'envers ! Pour 24 ÷ 4, cherche 4 × ? = 24"
+      : isDivEuclidCard
+      ? "Le reste est toujours plus petit que le diviseur. Ex : 25 ÷ 4 = 6 reste 1 (car 4 × 6 = 24, et 25 − 24 = 1)"
+      : null;
+
+    if (isDivExacteCard || isDivEuclidCard) {
+      return (
+        <div>
+          {rappelDiv && <div style={{background:dark?"rgba(99,102,241,.1)":"#eff6ff", borderLeft:`2px solid ${ac}`, borderRadius:"0 8px 8px 0", padding:"8px 12px", marginBottom:14, fontSize:dark?12:11, color:dark?ac:"#1d4ed8", fontStyle:"italic", lineHeight:1.6}}>{rappelDiv}</div>}
+          <div style={{display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:"16px 12px", maxWidth:"85%"}}>
+            {calcItems.map((item, i) => {
+              const clean = item.replace(/\s*=.*$/, "").trim();
+              return (
+                <div key={i} style={{display:"flex", alignItems:"baseline", gap:6, fontFamily:"'Courier New',Courier,monospace", fontSize:dark?13:12, color:tc}}>
+                  <span style={{whiteSpace:"nowrap"}}>{clean} =</span>
+                  {isDivEuclidCard ? (
+                    <><div style={{borderBottom:`1.5px solid ${lc}`, minWidth:28, marginBottom:2}}></div>
+                    <span style={{fontSize:dark?11:10, color:lc, whiteSpace:"nowrap"}}> reste </span>
+                    <div style={{borderBottom:`1.5px solid ${lc}`, minWidth:24, marginBottom:2}}></div></>
+                  ) : (
+                    <div style={{flex:1, borderBottom:`1.5px solid ${lc}`, minWidth:36, marginBottom:2}}></div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
 
     // ─── Rendu posé pour soustractions et additions ──────────────────────────
     if (isPosed) {
@@ -711,6 +746,10 @@ export default function App() {
         const isAddRetenue       = st === "addition_retenue";
         const isAddGrands        = st === "addition_grands_nombres";
         const isAddCm1           = st === "addition_cm1";
+
+        // ─── Détection divisions dédiées ──────────────────────────────────────
+        const isDivExacte        = st === "division_exacte";
+        const isDivEuclid        = st === "division_euclidienne";
 
         const isComprehensionCourt   = st === "comprehension_texte_court";
         const isComprehensionInfer   = st === "comprehension_inference";
@@ -1510,6 +1549,71 @@ JSON uniquement (les lignes sont un exemple de FORMAT, pas de valeurs à réutil
             const obj = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
             if (obj.title) exercises.push({type:st, format:'calcul', ...obj});
           } catch(e) { console.error("Erreur addition_cm1",st,e); }
+          continue;
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // ─── DIVISIONS : 2 prompts dédiés ────────────────────────────────────
+        // ═══════════════════════════════════════════════════════════════════════
+
+        if (isDivExacte) {
+          const EXEMPLES_DIV_EXACTE = [
+            "12 ÷ 4 = 3 (car 4 × 3 = 12)","24 ÷ 6 = 4 (car 6 × 4 = 24)",
+            "35 ÷ 5 = 7 (car 5 × 7 = 35)","48 ÷ 8 = 6 (car 8 × 6 = 48)",
+            "54 ÷ 9 = 6 (car 9 × 6 = 54)","42 ÷ 7 = 6 (car 7 × 6 = 42)",
+          ];
+          const exDiv = EXEMPLES_DIV_EXACTE[Math.floor(Math.random()*EXEMPLES_DIV_EXACTE.length)];
+          const divExactePrompt = `Tu es instituteur CE1/CE2. Génère un exercice de division exacte.
+RÈGLES ABSOLUES :
+1. title = "Division exacte"
+2. instructions = "Calcule chaque division. Astuce : c est la multiplication à l envers !"
+3. example = "${exDiv}"
+4. lignes = exactement 6 opérations. Format STRICT : "NN ÷ N =" (jamais de reste)
+   - Le dividende est entre 12 et 81, le diviseur entre 2 et 9
+   - La division doit tomber juste (reste = 0 obligatoire)
+   - Varier les diviseurs : utiliser au moins 4 diviseurs différents parmi 2,3,4,5,6,7,8,9
+   - JAMAIS écrire le résultat dans lignes
+5. GÉNÈRE des nombres ENTIÈREMENT NOUVEAUX à chaque fois — ne jamais réutiliser les mêmes paires que l exemple ci-dessous.
+JSON uniquement (FORMAT seulement, pas valeurs à réutiliser) :
+{"title":"Division exacte","emoji":"🔢","duration":"${dur} min","instructions":"Calcule chaque division. Astuce : c est la multiplication à l envers !","example":"${exDiv}","lignes":["15 ÷ 3 =","28 ÷ 4 =","36 ÷ 6 =","45 ÷ 5 =","56 ÷ 7 =","63 ÷ 9 ="],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+          try {
+            const raw = await callAPI(divExactePrompt, "exercice");
+            const clean = raw.replace(/\`\`\`json|\`\`\`/g,"").trim();
+            const obj = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
+            if (obj.title) exercises.push({type:st, format:'calcul', ...obj});
+          } catch(e) { console.error("Erreur division_exacte",st,e); }
+          continue;
+        }
+
+        if (isDivEuclid) {
+          const EXEMPLES_DIV_EUCLID = [
+            "17 ÷ 5 = 3 reste 2 (car 5 × 3 = 15, et 17 − 15 = 2)",
+            "25 ÷ 4 = 6 reste 1 (car 4 × 6 = 24, et 25 − 24 = 1)",
+            "23 ÷ 7 = 3 reste 2 (car 7 × 3 = 21, et 23 − 21 = 2)",
+            "31 ÷ 9 = 3 reste 4 (car 9 × 3 = 27, et 31 − 27 = 4)",
+            "19 ÷ 6 = 3 reste 1 (car 6 × 3 = 18, et 19 − 18 = 1)",
+          ];
+          const exEuclid = EXEMPLES_DIV_EUCLID[Math.floor(Math.random()*EXEMPLES_DIV_EUCLID.length)];
+          const divEuclidPrompt = `Tu es instituteur CE2. Génère un exercice de division avec reste (division euclidienne).
+RÈGLES ABSOLUES :
+1. title = "Division avec reste"
+2. instructions = "Calcule chaque division et trouve le quotient ET le reste."
+3. example = "${exEuclid}"
+4. lignes = exactement 6 opérations. Format STRICT : "NN ÷ N = ___ reste ___"
+   - Le dividende est entre 11 et 89, le diviseur entre 2 et 9
+   - Le reste doit être STRICTEMENT supérieur à 0 (division pas exacte obligatoire)
+   - Le reste doit être INFÉRIEUR au diviseur
+   - Varier les diviseurs : au moins 4 diviseurs différents
+   - JAMAIS écrire le résultat dans lignes — écrire littéralement "___ reste ___" après le signe égal
+5. GÉNÈRE des nombres ENTIÈREMENT NOUVEAUX à chaque fois — ne jamais réutiliser les mêmes paires que l exemple ci-dessous.
+JSON uniquement (FORMAT seulement, pas valeurs à réutiliser) :
+{"title":"Division avec reste","emoji":"🔢","duration":"${dur} min","instructions":"Calcule chaque division et trouve le quotient ET le reste.","example":"${exEuclid}","lignes":["13 ÷ 4 = ___ reste ___","23 ÷ 5 = ___ reste ___","31 ÷ 7 = ___ reste ___","47 ÷ 6 = ___ reste ___","58 ÷ 9 = ___ reste ___","37 ÷ 8 = ___ reste ___"],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+          try {
+            const raw = await callAPI(divEuclidPrompt, "exercice");
+            const clean = raw.replace(/\`\`\`json|\`\`\`/g,"").trim();
+            const obj = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
+            if (obj.title) exercises.push({type:st, format:'calcul', ...obj});
+          } catch(e) { console.error("Erreur division_euclidienne",st,e); }
           continue;
         }
 
