@@ -1361,7 +1361,8 @@ RÈGLES ABSOLUES :
    - JAMAIS de nombres à 3 chiffres ou plus
 5. Exemples corrects : "72 − 47 =", "53 − 28 =", "81 − 36 ="
 6. Exemples INTERDITS : "85 − 42 =" (pas d emprunt), "125 − 48 =" (3 chiffres)
-JSON uniquement :
+7. GÉNÈRE des nombres ENTIÈREMENT NOUVEAUX à chaque fois — ne jamais réutiliser les mêmes paires que l exemple ci-dessous.
+JSON uniquement (les lignes sont un exemple de FORMAT, pas de valeurs à réutiliser) :
 {"title":"Soustraction avec retenue","emoji":"🔢","duration":"${dur} min","instructions":"Pose et calcule chaque soustraction. Attention à l emprunt !","example":"  72\\n− 47\\n----\\n  25","lignes":["72 − 47 =","53 − 28 =","81 − 36 =","64 − 39 =","90 − 54 =","43 − 17 ="],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
           try {
             const raw = await callAPI(sousRetenuePrompt, "exercice");
@@ -1384,7 +1385,8 @@ RÈGLES ABSOLUES :
    - JAMAIS écrire le résultat dans lignes
 5. Exemples corrects : "643 827 − 275 194 =", "850 740 − 362 483 =", "926 150 − 483 072 ="
 6. JAMAIS de nombres à 5 chiffres ou moins
-JSON uniquement :
+7. GÉNÈRE des nombres ENTIÈREMENT NOUVEAUX et DIFFÉRENTS à chaque fois — ne jamais réutiliser les mêmes paires que l exemple ci-dessous.
+JSON uniquement (les lignes sont un exemple de FORMAT, pas de valeurs à réutiliser) :
 {"title":"Soustraction grands nombres","emoji":"🔢","duration":"${dur} min","instructions":"Pose et calcule chaque soustraction.","example":"","lignes":["643 827 − 275 194 =","850 740 − 362 483 =","926 150 − 483 072 =","718 304 − 295 641 =","539 472 − 186 235 =","804 013 − 357 889 ="],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
           try {
             const raw = await callAPI(sousGrandsPrompt, "exercice");
@@ -1408,7 +1410,8 @@ RÈGLES ABSOLUES :
    - JAMAIS écrire le résultat dans lignes
 5. Exemples corrects : "847 362 195 − 283 748 967 =", "600 000 000 − 234 567 891 ="
 6. JAMAIS de nombres à moins de 9 chiffres
-JSON uniquement :
+7. GÉNÈRE des nombres ENTIÈREMENT NOUVEAUX et DIFFÉRENTS à chaque fois — ne jamais réutiliser les mêmes paires que l exemple ci-dessous.
+JSON uniquement (les lignes sont un exemple de FORMAT, pas de valeurs à réutiliser) :
 {"title":"Soustraction avancée","emoji":"🔢","duration":"${dur} min","instructions":"Pose et calcule chaque soustraction. Attention aux nombreuses retenues !","example":"","lignes":["847 362 195 − 283 748 967 =","600 000 000 − 234 567 891 =","923 104 500 − 456 873 642 =","750 030 200 − 381 947 563 =","814 600 007 − 295 834 178 =","900 205 000 − 467 398 251 ="],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
           try {
             const raw = await callAPI(sousCm1Prompt, "exercice");
