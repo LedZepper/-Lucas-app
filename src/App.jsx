@@ -2150,7 +2150,7 @@ JSON uniquement :
             <div style={{fontWeight:700,fontSize:13}}>Exercice {i+1} — {ex.title}</div>
             <div style={{marginLeft:"auto",fontSize:10,color:"#94a3b8"}}>{ex.duration}</div>
           </div>
-          <p style={{fontStyle:"italic",color:"#475569",margin:"0 0 4px",fontSize:11}}>📌 {ex.instructions}</p>
+
           {ex.example&&!hideExample(ex.type)&&<p style={{background:"#eff6ff",padding:"4px 10px",borderRadius:6,fontSize:11,color:"#1d4ed8",margin:"0 0 6px",borderLeft:"2px solid #3b82f6"}}>{ex.example}</p>}
           <ExCard ex={ex} dark={false}/>
         </div>
