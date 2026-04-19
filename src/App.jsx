@@ -2145,12 +2145,10 @@ JSON uniquement :
       </div>
       {session.exercises?.map((ex,i)=>(
         <div key={i} style={{marginBottom:14,pageBreakInside:"avoid"}}>
-          <div style={{display:"flex",alignItems:"center",gap:8,background:"#f1f5f9",padding:"5px 10px",borderRadius:6,borderLeft:"3px solid #4f46e5",marginBottom:5}}>
-            <span style={{fontSize:15}}>{ex.emoji}</span>
-            <div style={{fontWeight:700,fontSize:13}}>Exercice {i+1} — {ex.title}</div>
-            <div style={{marginLeft:"auto",fontSize:10,color:"#94a3b8"}}>{ex.duration}</div>
+          <div style={{display:"flex",gap:8,alignItems:"flex-start",marginBottom:8}}>
+            <span style={{fontSize:22}}>{ex.emoji}</span>
+            <div style={{fontWeight:700,fontSize:13,color:"#1e293b"}}>Exercice {i+1} — {ex.title}</div>
           </div>
-
           {ex.example&&!hideExample(ex.type)&&<p style={{background:"#eff6ff",padding:"4px 10px",borderRadius:6,fontSize:11,color:"#1d4ed8",margin:"0 0 6px",borderLeft:"2px solid #3b82f6"}}>{ex.example}</p>}
           <ExCard ex={ex} dark={false}/>
         </div>
