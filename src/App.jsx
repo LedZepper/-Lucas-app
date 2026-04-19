@@ -393,10 +393,37 @@ function ExCard({ ex, dark=true }) {
   if (fmt === 'calcul') {
     if (!lignes.length) return <div style={{fontSize:14, color:tc, whiteSpace:"pre-line"}}>{ex.content||""}</div>;
     const isMulti = ex.type?.includes("tables_melange") || ex.title?.toLowerCase().includes("tables de 1");
+    const isSous  = ex.type?.includes("soustraction");
     const calcItems = lignes
       .map(l => l.replace(/^\d+[\.\)]\s*/, "").replace(/_{2,}/g, "").trimEnd())
       .filter(Boolean)
       .slice(0, isMulti ? 20 : 6);
+
+    // ─── Rendu posé pour soustractions ──────────────────────────────────────
+    if (isSous) {
+      return (
+        <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:"20px 32px"}}>
+          {calcItems.map((item, i) => {
+            // item format: "72 − 47 =" ou "64 382 − 27 519 ="
+            const parts = item.replace(/\s*=\s*$/, "").split(/\s*[−\-]\s*/);
+            const top = parts[0]?.trim() || "";
+            const bot = parts[1]?.trim() || "";
+            const w = Math.max(top.length, bot.length);
+            return (
+              <div key={i} style={{fontFamily:"'Courier New',Courier,monospace", fontSize:dark?15:13, color:tc}}>
+                <div style={{textAlign:"right", minWidth:`${w}ch`, paddingLeft:16}}>{top}</div>
+                <div style={{textAlign:"right", minWidth:`${w}ch`, paddingLeft:0}}>
+                  <span style={{marginRight:4}}>−</span>{bot}
+                </div>
+                <div style={{borderTop:`2px solid ${lc}`, marginTop:4, marginBottom:4}}></div>
+                <div style={{textAlign:"right", minWidth:`${w}ch`, paddingLeft:16, borderBottom:`1.5px solid ${lc}`, paddingBottom:4, minHeight:22}}></div>
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+
     return (
       <div>
         {isMulti && (
@@ -1353,15 +1380,15 @@ JSON uniquement :
 RÈGLES ABSOLUES :
 1. title = "Soustraction grands nombres"
 2. instructions = "Pose et calcule chaque soustraction."
-3. example = "  64 382\\n− 27 519\\n--------\\n  36 863  (on pose et on soustrait colonne par colonne)"
-4. lignes = exactement 6 opérations. Format STRICT : "NN NNN − NN NNN ="
-   - Les deux nombres ont EXACTEMENT 5 chiffres (entre 10 000 et 99 999), écrits avec un espace entre milliers et centaines
+3. example = "" (vide)
+4. lignes = exactement 6 opérations. Format STRICT : "NNN NNN − NNN NNN ="
+   - Les deux nombres ont EXACTEMENT 6 chiffres (entre 100 000 et 999 999), écrits avec un espace entre la 3e et 4e position (ex: 643 827)
    - Le premier nombre est toujours SUPÉRIEUR au second
    - JAMAIS écrire le résultat dans lignes
-5. Exemples corrects : "64 382 − 27 519 =", "85 074 − 36 248 =", "92 615 − 48 307 ="
-6. JAMAIS de nombres à 4 chiffres ou moins
+5. Exemples corrects : "643 827 − 275 194 =", "850 740 − 362 483 =", "926 150 − 483 072 ="
+6. JAMAIS de nombres à 5 chiffres ou moins
 JSON uniquement :
-{"title":"Soustraction grands nombres","emoji":"🔢","duration":"${dur} min","instructions":"Pose et calcule chaque soustraction.","example":"  64 382\\n− 27 519\\n--------\\n  36 863","lignes":["64 382 − 27 519 =","85 074 − 36 248 =","92 615 − 48 307 =","71 830 − 29 564 =","53 947 − 18 623 =","80 401 − 35 788 ="],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+{"title":"Soustraction grands nombres","emoji":"🔢","duration":"${dur} min","instructions":"Pose et calcule chaque soustraction.","example":"","lignes":["643 827 − 275 194 =","850 740 − 362 483 =","926 150 − 483 072 =","718 304 − 295 641 =","539 472 − 186 235 =","804 013 − 357 889 ="],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
           try {
             const raw = await callAPI(sousGrandsPrompt, "exercice");
             const clean = raw.replace(/```json|```/g,"").trim();
@@ -1372,20 +1399,20 @@ JSON uniquement :
         }
 
         if (isSousCm1) {
-          const sousCm1Prompt = `Tu es instituteur CE2/CM1. Génère un exercice de soustraction avancée avec des nombres à 4 chiffres incluant des zéros pièges.
+          const sousCm1Prompt = `Tu es instituteur CE2/CM1. Génère un exercice de soustraction avancée avec des nombres à 9 chiffres et de nombreuses retenues.
 RÈGLES ABSOLUES :
 1. title = "Soustraction avancée"
 2. instructions = "Pose et calcule chaque soustraction. Attention aux zéros !"
-3. example = "  7 345\\n− 2 678\\n-------\\n  4 667"
-4. lignes = exactement 6 opérations. Format STRICT : "N NNN − N NNN ="
-   - Les deux nombres ont EXACTEMENT 4 chiffres (entre 1 000 et 9 999), écrits avec un espace entre milliers et centaines
-   - Au moins 3 opérations sur 6 doivent contenir un zéro dans le premier nombre (ex: 6 000, 5 304, 8 070) pour forcer la difficulté
+3. example = "" (vide)
+4. lignes = exactement 6 opérations. Format STRICT : "NNN NNN NNN − NNN NNN NNN ="
+   - Les deux nombres ont EXACTEMENT 9 chiffres (entre 100 000 000 et 999 999 999), écrits avec des espaces tous les 3 chiffres (ex: 847 362 195)
    - Le premier nombre est toujours SUPÉRIEUR au second
+   - CHAQUE opération doit nécessiter AU MOINS 4 retenues (chiffres des unités, dizaines, centaines, milliers du soustracteur supérieurs à ceux du premier nombre)
    - JAMAIS écrire le résultat dans lignes
-5. Exemples corrects : "8 456 − 3 789 =", "6 000 − 2 347 =", "9 102 − 5 678 ="
-6. JAMAIS de nombres à 5 chiffres ou plus
+5. Exemples corrects : "847 362 195 − 283 748 967 =", "600 000 000 − 234 567 891 ="
+6. JAMAIS de nombres à moins de 9 chiffres
 JSON uniquement :
-{"title":"Soustraction avancée","emoji":"🔢","duration":"${dur} min","instructions":"Pose et calcule chaque soustraction. Attention aux zéros !","example":"  7 345\\n− 2 678\\n-------\\n  4 667","lignes":["8 456 − 3 789 =","6 000 − 2 347 =","9 102 − 5 678 =","5 430 − 2 867 =","7 005 − 3 418 =","4 300 − 1 756 ="],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+{"title":"Soustraction avancée","emoji":"🔢","duration":"${dur} min","instructions":"Pose et calcule chaque soustraction. Attention aux nombreuses retenues !","example":"","lignes":["847 362 195 − 283 748 967 =","600 000 000 − 234 567 891 =","923 104 500 − 456 873 642 =","750 030 200 − 381 947 563 =","814 600 007 − 295 834 178 =","900 205 000 − 467 398 251 ="],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
           try {
             const raw = await callAPI(sousCm1Prompt, "exercice");
             const clean = raw.replace(/```json|```/g,"").trim();
