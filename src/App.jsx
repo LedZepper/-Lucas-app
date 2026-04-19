@@ -402,21 +402,16 @@ function ExCard({ ex, dark=true }) {
     // ─── Rendu posé pour soustractions ──────────────────────────────────────
     if (isSous) {
       return (
-        <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:"20px 32px"}}>
+        <div style={{display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:"24px 16px"}}>
           {calcItems.map((item, i) => {
-            // item format: "72 − 47 =" ou "64 382 − 27 519 ="
             const parts = item.replace(/\s*=\s*$/, "").split(/\s*[−\-]\s*/);
             const top = parts[0]?.trim() || "";
             const bot = parts[1]?.trim() || "";
-            const w = Math.max(top.length, bot.length);
             return (
-              <div key={i} style={{fontFamily:"'Courier New',Courier,monospace", fontSize:dark?15:13, color:tc}}>
-                <div style={{textAlign:"right", minWidth:`${w}ch`, paddingLeft:16}}>{top}</div>
-                <div style={{textAlign:"right", minWidth:`${w}ch`, paddingLeft:0}}>
-                  <span style={{marginRight:4}}>−</span>{bot}
-                </div>
-                <div style={{borderTop:`2px solid ${lc}`, marginTop:4, marginBottom:4}}></div>
-                <div style={{textAlign:"right", minWidth:`${w}ch`, paddingLeft:16, borderBottom:`1.5px solid ${lc}`, paddingBottom:4, minHeight:22}}></div>
+              <div key={i} style={{fontFamily:"'Courier New',Courier,monospace", fontSize:dark?14:12, color:tc}}>
+                <div style={{textAlign:"right"}}>{top}</div>
+                <div style={{textAlign:"right"}}>− {bot}</div>
+                <div style={{borderTop:`2px solid ${lc}`, marginTop:4, minHeight:22}}></div>
               </div>
             );
           })}
