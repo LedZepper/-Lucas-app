@@ -392,26 +392,34 @@ function ExCard({ ex, dark=true }) {
 
   if (fmt === 'calcul') {
     if (!lignes.length) return <div style={{fontSize:14, color:tc, whiteSpace:"pre-line"}}>{ex.content||""}</div>;
-    const isMulti = ex.type?.includes("tables_melange") || ex.title?.toLowerCase().includes("tables de 1");
-    const isSous  = ex.type?.includes("soustraction");
-    const calcItems = lignes
+    const isMulti    = ex.type?.includes("tables_melange") || ex.title?.toLowerCase().includes("tables de 1");
+    const isSous     = ex.type?.includes("soustraction");
+    const isAdd      = ex.type?.includes("addition");
+    const isAdd9     = ex.type === "addition_cm1";
+    const isSous9    = ex.type === "soustraction_cm1";
+    const isPosed    = isSous || isAdd;
+    const nbItems    = (isAdd9 || isSous9) ? 4 : 6;
+    const calcItems  = lignes
       .map(l => l.replace(/^\d+[\.\)]\s*/, "").replace(/_{2,}/g, "").trimEnd())
       .filter(Boolean)
-      .slice(0, isMulti ? 20 : 6);
+      .slice(0, isMulti ? 20 : nbItems);
 
-    // ─── Rendu posé pour soustractions ──────────────────────────────────────
-    if (isSous) {
+    // ─── Rendu posé pour soustractions et additions ──────────────────────────
+    if (isPosed) {
+      const cols = (isAdd9 || isSous9) ? "1fr 1fr" : "1fr 1fr 1fr";
       return (
-        <div style={{display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:"24px 16px", maxWidth:"80%", marginTop:16}}>
+        <div style={{display:"grid", gridTemplateColumns:cols, gap:"24px 16px", maxWidth:"80%", marginTop:16}}>
           {calcItems.map((item, i) => {
-            const parts = item.replace(/\s*=\s*$/, "").split(/\s*[−\-]\s*/);
+            const sep = isAdd ? /\s*\+\s*/ : /\s*[−\-]\s*/;
+            const sign = isAdd ? "+ " : "− ";
+            const parts = item.replace(/\s*=\s*$/, "").split(sep);
             const top = parts[0]?.trim() || "";
             const bot = parts[1]?.trim() || "";
             return (
               <div key={i} style={{display:"flex", justifyContent:"flex-end"}}>
                 <div style={{fontFamily:"'Courier New',Courier,monospace", fontSize:dark?14:12, color:tc, display:"inline-block"}}>
                   <div style={{textAlign:"right"}}>{top}</div>
-                  <div style={{textAlign:"right"}}>− {bot}</div>
+                  <div style={{textAlign:"right"}}>{sign}{bot}</div>
                   <div style={{borderTop:`2px solid ${lc}`, marginTop:4, minHeight:22}}></div>
                 </div>
               </div>
@@ -698,6 +706,11 @@ export default function App() {
         const isSousRetenue      = st === "soustraction_retenue";
         const isSousGrands       = st === "soustraction_grands_nombres";
         const isSousCm1          = st === "soustraction_cm1";
+
+        // ─── Détection additions dédiées ──────────────────────────────────────
+        const isAddRetenue       = st === "addition_retenue";
+        const isAddGrands        = st === "addition_grands_nombres";
+        const isAddCm1           = st === "addition_cm1";
 
         const isComprehensionCourt   = st === "comprehension_texte_court";
         const isComprehensionInfer   = st === "comprehension_inference";
@@ -1403,7 +1416,7 @@ RÈGLES ABSOLUES :
 1. title = "Soustraction avancée"
 2. instructions = "Pose et calcule chaque soustraction. Attention aux zéros !"
 3. example = "" (vide)
-4. lignes = exactement 6 opérations. Format STRICT : "NNN NNN NNN − NNN NNN NNN ="
+4. lignes = exactement 4 opérations. Format STRICT : "NNN NNN NNN − NNN NNN NNN ="
    - Les deux nombres ont EXACTEMENT 9 chiffres (entre 100 000 000 et 999 999 999), écrits avec des espaces tous les 3 chiffres (ex: 847 362 195)
    - Le premier nombre est toujours SUPÉRIEUR au second
    - CHAQUE opération doit nécessiter AU MOINS 4 retenues (chiffres des unités, dizaines, centaines, milliers du soustracteur supérieurs à ceux du premier nombre)
@@ -1412,13 +1425,91 @@ RÈGLES ABSOLUES :
 6. JAMAIS de nombres à moins de 9 chiffres
 7. GÉNÈRE des nombres ENTIÈREMENT NOUVEAUX et DIFFÉRENTS à chaque fois — ne jamais réutiliser les mêmes paires que l exemple ci-dessous.
 JSON uniquement (les lignes sont un exemple de FORMAT, pas de valeurs à réutiliser) :
-{"title":"Soustraction avancée","emoji":"🔢","duration":"${dur} min","instructions":"Pose et calcule chaque soustraction. Attention aux nombreuses retenues !","example":"","lignes":["847 362 195 − 283 748 967 =","600 000 000 − 234 567 891 =","923 104 500 − 456 873 642 =","750 030 200 − 381 947 563 =","814 600 007 − 295 834 178 =","900 205 000 − 467 398 251 ="],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+{"title":"Soustraction avancée","emoji":"🔢","duration":"${dur} min","instructions":"Pose et calcule chaque soustraction. Attention aux nombreuses retenues !","example":"","lignes":["847 362 195 − 283 748 967 =","600 000 000 − 234 567 891 =","923 104 500 − 456 873 642 =","750 030 200 − 381 947 563 ="],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
           try {
             const raw = await callAPI(sousCm1Prompt, "exercice");
             const clean = raw.replace(/```json|```/g,"").trim();
             const obj = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
             if (obj.title) exercises.push({type:st, format:'calcul', ...obj});
           } catch(e) { console.error("Erreur soustraction_cm1",st,e); }
+          continue;
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // ─── ADDITIONS : 3 prompts dédiés ────────────────────────────────────
+        // ═══════════════════════════════════════════════════════════════════════
+
+        if (isAddRetenue) {
+          const addRetenuePrompt = `Tu es instituteur CE1/CE2. Génère un exercice d addition avec retenue.
+RÈGLES ABSOLUES :
+1. title = "Addition avec retenue"
+2. instructions = "Pose et calcule chaque addition. Attention à la retenue !"
+3. example = "" (vide)
+4. lignes = exactement 6 opérations. Format STRICT : "NN + NN ="
+   - Les deux nombres ont EXACTEMENT 2 chiffres (entre 11 et 99)
+   - La retenue doit être OBLIGATOIRE : la somme des unités des deux nombres doit être SUPÉRIEURE à 9
+   - JAMAIS écrire le résultat dans lignes
+   - JAMAIS de nombres à 3 chiffres ou plus
+5. Exemples corrects : "73 + 48 =", "56 + 37 =", "85 + 29 ="
+6. Exemples INTERDITS : "32 + 41 =" (pas de retenue), "125 + 48 =" (3 chiffres)
+7. GÉNÈRE des nombres ENTIÈREMENT NOUVEAUX à chaque fois — ne jamais réutiliser les mêmes paires que l exemple ci-dessous.
+JSON uniquement (les lignes sont un exemple de FORMAT, pas de valeurs à réutiliser) :
+{"title":"Addition avec retenue","emoji":"🔢","duration":"${dur} min","instructions":"Pose et calcule chaque addition. Attention à la retenue !","example":"","lignes":["73 + 48 =","56 + 37 =","85 + 29 =","64 + 47 =","92 + 38 =","47 + 65 ="],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+          try {
+            const raw = await callAPI(addRetenuePrompt, "exercice");
+            const clean = raw.replace(/\`\`\`json|\`\`\`/g,"").trim();
+            const obj = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
+            if (obj.title) exercises.push({type:st, format:'calcul', ...obj});
+          } catch(e) { console.error("Erreur addition_retenue",st,e); }
+          continue;
+        }
+
+        if (isAddGrands) {
+          const addGrandsPrompt = `Tu es instituteur CE2. Génère un exercice d addition avec de grands nombres.
+RÈGLES ABSOLUES :
+1. title = "Addition grands nombres"
+2. instructions = "Pose et calcule chaque addition."
+3. example = "" (vide)
+4. lignes = exactement 6 opérations. Format STRICT : "NNN NNN + NNN NNN ="
+   - Les deux nombres ont EXACTEMENT 6 chiffres (entre 100 000 et 999 999), écrits avec un espace entre la 3e et 4e position (ex: 643 827)
+   - La somme des deux nombres ne doit pas dépasser 999 999
+   - JAMAIS écrire le résultat dans lignes
+5. Exemples corrects : "643 827 + 275 194 =", "312 045 + 483 608 =", "254 819 + 635 173 ="
+6. JAMAIS de nombres à 5 chiffres ou moins
+7. GÉNÈRE des nombres ENTIÈREMENT NOUVEAUX à chaque fois — ne jamais réutiliser les mêmes paires que l exemple ci-dessous.
+JSON uniquement (les lignes sont un exemple de FORMAT, pas de valeurs à réutiliser) :
+{"title":"Addition grands nombres","emoji":"🔢","duration":"${dur} min","instructions":"Pose et calcule chaque addition.","example":"","lignes":["643 827 + 275 194 =","312 045 + 483 608 =","254 819 + 635 173 =","728 045 + 163 952 =","491 736 + 308 254 =","382 617 + 514 293 ="],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+          try {
+            const raw = await callAPI(addGrandsPrompt, "exercice");
+            const clean = raw.replace(/\`\`\`json|\`\`\`/g,"").trim();
+            const obj = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
+            if (obj.title) exercises.push({type:st, format:'calcul', ...obj});
+          } catch(e) { console.error("Erreur addition_grands_nombres",st,e); }
+          continue;
+        }
+
+        if (isAddCm1) {
+          const addCm1Prompt = `Tu es instituteur CE2/CM1. Génère un exercice d addition avancée avec des nombres à 9 chiffres et de nombreuses retenues.
+RÈGLES ABSOLUES :
+1. title = "Addition avancée"
+2. instructions = "Pose et calcule chaque addition. Attention aux nombreuses retenues !"
+3. example = "" (vide)
+4. lignes = exactement 4 opérations. Format STRICT : "NNN NNN NNN + NNN NNN NNN ="
+   - Les deux nombres ont EXACTEMENT 9 chiffres (entre 100 000 000 et 899 999 999), écrits avec des espaces tous les 3 chiffres (ex: 847 362 195)
+   - La somme des deux nombres ne doit pas dépasser 999 999 999
+   - CHAQUE opération doit nécessiter AU MOINS 4 retenues
+   - JAMAIS écrire le résultat dans lignes
+5. Exemples corrects : "847 362 195 + 134 829 673 =", "391 654 820 + 487 293 165 ="
+6. JAMAIS de nombres à moins de 9 chiffres
+7. GÉNÈRE des nombres ENTIÈREMENT NOUVEAUX à chaque fois — ne jamais réutiliser les mêmes paires que l exemple ci-dessous.
+JSON uniquement (les lignes sont un exemple de FORMAT, pas de valeurs à réutiliser) :
+{"title":"Addition avancée","emoji":"🔢","duration":"${dur} min","instructions":"Pose et calcule chaque addition. Attention aux nombreuses retenues !","example":"","lignes":["847 362 195 + 134 829 673 =","391 654 820 + 487 293 165 =","623 017 458 + 259 843 271 =","756 208 934 + 132 574 861 ="],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+          try {
+            const raw = await callAPI(addCm1Prompt, "exercice");
+            const clean = raw.replace(/\`\`\`json|\`\`\`/g,"").trim();
+            const obj = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
+            if (obj.title) exercises.push({type:st, format:'calcul', ...obj});
+          } catch(e) { console.error("Erreur addition_cm1",st,e); }
           continue;
         }
 
