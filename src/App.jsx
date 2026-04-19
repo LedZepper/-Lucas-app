@@ -402,7 +402,7 @@ function ExCard({ ex, dark=true }) {
     // ─── Rendu posé pour soustractions ──────────────────────────────────────
     if (isSous) {
       return (
-        <div style={{display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:"24px 16px"}}>
+        <div style={{display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:"24px 16px", maxWidth:"80%", marginTop:16}}>
           {calcItems.map((item, i) => {
             const parts = item.replace(/\s*=\s*$/, "").split(/\s*[−\-]\s*/);
             const top = parts[0]?.trim() || "";
@@ -2200,7 +2200,7 @@ JSON uniquement :
                   <span style={{fontSize:26}}>{ex.emoji}</span>
                   <div><div style={{fontWeight:700,fontSize:15,color:"#e2e8f0"}}>Exercice {i+1} — {ex.title}</div></div>
                 </div>
-                {!hideInstructions(ex.type)&&!isInstructionRedondante(ex.title,ex.instructions,ex.type)&&<div style={{background:"rgba(99,102,241,.1)",borderRadius:12,padding:"10px 14px",marginBottom:10,fontSize:13,color:"#a5b4fc",fontStyle:"italic",borderLeft:"2px solid #6366f1"}}>📌 {ex.instructions}</div>}
+
                 {ex.example&&!hideExample(ex.type)&&<div style={{background:"rgba(52,211,153,.08)",borderRadius:12,padding:"10px 14px",marginBottom:12,fontSize:13,color:"#6ee7b7",borderLeft:"2px solid #34d399"}}>{ex.example}</div>}
                 <ExCard ex={ex} dark/>
               </div>
