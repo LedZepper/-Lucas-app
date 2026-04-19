@@ -121,8 +121,8 @@ const LABELS = {
   "complement_circonstanciel":"Complément circonstanciel","expansion_gn":"Expansion du groupe nominal","phrase_syntaxe":"Remettre les mots dans l ordre","types_de_phrases":"Types de phrases","ponctuation":"Ponctuation","liaison_phrases":"Relier des phrases","propositions_cm1":"Propositions (CM1)",
   "familles_de_mots":"Familles de mots","familles_de_mots_avancees":"Familles de mots (avancé)","synonymes":"Synonymes","antonymes":"Antonymes","sens_contexte":"Sens selon le contexte","prefixes_suffixes":"Préfixes et suffixes","niveaux_de_langue":"Niveaux de langue",
   "tables_melange":"Tables de multiplication mélangées","multiplication_posee_1chiffre":"Multiplication posée (1 chiffre)","multiplication_posee_2chiffres":"Multiplication posée (2 chiffres)",
-  "soustraction_retenue":"Soustraction avec retenue","soustraction_grands_nombres":"Soustraction grands nombres","soustraction_cm1":"Soustraction CM1",
-  "addition_retenue":"Addition avec retenue","addition_grands_nombres":"Addition grands nombres","addition_cm1":"Addition CM1",
+  "soustraction_retenue":"Soustraction avec retenue","soustraction_grands_nombres":"Soustraction grands nombres","soustraction_cm1":"Soustraction avancée",
+  "addition_retenue":"Addition avec retenue","addition_grands_nombres":"Addition grands nombres","addition_cm1":"Addition avancée",
   "dictee_mots_semaine":"Dictée de mots",
   "comprehension_texte_court":"Compréhension de texte","comprehension_inference":"Compréhension — Inférences","comprehension_avancee":"Compréhension avancée","remise_en_ordre":"Remettre les phrases dans l ordre","resume_texte":"Résumé de texte",
   "sons_ou_et_on":"Sons OU / ON","sons_an_en":"Sons AN / EN","sons_in_ain":"Sons IN / AIN",
@@ -255,7 +255,6 @@ const hideInstructions = t => isMath(t) || isConj(t);
 const hideExample      = t => (isMath(t) || isConj(t) || t?.includes("addition") || t?.includes("soustraction") || t?.includes("comprehension")) && !t?.includes("vs_passe_compose");
 const hideParentNote   = () => true;
 
-// Types pour lesquels la phrase bleue est toujours masquée
 const TYPES_SANS_INSTRUCTIONS = new Set([
   "homophones_a_a","homophones_et_est","homophones_son_sont","homophones_ou_où",
   "homophones_ces_ses","homophones_on_ont","homophones_ma_ma",
@@ -449,7 +448,6 @@ function ExCard({ ex, dark=true }) {
     );
   }
 
-  // ─── FORMAT DICTÉE DE MOTS (2 colonnes, 10 lignes) ───────────────────────
   if (fmt === 'dictee_mots') {
     const col1 = lignes.slice(0, 5);
     const col2 = lignes.slice(5, 10);
@@ -489,7 +487,6 @@ function ExCard({ ex, dark=true }) {
     );
   }
 
-  // ─── FORMAT LECTURE (comprehension + resume) ──────────────────────────────
   if (fmt === 'lecture') {
     const texte = lignes[0] || "";
     const separateur = lignes[1] === "---";
@@ -535,7 +532,6 @@ function ExCard({ ex, dark=true }) {
       {lignes.map((l,i) => {
         const trim = l.trim();
         if (!trim) return <div key={i} style={{height:6}}></div>;
-        // Lignes remise en ordre : commencent par "___ " → flex avec blank fixe à gauche
         if (/^_{2,}\s+\S/.test(trim)) {
           const texteApres = trim.replace(/^_{2,}\s+/, "");
           return (
@@ -674,13 +670,16 @@ export default function App() {
         const isMultiPosee1     = st === "multiplication_posee_1chiffre";
         const isMultiPosee2     = st === "multiplication_posee_2chiffres";
 
-        // ─── Détection des types lecture ──────────────────────────────────────
+        // ─── Détection soustractions dédiées ─────────────────────────────────
+        const isSousRetenue      = st === "soustraction_retenue";
+        const isSousGrands       = st === "soustraction_grands_nombres";
+        const isSousCm1          = st === "soustraction_cm1";
+
         const isComprehensionCourt   = st === "comprehension_texte_court";
         const isComprehensionInfer   = st === "comprehension_inference";
         const isComprehensionAvancee = st === "comprehension_avancee";
         const isResumeTexte          = st === "resume_texte";
 
-        // ─── Détection des types d orthographe dédiés ────────────────────────
         const isHomophoneAA      = st === "homophones_a_a";
         const isHomophoneEtEst   = st === "homophones_et_est";
         const isHomophoneSonSont = st === "homophones_son_sont";
@@ -692,7 +691,6 @@ export default function App() {
         const isAccordPP         = st === "accord_participe_passe";
         const isMotsInvariables  = st === "mots_invariables";
 
-        // ─── SONS SIMPLES orthographe : génération DIRECTE sans Groq ────────
         const SONS_LABELS = {
           "sons_ou_et_on": "OU / ON",
           "son_ou":        "OU / ON",
@@ -767,7 +765,6 @@ export default function App() {
         const dur = Math.max(5, Math.round((weeklyConfig.duration||25)/types.length));
         const regles = [];
 
-        // ─── DICTÉE DE MOTS DE LA SEMAINE : statique, sans Groq ──────────────
         if (st === "dictee_mots_semaine") {
           const dur = Math.max(5, Math.round((weeklyConfig.duration||25)/types.length));
           const lignes = [
@@ -943,7 +940,6 @@ JSON à retourner (remplace seulement VERBE_A et VERBE_B par tes 2 verbes à l i
           continue;
         }
 
-        // ─── IMPARFAIT VS PASSÉ COMPOSÉ : prompt dédié ───────────────────────
         if (isVsTemps) {
           const vsPrompt = `Tu es instituteur CM1. Génère un exercice de choix entre imparfait et passé composé.
 RÈGLES ABSOLUES :
@@ -967,7 +963,6 @@ JSON uniquement :
           continue;
         }
 
-        // ─── IDENTIFICATION DES TEMPS : prompt dédié ─────────────────────────
         if (isIdentTemps) {
           const identPrompt = `Tu es instituteur CM1. Génère un exercice d identification des temps verbaux.
 RÈGLES ABSOLUES :
@@ -990,7 +985,6 @@ JSON uniquement :
           continue;
         }
 
-        // ─── TRANSPOSITION : prompt dédié ────────────────────────────────────
         if (isTranspo) {
           const transpoPrompt = `Tu es instituteur CE1/CE2. Génère un exercice de transposition MÉLANGÉ niveau ${niv}.
 L exercice contient 5 phrases, chacune avec un TYPE DIFFÉRENT de transposition :
@@ -1016,7 +1010,6 @@ JSON uniquement :
           continue;
         }
 
-        // ─── NÉGATION : prompt dédié ──────────────────────────────────────────
         if (isNeg) {
           const negType = st.includes("plus")?"NE...PLUS":st.includes("jamais")?"NE...JAMAIS":"NE...PAS";
           const negMot  = st.includes("plus")?"ne … plus":st.includes("jamais")?"ne … jamais":"ne … pas";
@@ -1043,7 +1036,6 @@ JSON uniquement :
           continue;
         }
 
-        // ─── ACCORD SUJET-VERBE : prompt dédié ───────────────────────────────
         if (isAccordSV) {
           const accordPrompt = `Tu es instituteur CE1/CE2. Génère un exercice d accord sujet-verbe niveau ${niv}.
 RÈGLES ABSOLUES :
@@ -1065,7 +1057,6 @@ JSON uniquement :
           continue;
         }
 
-        // ─── ACCORD SUJET-VERBE ÉLOIGNÉ : prompt dédié ───────────────────────
         if (isAccordSVEloigne) {
           const accordEloignePrompt = `Tu es instituteur CE2. Génère un exercice d accord sujet-verbe éloigné niveau ${niv}.
 RÈGLES ABSOLUES :
@@ -1087,7 +1078,6 @@ JSON uniquement :
           continue;
         }
 
-        // ─── NATURE DES MOTS : prompt dédié ──────────────────────────────────
         if (isNatureMots) {
           const naturePrompt = `Tu es instituteur CE1/CE2. Génère un exercice sur la nature des mots niveau ${niv}.
 RÈGLES ABSOLUES :
@@ -1108,7 +1098,6 @@ JSON uniquement :
           continue;
         }
 
-        // ─── CLASSER DES MOTS : prompt dédié ─────────────────────────────────
         if (isClassesMots) {
           const motsInterdits = usedWordsSession.size ? `MOTS INTERDITS (déjà utilisés récemment) : ${[...usedWordsSession].join(", ")}. N utilise AUCUN de ces mots.` : "";
           const classesPrompt = `Tu es instituteur CE1/CE2. Génère un exercice de classement de mots niveau ${niv}.
@@ -1141,7 +1130,6 @@ JSON uniquement :
           continue;
         }
 
-        // ─── FONCTIONS SUJET VERBE COD : prompt dédié ────────────────────────
         if (isFonctionsSVC) {
           const fonctionsPrompt = `Tu es instituteur CE2/CM1. Génère un exercice d identification sujet, verbe et COD niveau ${niv}.
 RÈGLES ABSOLUES :
@@ -1162,7 +1150,6 @@ JSON uniquement :
           continue;
         }
 
-        // ─── IDENTIFIER SUJET VERBE : prompt dédié ───────────────────────────
         if (isIdentSujetVerbe) {
           const identSVPrompt = `Tu es instituteur CE1/CE2. Génère un exercice d identification du sujet et du verbe niveau ${niv}.
 RÈGLES ABSOLUES :
@@ -1183,7 +1170,6 @@ JSON uniquement :
           continue;
         }
 
-        // ─── PHRASE SYNTAXE (remise en ordre des mots) : prompt dédié ────────
         if (isPhraseSyntaxe) {
           const phraseSyntaxePrompt = `Tu es instituteur CE1/CE2. Génère un exercice de remise en ordre des MOTS pour former une phrase niveau ${niv}.
 MÉTHODE OBLIGATOIRE en 2 étapes pour chaque item :
@@ -1210,7 +1196,6 @@ JSON uniquement (NE PAS copier les phrases de l exemple — génère 5 phrases N
           continue;
         }
 
-        // ─── PONCTUATION : prompt dédié ───────────────────────────────────────
         if (isPonctuation) {
           const ponctuationPrompt = `Tu es instituteur CE1/CE2. Génère un exercice de ponctuation niveau ${niv}.
 RÈGLES ABSOLUES :
@@ -1234,7 +1219,6 @@ JSON uniquement :
           continue;
         }
 
-        // ─── REMISE EN ORDRE DES PHRASES : prompt dédié ──────────────────────
         if (isRemiseOrdre) {
           const THEMES_REMISE = [
             "une randonnée en montagne","une sortie à la pêche","préparer un gâteau",
@@ -1267,7 +1251,6 @@ JSON uniquement :
           continue;
         }
 
-        // ─── LIAISON DE PHRASES : prompt dédié ───────────────────────────────
         if (isLiaison) {
           const liaisonPrompt = `Tu es instituteur CE2. Génère un exercice de liaison de phrases niveau ${niv}.
 RÈGLES ABSOLUES :
@@ -1276,11 +1259,6 @@ RÈGLES ABSOLUES :
 3. example = "Le soleil brille. Je porte des lunettes de soleil. (donc) → Le soleil brille donc je porte des lunettes de soleil."
 4. lignes = 4 items. Format EXACT : "[Phrase 1]. [Phrase 2]. (mot) → _______________"
 5. RÈGLE CRITIQUE : le mot de liaison entre parenthèses DOIT être logiquement cohérent avec les deux phrases.
-   Définitions STRICTES à respecter :
-   - (donc) ou (alors) = la phrase 2 est une CONSÉQUENCE DIRECTE de la phrase 1
-   - (mais) = la phrase 2 CONTREDIT ou S OPPOSE à ce qu on attendrait après la phrase 1
-   - (parce que) = la phrase 2 EXPLIQUE LA RAISON de la phrase 1
-   - (et) = la phrase 2 S AJOUTE simplement à la phrase 1 sans opposition ni conséquence logique
 6. Utilise 4 mots de liaison DIFFÉRENTS parmi : donc, alors, mais, parce que
 7. Phrases courtes, vocabulaire CE1/CE2, NOUVELLES à chaque génération
 JSON uniquement :
@@ -1294,7 +1272,6 @@ JSON uniquement :
           continue;
         }
 
-        // ─── MULTIPLICATION POSÉE 1 CHIFFRE : prompt dédié ───────────────────
         if (isMultiPosee1) {
           const multiPrompt1 = `Tu es instituteur CE2. Génère un exercice de multiplication POSÉE avec un multiplicateur à 1 chiffre.
 RÈGLES ABSOLUES :
@@ -1319,7 +1296,6 @@ JSON uniquement :
           continue;
         }
 
-        // ─── MULTIPLICATION POSÉE 2 CHIFFRES : prompt dédié ──────────────────
         if (isMultiPosee2) {
           const multiPrompt2 = `Tu es instituteur CE2/CM1. Génère un exercice de multiplication POSÉE avec un multiplicateur à 2 chiffres.
 RÈGLES ABSOLUES :
@@ -1341,6 +1317,81 @@ JSON uniquement :
             const obj = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
             if (obj.title) exercises.push({type:st, format:'calcul', ...obj});
           } catch(e) { console.error("Erreur multiplication_posee_2chiffres",st,e); }
+          continue;
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // ─── SOUSTRACTIONS : 3 prompts dédiés ────────────────────────────────
+        // ═══════════════════════════════════════════════════════════════════════
+
+        if (isSousRetenue) {
+          const sousRetenuePrompt = `Tu es instituteur CE1/CE2. Génère un exercice de soustraction avec retenue (emprunt).
+RÈGLES ABSOLUES :
+1. title = "Soustraction avec retenue"
+2. instructions = "Pose et calcule chaque soustraction. Attention à l emprunt !"
+3. example = "  72\\n− 47\\n----\\n  25  (2−7 impossible : j emprunte → 12−7=5, et 6−4=2)"
+4. lignes = exactement 6 opérations. Format STRICT : "NN − NN ="
+   - Les deux nombres ont EXACTEMENT 2 chiffres (entre 11 et 99)
+   - L emprunt doit être OBLIGATOIRE : le chiffre des unités du premier nombre doit être INFÉRIEUR au chiffre des unités du second
+   - JAMAIS écrire le résultat dans lignes
+   - JAMAIS de nombres à 3 chiffres ou plus
+5. Exemples corrects : "72 − 47 =", "53 − 28 =", "81 − 36 ="
+6. Exemples INTERDITS : "85 − 42 =" (pas d emprunt), "125 − 48 =" (3 chiffres)
+JSON uniquement :
+{"title":"Soustraction avec retenue","emoji":"🔢","duration":"${dur} min","instructions":"Pose et calcule chaque soustraction. Attention à l emprunt !","example":"  72\\n− 47\\n----\\n  25","lignes":["72 − 47 =","53 − 28 =","81 − 36 =","64 − 39 =","90 − 54 =","43 − 17 ="],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+          try {
+            const raw = await callAPI(sousRetenuePrompt, "exercice");
+            const clean = raw.replace(/```json|```/g,"").trim();
+            const obj = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
+            if (obj.title) exercises.push({type:st, format:'calcul', ...obj});
+          } catch(e) { console.error("Erreur soustraction_retenue",st,e); }
+          continue;
+        }
+
+        if (isSousGrands) {
+          const sousGrandsPrompt = `Tu es instituteur CE2. Génère un exercice de soustraction avec de grands nombres.
+RÈGLES ABSOLUES :
+1. title = "Soustraction grands nombres"
+2. instructions = "Pose et calcule chaque soustraction."
+3. example = "  64 382\\n− 27 519\\n--------\\n  36 863  (on pose et on soustrait colonne par colonne)"
+4. lignes = exactement 6 opérations. Format STRICT : "NN NNN − NN NNN ="
+   - Les deux nombres ont EXACTEMENT 5 chiffres (entre 10 000 et 99 999), écrits avec un espace entre milliers et centaines
+   - Le premier nombre est toujours SUPÉRIEUR au second
+   - JAMAIS écrire le résultat dans lignes
+5. Exemples corrects : "64 382 − 27 519 =", "85 074 − 36 248 =", "92 615 − 48 307 ="
+6. JAMAIS de nombres à 4 chiffres ou moins
+JSON uniquement :
+{"title":"Soustraction grands nombres","emoji":"🔢","duration":"${dur} min","instructions":"Pose et calcule chaque soustraction.","example":"  64 382\\n− 27 519\\n--------\\n  36 863","lignes":["64 382 − 27 519 =","85 074 − 36 248 =","92 615 − 48 307 =","71 830 − 29 564 =","53 947 − 18 623 =","80 401 − 35 788 ="],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+          try {
+            const raw = await callAPI(sousGrandsPrompt, "exercice");
+            const clean = raw.replace(/```json|```/g,"").trim();
+            const obj = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
+            if (obj.title) exercises.push({type:st, format:'calcul', ...obj});
+          } catch(e) { console.error("Erreur soustraction_grands_nombres",st,e); }
+          continue;
+        }
+
+        if (isSousCm1) {
+          const sousCm1Prompt = `Tu es instituteur CE2/CM1. Génère un exercice de soustraction avancée avec des nombres à 4 chiffres incluant des zéros pièges.
+RÈGLES ABSOLUES :
+1. title = "Soustraction avancée"
+2. instructions = "Pose et calcule chaque soustraction. Attention aux zéros !"
+3. example = "  7 345\\n− 2 678\\n-------\\n  4 667"
+4. lignes = exactement 6 opérations. Format STRICT : "N NNN − N NNN ="
+   - Les deux nombres ont EXACTEMENT 4 chiffres (entre 1 000 et 9 999), écrits avec un espace entre milliers et centaines
+   - Au moins 3 opérations sur 6 doivent contenir un zéro dans le premier nombre (ex: 6 000, 5 304, 8 070) pour forcer la difficulté
+   - Le premier nombre est toujours SUPÉRIEUR au second
+   - JAMAIS écrire le résultat dans lignes
+5. Exemples corrects : "8 456 − 3 789 =", "6 000 − 2 347 =", "9 102 − 5 678 ="
+6. JAMAIS de nombres à 5 chiffres ou plus
+JSON uniquement :
+{"title":"Soustraction avancée","emoji":"🔢","duration":"${dur} min","instructions":"Pose et calcule chaque soustraction. Attention aux zéros !","example":"  7 345\\n− 2 678\\n-------\\n  4 667","lignes":["8 456 − 3 789 =","6 000 − 2 347 =","9 102 − 5 678 =","5 430 − 2 867 =","7 005 − 3 418 =","4 300 − 1 756 ="],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+          try {
+            const raw = await callAPI(sousCm1Prompt, "exercice");
+            const clean = raw.replace(/```json|```/g,"").trim();
+            const obj = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0]||"{}");
+            if (obj.title) exercises.push({type:st, format:'calcul', ...obj});
+          } catch(e) { console.error("Erreur soustraction_cm1",st,e); }
           continue;
         }
 
@@ -1395,7 +1446,6 @@ JSON uniquement :
         // ─── HOMOPHONES : prompts dédiés ──────────────────────────────────────
         // ═══════════════════════════════════════════════════════════════════════
 
-        // ─── A / À ────────────────────────────────────────────────────────────
         if (isHomophoneAA) {
           const aaPrompt = `Tu es instituteur CE1/CE2. Génère un exercice sur A (verbe avoir) et À (préposition) niveau ${niv}.
 RÈGLES ABSOLUES :
@@ -1418,7 +1468,6 @@ JSON uniquement :
           continue;
         }
 
-        // ─── ET / EST ─────────────────────────────────────────────────────────
         if (isHomophoneEtEst) {
           const etEstPrompt = `Tu es instituteur CE1/CE2. Génère un exercice sur ET (conjonction) et EST (verbe être) niveau ${niv}.
 RÈGLES ABSOLUES :
@@ -1440,7 +1489,6 @@ JSON uniquement :
           continue;
         }
 
-        // ─── SON / SONT ───────────────────────────────────────────────────────
         if (isHomophoneSonSont) {
           const sonSontPrompt = `Tu es instituteur CE1/CE2. Génère un exercice sur SON (déterminant possessif) et SONT (verbe être au pluriel) niveau ${niv}.
 RÈGLES ABSOLUES :
@@ -1449,9 +1497,7 @@ RÈGLES ABSOLUES :
 3. example = "Astuce : remplace par ILS SONT — si ça marche, c est SONT (verbe être). Sinon c est SON (possessif)."
 4. lignes = exactement 8 phrases numérotées. Chaque phrase a UN blanc ___ à compléter.
 5. Mélange équilibré : environ 4 phrases avec SON, 4 avec SONT.
-6. Pour SON : ___ précède un nom (son livre, son ami, son chien…)
-7. Pour SONT : sujet PLURIEL + SONT + attribut ou participe
-8. JAMAIS écrire la réponse dans lignes.
+6. JAMAIS écrire la réponse dans lignes.
 JSON uniquement :
 {"title":"Homophones SON / SONT","emoji":"✏️","duration":"${dur} min","instructions":"Complète chaque phrase avec SON ou SONT.","example":"Astuce : remplace par ILS SONT — si ça marche, c est SONT (verbe être). Sinon c est SON (possessif).","lignes":["1. Les fleurs ___ belles.","2. Il garde ___ livre.","3. Les enfants ___ contents.","4. Elle aime ___ chien.","5. Mes amis ___ partis.","6. Il met ___ casque.","7. Les légumes ___ frais.","8. Elle adore ___ chat."],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
           try {
@@ -1463,7 +1509,6 @@ JSON uniquement :
           continue;
         }
 
-        // ─── OU / OÙ ──────────────────────────────────────────────────────────
         if (isHomophoneOuOu) {
           const ouOuPrompt = `Tu es instituteur CE1/CE2. Génère un exercice sur OU (choix/alternative) et OÙ (lieu/moment) niveau ${niv}.
 RÈGLES ABSOLUES :
@@ -1472,20 +1517,7 @@ RÈGLES ABSOLUES :
 3. example = "Astuce : remplace par OU BIEN — si ça marche, c est OU (choix). Sinon c est OÙ (lieu ou moment)."
 4. lignes = exactement 8 phrases numérotées. Chaque phrase a UN blanc ___ à compléter.
 5. Mélange équilibré : 4 phrases avec OU (choix), 4 phrases avec OÙ (lieu/moment).
-6. CONSTRUCTIONS AUTORISÉES :
-   - OU (choix) UNIQUEMENT sous ces formes :
-     * Question directe : "Tu préfères X ___ Y ?" ou "Il choisit X ___ Y ?"
-     * "Tu veux X ___ Y ?" / "Elle prend X ___ Y ?"
-   - OÙ (lieu/moment) UNIQUEMENT sous ces formes :
-     * Question directe : "___ habites-tu ?" / "___ est ton sac ?"
-     * Subordonnée simple : "Je ne sais pas ___ il est." / "C est là ___ je joue."
-7. CONSTRUCTIONS INTERDITES :
-   - JAMAIS "C est ___ que..." (relative ambiguë)
-   - JAMAIS "Il va à X ___ à Y ?" (trop complexe)
-   - JAMAIS une phrase qui commence par un sujet + verbe + ___ sans que le choix soit évident
-   - JAMAIS deux propositions sans que le sens de OU soit immédiatement clair
-8. Chaque phrase OU (choix) DOIT se terminer par "?"
-9. JAMAIS écrire la réponse dans lignes.
+6. JAMAIS écrire la réponse dans lignes.
 JSON uniquement :
 {"title":"Homophones OU / OÙ","emoji":"✏️","duration":"${dur} min","instructions":"Complète chaque phrase avec OU ou OÙ.","example":"Astuce : remplace par OU BIEN — si ça marche, c est OU (choix). Sinon c est OÙ (lieu ou moment).","lignes":["1. ___ ranges-tu tes affaires ?","2. Tu préfères le chocolat ___ la vanille ?","3. Je ne sais pas ___ il habite.","4. Elle choisit le vélo ___ la trottinette ?","5. ___ est passé mon cartable ?","6. Tu veux du pain ___ des céréales ?","7. C est là ___ je joue avec mes amis.","8. Il préfère le foot ___ le basket ?"],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
           try {
@@ -1497,7 +1529,6 @@ JSON uniquement :
           continue;
         }
 
-        // ─── CES / SES ────────────────────────────────────────────────────────
         if (isHomophoneCesSes) {
           const cesSesPrompt = `Tu es instituteur CE1/CE2. Génère un exercice sur CES (démonstratif pluriel) et SES (possessif pluriel) niveau ${niv}.
 RÈGLES ABSOLUES :
@@ -1506,11 +1537,7 @@ RÈGLES ABSOLUES :
 3. example = "Rappel : CES = démonstratif (ces chats → ces chats-là) | SES = possessif (ses chats → les chats de quelqu un)"
 4. lignes = exactement 8 phrases numérotées. Chaque phrase a UN seul blanc ___ à compléter.
 5. Mélange équilibré : 4 phrases avec CES, 4 phrases avec SES.
-6. Format STRICT : "[Numéro]. [Début de phrase] ___ [nom pluriel] [fin de phrase]."
-   JAMAIS de flèche après la phrase. JAMAIS de deuxième blanc. L enfant écrit juste CES ou SES dans le blank.
-7. Pour CES : sujet neutre ou "ces [noms]" sans possesseur explicite. Exemple : "Ces fleurs sont jolies."
-8. Pour SES : un possesseur est clairement mentionné dans la phrase. Exemple : "Il range ses affaires."
-9. JAMAIS écrire la réponse dans lignes.
+6. JAMAIS écrire la réponse dans lignes.
 JSON uniquement :
 {"title":"Homophones CES / SES","emoji":"✏️","duration":"${dur} min","instructions":"Complète chaque phrase avec CES ou SES.","example":"Rappel : CES = démonstratif (ces chats → ces chats-là) | SES = possessif (ses chats → les chats de quelqu un)","lignes":["1. ___ oiseaux chantent dans les arbres.","2. Elle prend ___ crayons pour dessiner.","3. ___ maisons sont très grandes.","4. Il met ___ gants avant de sortir.","5. Regarde ___ belles étoiles !","6. Ma sœur range ___ jouets.","7. ___ enfants jouent dans le jardin.","8. Mon frère aime ___ amis."],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
           try {
@@ -1522,7 +1549,6 @@ JSON uniquement :
           continue;
         }
 
-        // ─── ON / ONT ─────────────────────────────────────────────────────────
         if (isHomophoneOnOnt) {
           const onOntPrompt = `Tu es instituteur CE1/CE2. Génère un exercice sur ON (pronom sujet) et ONT (verbe avoir au pluriel) niveau ${niv}.
 RÈGLES ABSOLUES :
@@ -1530,10 +1556,8 @@ RÈGLES ABSOLUES :
 2. instructions = "Complète chaque phrase avec ON ou ONT."
 3. example = "Rappel : ON est un pronom comme NOUS (on mange = nous mangeons) | ONT = verbe avoir accordé avec ILS/ELLES (ils ont)"
 4. lignes = exactement 8 phrases numérotées. Chaque phrase a UN blanc ___ à compléter.
-5. Mélange équilibré : 4 phrases avec ON (sujet singulier), 4 phrases avec ONT (sujet pluriel explicite comme "les enfants", "ils", "elles", "mes amis"…)
-6. Pour ONT : le sujet pluriel DOIT être visible dans la phrase AVANT le blanc.
-7. Pour ON : ON est seul sujet de la phrase, remplaçable par NOUS.
-8. JAMAIS écrire la réponse dans lignes.
+5. Mélange équilibré : 4 phrases avec ON, 4 phrases avec ONT.
+6. JAMAIS écrire la réponse dans lignes.
 JSON uniquement :
 {"title":"Homophones ON / ONT","emoji":"✏️","duration":"${dur} min","instructions":"Complète chaque phrase avec ON ou ONT.","example":"Rappel : ON est un pronom comme NOUS (on mange = nous mangeons) | ONT = verbe avoir accordé avec ILS/ELLES (ils ont)","lignes":["1. Les oiseaux ___ des ailes.","2. ___ joue au football après l école.","3. Les élèves ___ rendu leurs devoirs.","4. ___ mange des crêpes le jeudi.","5. Mes amis ___ un grand jardin.","6. ___ entend la musique de loin.","7. Les chiens ___ faim ce soir.","8. ___ part en vacances demain."],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
           try {
@@ -1545,7 +1569,6 @@ JSON uniquement :
           continue;
         }
 
-        // ─── MA / M'A ─────────────────────────────────────────────────────────
         if (isHomophoneMaMa) {
           const maMaPrompt = `Tu es instituteur CE1/CE2. Génère un exercice sur MA (déterminant possessif féminin) et M'A (pronom ME + verbe AVOIR au passé composé).
 RÈGLES ABSOLUES :
@@ -1553,16 +1576,8 @@ RÈGLES ABSOLUES :
 2. instructions = "Complète chaque phrase avec MA ou M'A. Astuce : remplace par MON — si ça marche, c est MA. Sinon c est M'A."
 3. example = "" (vide)
 4. lignes = exactement 8 phrases numérotées. CHAQUE phrase a UN SEUL blanc ___.
-5. Mélange : 4 phrases avec MA, 4 phrases avec M'A — dans un ordre VARIÉ (pas toutes les MA d abord).
-6. CONSTRUCTIONS VALIDES pour MA (déterminant devant un nom féminin) :
-   - "___ mère est revenue." / "J aime ___ maison." / "C est ___ faute." / "___ sœur chante bien."
-   - MA précède TOUJOURS un nom féminin singulier.
-7. CONSTRUCTIONS VALIDES pour M'A (quelqu un m a fait quelque chose — passé composé) :
-   - "Il ___ appelé hier." / "Elle ___ dit bonjour." / "Mon ami ___ aidé." / "La maîtresse ___ expliqué la leçon."
-   - M'A est TOUJOURS entre un sujet et un participe passé.
-8. VÉRIFICATION OBLIGATOIRE avant chaque ligne : teste mentalement la phrase avec MA et avec M'A — une seule doit fonctionner.
-9. JAMAIS écrire MA ou M'A dans les lignes — uniquement des blancs ___.
-10. Phrases courtes, naturelles, vocabulaire CE1.
+5. Mélange : 4 phrases avec MA, 4 phrases avec M'A — dans un ordre VARIÉ.
+6. JAMAIS écrire la réponse dans lignes.
 JSON uniquement :
 {"title":"Homophones MA / M'A","emoji":"✏️","duration":"${dur} min","instructions":"Complète chaque phrase avec MA ou M'A. Astuce : remplace par MON — si ça marche, c est MA. Sinon c est M'A.","example":"","lignes":["1. Il ___ appelé hier soir.","2. ___ sœur est très gentille.","3. Elle ___ donné un beau cadeau.","4. ___ maison est grande.","5. Mon ami ___ aidé à porter mon sac.","6. ___ mère prépare le dîner.","7. La maîtresse ___ expliqué la leçon.","8. ___ chambre est bien rangée."],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
           try {
@@ -1574,7 +1589,6 @@ JSON uniquement :
           continue;
         }
 
-        // ─── ACCORD DE L'ADJECTIF ─────────────────────────────────────────────
         if (isAccordAdjectif) {
           const accordAdjPrompt = `Tu es instituteur CE1/CE2. Génère un exercice d accord de l adjectif niveau ${niv}.
 RÈGLES ABSOLUES :
@@ -1582,10 +1596,7 @@ RÈGLES ABSOLUES :
 2. instructions = "Accorde l adjectif entre parenthèses avec le nom. Écris la forme correcte après la flèche."
 3. example = "Une fille (grand) → grande | Des garçons (petit) → petits"
 4. lignes = exactement 8 items. Format EXACT : "[groupe nominal avec adjectif entre parenthèses] → _______________"
-5. OBLIGATION : les adjectifs DOIVENT nécessiter un vrai accord. Choisis des adjectifs qui changent de forme :
-   - Au féminin : grand → grande, petit → petite, beau → belle, heureux → heureuse, doux → douce, vieux → vieille, gros → grosse, blanc → blanche
-   - Au pluriel : grand → grands/grandes, petit → petits/petites, heureux → heureux (invariable au pluriel masculin)
-   - JAMAIS choisir des adjectifs identiques au masculin et féminin comme "rapide", "calme", "sombre" — ils n entraînent aucun travail d accord
+5. OBLIGATION : les adjectifs DOIVENT nécessiter un vrai accord.
 6. Distribuer obligatoirement : 2 items masculin singulier, 2 féminin singulier, 2 masculin pluriel, 2 féminin pluriel.
 7. JAMAIS écrire la réponse après "→" dans lignes.
 JSON uniquement :
@@ -1599,19 +1610,16 @@ JSON uniquement :
           continue;
         }
 
-        // ─── ACCORD DU PARTICIPE PASSÉ ────────────────────────────────────────
         if (isAccordPP) {
           const accordPPPrompt = `Tu es instituteur CE2/CM1. Génère un exercice d accord du participe passé niveau ${niv}.
 RÈGLES ABSOLUES :
 1. title = "Accord du participe passé"
 2. instructions = "Complète le participe passé en l accordant correctement avec le sujet (auxiliaire ÊTRE) ou le COD (auxiliaire AVOIR)."
-3. example = "Elle est parti___ → partie (auxiliaire ÊTRE : accord avec le sujet féminin) | Il a pris la pomme et il l a mang___ → mangée (auxiliaire AVOIR : accord avec le COD féminin placé avant)"
-4. lignes = exactement 6 phrases numérotées. Chaque phrase contient un participe passé TRONQUÉ (terminaison manquante) notée ___ à la fin du radical.
+3. example = "Elle est parti___ → partie (auxiliaire ÊTRE : accord avec le sujet féminin)"
+4. lignes = exactement 6 phrases numérotées. Chaque phrase contient un participe passé TRONQUÉ noté ___.
 5. Format EXACT : "N. [sujet] [auxiliaire] [radical_participe]___ [complément]."
-   JAMAIS de flèche → dans les lignes. L enfant complète directement la terminaison sur le tiret.
-6. Distribuer : 3 phrases avec auxiliaire ÊTRE (accord avec le sujet), 3 avec auxiliaire AVOIR (accord avec le COD antéposé via pronom ou relatif)
-7. Utiliser des verbes simples CE2 : partir, arriver, tomber, manger, prendre, finir, lire, écrire
-8. JAMAIS écrire la réponse après "→" dans lignes.
+6. Distribuer : 3 phrases avec auxiliaire ÊTRE, 3 avec auxiliaire AVOIR.
+7. JAMAIS écrire la réponse dans lignes.
 JSON uniquement :
 {"title":"Accord du participe passé","emoji":"✏️","duration":"${dur} min","instructions":"Complète le participe passé en l accordant correctement avec le sujet (auxiliaire ÊTRE) ou le COD (auxiliaire AVOIR).","example":"Elle est parti___ → partie (ÊTRE : accord sujet féminin)","lignes":["1. Elle est arriv___ en retard.","2. Les enfants sont parti___ en voyage.","3. Ma sœur est tomb___ dans l escalier.","4. La lettre que j ai écri___ est longue.","5. Les fleurs qu il a cueilli___ sont belles.","6. La tarte que nous avons mang___ était délicieuse."],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
           try {
@@ -1623,21 +1631,14 @@ JSON uniquement :
           continue;
         }
 
-        // ─── MOTS INVARIABLES ─────────────────────────────────────────────────
         if (isMotsInvariables) {
           const motsInvPrompt = `Tu es instituteur CE1/CE2. Génère un exercice de reconnaissance des mots invariables.
 RÈGLES ABSOLUES :
 1. title = "Reconnaître les mots invariables"
 2. instructions = "Entoure le ou les mots invariables dans chaque phrase."
 3. example = "Rappel : toujours, souvent, jamais, très, bien, vite, hier, demain, avec, sans, pour, dans, sur, sous, mais, car sont des mots invariables."
-4. lignes = exactement 6 phrases. MÉTHODE OBLIGATOIRE pour chaque phrase :
-   ÉTAPE 1 — Choisis 1 ou 2 mots invariables dans cette liste SEULEMENT : toujours, souvent, jamais, très, bien, vite, hier, demain, avec, sans, pour, dans, sur, sous, mais, car, bientôt, encore, dehors, ensemble
-   ÉTAPE 2 — Construis une phrase naturelle CE1 qui utilise CE(S) mot(s) invariable(s)
-   ÉTAPE 3 — Vérifie que la phrase a du sens et contient bien le(s) mot(s) choisi(s)
-5. Phrases longues : minimum 8 mots chacune. Situations du quotidien : école, maison, famille, sport, animaux.
-6. JAMAIS de blancs ___ — phrases complètes à lire et annoter.
-7. JAMAIS utiliser "récréation" seul ni "journée de récréation" — trop vague.
-8. Varier les mots invariables sur les 6 phrases — pas deux fois le même.
+4. lignes = exactement 6 phrases complètes numérotées, minimum 8 mots chacune. JAMAIS de blancs.
+5. Varier les mots invariables sur les 6 phrases — pas deux fois le même.
 JSON uniquement :
 {"title":"Reconnaître les mots invariables","emoji":"📚","duration":"${dur} min","instructions":"Entoure le ou les mots invariables dans chaque phrase.","example":"Rappel : toujours, souvent, jamais, très, bien, vite, hier, demain, avec, sans, pour, dans, sur, sous, mais, car sont des mots invariables.","lignes":["1. Le chat dort toujours sur le canapé du salon.","2. Nous jouons souvent au football avec nos amis le mercredi.","3. Elle ne veut jamais manger de carottes sans sauce.","4. Hier, il a plu très fort pendant toute la matinée.","5. Mon frère range ses affaires dans son armoire, mais il oublie ses chaussures.","6. Nous allons bientôt partir en vacances avec toute la famille."],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
           try {
@@ -1649,7 +1650,6 @@ JSON uniquement :
           continue;
         }
 
-        // ─── PRÉFIXES ET SUFFIXES : prompt dédié ─────────────────────────────
         if (st === "prefixes_suffixes") {
           const PREFIXES = ["RE-","DÉ-","IN-","PRÉ-","SUR-","SOUS-","ANTI-","SUPER-"];
           const SUFFIXES = ["-EUR","-TION","-AGE","-MENT","-ETTE","-ABLE","-ISE","-ISTE"];
@@ -1659,16 +1659,12 @@ JSON uniquement :
 RÈGLES ABSOLUES :
 1. title = "Préfixes et suffixes"
 2. instructions = "Forme des mots avec le préfixe ${prefChoisi} ou le suffixe ${sufChoisi}."
-3. example = "Préfixe ${prefChoisi} = [signification courte] → [exemple1] | [exemple2] | [exemple3]\\nSuffixe ${sufChoisi} = [signification courte] → [exemple1] | [exemple2] | [exemple3]"
-   RÈGLE : les exemples dans example NE DOIVENT PAS apparaître dans lignes.
-4. lignes = exactement 6 items :
+3. lignes = exactement 8 items :
    - lignes[0] = "Forme des mots avec le préfixe ${prefChoisi} :"
-   - lignes[1] à lignes[3] = 3 verbes ou noms simples CE2 + " → _______________" (l enfant ajoute le préfixe)
+   - lignes[1] à lignes[3] = 3 mots simples CE2 + " → _______________"
    - lignes[4] = "Forme des mots avec le suffixe ${sufChoisi} :"
-   - lignes[5] à lignes[7] = 3 verbes ou noms simples CE2 + " → _______________" (l enfant ajoute le suffixe)
-5. RÈGLE CRITIQUE : les mots de base dans lignes[1-3] et lignes[5-7] doivent être DIFFÉRENTS des exemples dans example.
-6. Vérifie que chaque combinaison préfixe+mot ou mot+suffixe donne un vrai mot français.
-7. parentNote = "" (vide)
+   - lignes[5] à lignes[7] = 3 mots simples CE2 + " → _______________"
+4. Vérifie que chaque combinaison donne un vrai mot français.
 JSON uniquement :
 {"title":"Préfixes et suffixes","emoji":"📚","duration":"${dur} min","instructions":"Forme des mots avec le préfixe ${prefChoisi} ou le suffixe ${sufChoisi}.","example":"[GÉNÈRE L EXEMPLE ICI]","lignes":["Forme des mots avec le préfixe ${prefChoisi} :","1. [mot] → _______________","2. [mot] → _______________","3. [mot] → _______________","Forme des mots avec le suffixe ${sufChoisi} :","4. [mot] → _______________","5. [mot] → _______________","6. [mot] → _______________"],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
           try {
@@ -1680,7 +1676,6 @@ JSON uniquement :
           continue;
         }
 
-        // ─── NIVEAUX DE LANGUE : prompt dédié ────────────────────────────────
         if (st === "niveaux_de_langue") {
           const CONFIGS = [
             { de:"familier", vers:"courant",  ex:"J ai les crocs ! → J ai très faim !" },
@@ -1695,11 +1690,7 @@ RÈGLES ABSOLUES :
 2. instructions = "Réécris chaque phrase en langage ${cfg.vers}."
 3. example = "Exemple : ${cfg.ex}"
 4. lignes = exactement 6 phrases numérotées en langage ${cfg.de}, chacune se terminant par " → _______________"
-5. Format : "N. [Phrase en langage ${cfg.de}.] → _______________"
-6. Les phrases doivent être NATURELLES et adaptées CE2 — pas trop argotiques ni trop complexes.
-7. Varier les situations : école, famille, sport, repas, amis.
-8. JAMAIS écrire la traduction après "→" dans lignes — l enfant la trouve lui-même.
-9. parentNote = "" (vide)
+5. JAMAIS écrire la traduction après "→" dans lignes.
 JSON uniquement :
 {"title":"Niveaux de langue","emoji":"📚","duration":"${dur} min","instructions":"Réécris chaque phrase en langage ${cfg.vers}.","example":"Exemple : ${cfg.ex}","lignes":["1. [PHRASE ${cfg.de.toUpperCase()}] → _______________","2. [PHRASE ${cfg.de.toUpperCase()}] → _______________","3. [PHRASE ${cfg.de.toUpperCase()}] → _______________","4. [PHRASE ${cfg.de.toUpperCase()}] → _______________","5. [PHRASE ${cfg.de.toUpperCase()}] → _______________","6. [PHRASE ${cfg.de.toUpperCase()}] → _______________"],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
           try {
@@ -1711,11 +1702,6 @@ JSON uniquement :
           continue;
         }
 
-        // ═══════════════════════════════════════════════════════════════════════
-        // ─── LECTURE : 5 prompts dédiés ───────────────────────────────────────
-        // ═══════════════════════════════════════════════════════════════════════
-
-        // ─── COMPRÉHENSION DE TEXTE (questions ouvertes) ─────────────────────
         if (isComprehensionCourt) {
           const THEMES_COURT = [
             "un scientifique qui découvre un insecte jamais vu","une pieuvre géante au fond de l océan",
@@ -1733,19 +1719,12 @@ THÈME IMPOSÉ : "${theme}"
 RÈGLES ABSOLUES :
 1. title = "Compréhension de texte — [titre court accrocheur lié au thème]"
 2. instructions = "Lis attentivement le texte puis réponds aux questions par des phrases complètes."
-3. example = "" (vide)
-4. lignes = exactement 6 éléments :
-   - lignes[0] = le texte narratif COMPLET en une seule chaîne (phrases séparées par des espaces). 7 à 9 phrases. Le texte doit être VIVANT, ENGAGEANT, avec des détails précis et une mini-intrigue. Vocabulaire riche mais accessible CE2. JAMAIS une histoire d enfant qui va à l école ou rentre de l école.
+3. lignes = exactement 6 éléments :
+   - lignes[0] = le texte narratif COMPLET (7 à 9 phrases, vivant, engageant)
    - lignes[1] = "---"
-   - lignes[2] à lignes[5] = 4 questions VARIÉES et PRÉCISES sur ce texte spécifique. Les questions doivent obliger à relire le texte. Format : "N. [Question ?]"
-     * Question 1 : sur les personnages ou l élément central
-     * Question 2 : sur un détail précis du texte (lieu, objet, action)
-     * Question 3 : sur la chronologie ou le déroulement
-     * Question 4 : sur la fin ou la conclusion
-5. JAMAIS utiliser des questions génériques comme "Qui sont les personnages principaux ?" — les questions doivent être spécifiques au texte généré.
-6. parentNote = "" (vide)
+   - lignes[2] à lignes[5] = 4 questions VARIÉES et PRÉCISES sur ce texte
 JSON uniquement :
-{"title":"[TITRE ACCROCHEUR]","emoji":"📖","duration":"${dur} min","instructions":"Lis attentivement le texte puis réponds aux questions par des phrases complètes.","example":"","lignes":["[TEXTE VIVANT SUR : ${theme}]","---","1. [QUESTION SPÉCIFIQUE AU TEXTE]","2. [QUESTION SPÉCIFIQUE AU TEXTE]","3. [QUESTION SPÉCIFIQUE AU TEXTE]","4. [QUESTION SPÉCIFIQUE AU TEXTE]"],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+{"title":"[TITRE ACCROCHEUR]","emoji":"📖","duration":"${dur} min","instructions":"Lis attentivement le texte puis réponds aux questions par des phrases complètes.","example":"","lignes":["[TEXTE]","---","1. [QUESTION]","2. [QUESTION]","3. [QUESTION]","4. [QUESTION]"],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
           try {
             const raw = await callAPI(compCourtPrompt, "exercice");
             const clean = raw.replace(/```json|```/g,"").trim();
@@ -1755,7 +1734,6 @@ JSON uniquement :
           continue;
         }
 
-        // ─── COMPRÉHENSION INFÉRENCES ─────────────────────────────────────────
         if (isComprehensionInfer) {
           const THEMES_INFER = [
             "un explorateur perdu dans la jungle","une astronaute en mission sur Mars",
@@ -1771,21 +1749,14 @@ JSON uniquement :
           const compInferPrompt = `Tu es instituteur CE2. Génère un exercice de compréhension avec inférences niveau ${niv}.
 THÈME IMPOSÉ : "${theme}"
 RÈGLES ABSOLUES :
-1. title = "Compréhension — Lis entre les lignes : [titre court lié au thème]"
+1. title = "Compréhension — Lis entre les lignes : [titre]"
 2. instructions = "Lis le texte attentivement. Certaines réponses ne sont pas écrites directement — tu dois les déduire !"
-3. example = "" (vide)
-4. lignes = exactement 6 éléments :
-   - lignes[0] = le texte narratif COMPLET en une seule chaîne (7 à 9 phrases). Le texte doit être RICHE EN INDICES IMPLICITES : émotions suggérées par les actions, lieux décrits sans être nommés, intentions des personnages à deviner. JAMAIS tout expliquer explicitement.
+3. lignes = exactement 6 éléments :
+   - lignes[0] = texte riche en indices implicites (7 à 9 phrases)
    - lignes[1] = "---"
-   - lignes[2] à lignes[5] = 4 questions d INFÉRENCE spécifiques à CE texte. Format : "N. [Question ?]"
-     * Question 1 : "Pourquoi penses-tu que [personnage] [action] ?" (cause implicite)
-     * Question 2 : "Qu est-ce qui montre que [état/émotion] dans le texte ?" (indices)
-     * Question 3 : "À ton avis, que va-t-il se passer ensuite ?" (prédiction)
-     * Question 4 : question ouverte sur les motivations ou le sens caché d une action
-5. Les questions doivent OBLIGER à réfléchir, pas à recopier une phrase du texte.
-6. parentNote = "" (vide)
+   - lignes[2] à lignes[5] = 4 questions d inférence spécifiques
 JSON uniquement :
-{"title":"[TITRE]","emoji":"🔍","duration":"${dur} min","instructions":"Lis le texte attentivement. Certaines réponses ne sont pas écrites directement — tu dois les déduire !","example":"","lignes":["[TEXTE RICHE EN INDICES SUR : ${theme}]","---","1. [QUESTION INFÉRENCE]","2. [QUESTION INFÉRENCE]","3. [QUESTION INFÉRENCE]","4. [QUESTION INFÉRENCE]"],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+{"title":"[TITRE]","emoji":"🔍","duration":"${dur} min","instructions":"Lis le texte attentivement. Certaines réponses ne sont pas écrites directement — tu dois les déduire !","example":"","lignes":["[TEXTE]","---","1. [QUESTION INFÉRENCE]","2. [QUESTION INFÉRENCE]","3. [QUESTION INFÉRENCE]","4. [QUESTION INFÉRENCE]"],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
           try {
             const raw = await callAPI(compInferPrompt, "exercice");
             const clean = raw.replace(/```json|```/g,"").trim();
@@ -1795,7 +1766,6 @@ JSON uniquement :
           continue;
         }
 
-        // ─── COMPRÉHENSION AVANCÉE ────────────────────────────────────────────
         if (isComprehensionAvancee) {
           const THEMES_AVANCE = [
             "la Révolution française racontée par un enfant de Paris","un scientifique qui clone un mammouth",
@@ -1813,19 +1783,12 @@ THÈME IMPOSÉ : "${theme}"
 RÈGLES ABSOLUES :
 1. title = "Compréhension avancée — [titre accrocheur]"
 2. instructions = "Lis attentivement ce texte plus difficile. Réponds aux questions avec des phrases complètes et développées."
-3. example = "" (vide)
-4. lignes = exactement 6 éléments :
-   - lignes[0] = texte dense et complexe en une seule chaîne (9 à 11 phrases). Vocabulaire CM1 : mots moins courants, phrases avec subordonnées, chronologie non linéaire possible, ton plus littéraire. Le texte doit être captivant et traiter le thème avec profondeur.
+3. lignes = exactement 6 éléments :
+   - lignes[0] = texte dense CM1 (9 à 11 phrases, vocabulaire riche)
    - lignes[1] = "---"
-   - lignes[2] à lignes[5] = 4 questions exigeantes, spécifiques à CE texte. Format : "N. [Question ?]"
-     * Question 1 : compréhension littérale d un passage précis
-     * Question 2 : inférence sur les motivations d un personnage
-     * Question 3 : question sur le vocabulaire ("Que signifie le mot [X] dans le texte ?")
-     * Question 4 : question de jugement ("À ton avis... Justifie ta réponse avec le texte.")
-5. Les questions doivent être clairement CM1 — pas de questions auxquelles un CE1 pourrait répondre.
-6. parentNote = "" (vide)
+   - lignes[2] à lignes[5] = 4 questions exigeantes (littérale, inférence, vocabulaire, jugement)
 JSON uniquement :
-{"title":"[TITRE]","emoji":"📚","duration":"${dur} min","instructions":"Lis attentivement ce texte plus difficile. Réponds aux questions avec des phrases complètes et développées.","example":"","lignes":["[TEXTE DENSE ET COMPLEXE SUR : ${theme}]","---","1. [QUESTION COMPRÉHENSION LITTÉRALE]","2. [QUESTION INFÉRENCE]","3. [QUESTION VOCABULAIRE]","4. [QUESTION JUGEMENT]"],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+{"title":"[TITRE]","emoji":"📚","duration":"${dur} min","instructions":"Lis attentivement ce texte plus difficile. Réponds aux questions avec des phrases complètes et développées.","example":"","lignes":["[TEXTE]","---","1. [QUESTION]","2. [QUESTION]","3. [QUESTION]","4. [QUESTION]"],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
           try {
             const raw = await callAPI(compAvPrompt, "exercice");
             const clean = raw.replace(/```json|```/g,"").trim();
@@ -1835,7 +1798,6 @@ JSON uniquement :
           continue;
         }
 
-        // ─── RÉSUMÉ DE TEXTE ──────────────────────────────────────────────────
         if (isResumeTexte) {
           const THEMES_RESUME = [
             "les castors qui construisent un barrage","comment fonctionne un tremblement de terre",
@@ -1851,18 +1813,15 @@ JSON uniquement :
           const resumePrompt = `Tu es instituteur CE2. Génère un exercice de résumé guidé niveau ${niv}.
 THÈME IMPOSÉ : "${theme}"
 RÈGLES ABSOLUES :
-1. title = "Résumé guidé — [titre court lié au thème]"
+1. title = "Résumé guidé — [titre court]"
 2. instructions = "Lis le texte. Ensuite, complète le résumé en retrouvant les mots manquants dans le texte."
-3. example = "" (vide)
-4. lignes = exactement 5 éléments :
-   - lignes[0] = un texte informatif ORIGINAL et ENTIÈREMENT NOUVEAU sur le thème "${theme}" (jamais repris du corpus). 6 à 8 phrases. Texte documentaire simple, ton encyclopédique accessible CE2. Contient des informations précises et des mots-clés importants.
+3. lignes = exactement 5 éléments :
+   - lignes[0] = texte informatif original (6 à 8 phrases, ton documentaire CE2)
    - lignes[1] = "---"
-   - lignes[2] à lignes[4] = 3 phrases de résumé du texte, CHACUNE avec exactement UN mot-clé manquant noté ___. Les mots manquants doivent être des MOTS-CLÉS importants du texte (noms propres, termes spécifiques, chiffres, actions centrales). Format : "[phrase de résumé avec UN seul ___]"
-5. RÈGLE CRITIQUE : les 3 mots manquants doivent OBLIGATOIREMENT être présents dans le texte de lignes[0]. L enfant retrouve ces mots en relisant le texte.
-6. JAMAIS mettre des synonymes comme mots manquants — seulement des mots exacts du texte.
-7. parentNote = "" (vide)
+   - lignes[2] à lignes[4] = 3 phrases de résumé avec UN mot-clé manquant ___ chacune
+4. Les mots manquants DOIVENT être présents dans le texte de lignes[0].
 JSON uniquement :
-{"title":"[TITRE]","emoji":"✏️","duration":"${dur} min","instructions":"Lis le texte. Ensuite, complète le résumé en retrouvant les mots manquants dans le texte.","example":"","lignes":["[TEXTE INFORMATIF ORIGINAL SUR : ${theme}]","---","[PHRASE RÉSUMÉ 1 avec ___]","[PHRASE RÉSUMÉ 2 avec ___]","[PHRASE RÉSUMÉ 3 avec ___]"],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
+{"title":"[TITRE]","emoji":"✏️","duration":"${dur} min","instructions":"Lis le texte. Ensuite, complète le résumé en retrouvant les mots manquants dans le texte.","example":"","lignes":["[TEXTE]","---","[RÉSUMÉ 1 avec ___]","[RÉSUMÉ 2 avec ___]","[RÉSUMÉ 3 avec ___]"],"parentNote":"","verbsUsed":[],"wordsUsed":[]}`;
           try {
             const raw = await callAPI(resumePrompt, "exercice");
             const clean = raw.replace(/```json|```/g,"").trim();
@@ -1873,7 +1832,7 @@ JSON uniquement :
         }
 
         // ═══════════════════════════════════════════════════════════════════════
-        // ─── PROMPT GÉNÉRIQUE ────────────────────────────────────────────────
+        // ─── PROMPT GÉNÉRIQUE ─────────────────────────────────────────────────
         // ═══════════════════════════════════════════════════════════════════════
 
         if (isTablesType) {
@@ -1886,12 +1845,11 @@ JSON uniquement :
         } else if (isCalcType) {
           const isDiv  = st.includes("division");
           const isAdd  = st.includes("addition");
-          const isSous = st.includes("soustraction");
-          const calcType    = isSous?"SOUSTRACTION (− uniquement)":isAdd?"ADDITION (+ uniquement)":isDiv?"DIVISION (÷ uniquement)":"MULTIPLICATION (× uniquement)";
+          const calcType    = isAdd?"ADDITION (+ uniquement)":isDiv?"DIVISION (÷ uniquement)":"MULTIPLICATION (× uniquement)";
           const calcNbItems = "6 items (3 colonnes × 2)";
-          const calcGrands  = (isAdd||isSous)?" — nombres à 5 chiffres obligatoires (ex: 64 382 − 27 519 =)":"";
-          const calcEx      = isSous?'["64 382 − 27 519 =","85 074 − 36 248 =","92 615 − 48 307 =","71 830 − 29 564 =","53 947 − 18 623 =","80 401 − 35 788 ="]':isAdd?'["34 456 + 28 237 =","52 583 + 31 249 =","71 712 + 18 189 =","63 634 + 27 278 =","48 521 + 35 463 =","57 308 + 24 195 ="]':isDiv?'["24 ÷ 4 =","36 ÷ 6 =","45 ÷ 9 ="]':'["4 × 6 =","7 × 8 =","3 × 9 ="]';
-          const calcExemple = isSous?"64 382 − 27 519 = 36 863 (on pose et on soustrait colonne par colonne)":isAdd?"34 456 + 28 237 = 62 693 (on pose et on additionne colonne par colonne)":isDiv?"48 ÷ 6 = 8 (car 6 × 8 = 48)":"4 × 6 = 24 (car 6 × 4 = 24)";
+          const calcGrands  = isAdd?" — nombres à 5 chiffres obligatoires (ex: 34 456 + 28 237 =)":"";
+          const calcEx      = isAdd?'["34 456 + 28 237 =","52 583 + 31 249 =","71 712 + 18 189 =","63 634 + 27 278 =","48 521 + 35 463 =","57 308 + 24 195 ="]':isDiv?'["24 ÷ 4 =","36 ÷ 6 =","45 ÷ 9 ="]':'["4 × 6 =","7 × 8 =","3 × 9 ="]';
+          const calcExemple = isAdd?"34 456 + 28 237 = 62 693 (on pose et on additionne colonne par colonne)":isDiv?"48 ÷ 6 = 8 (car 6 × 8 = 48)":"4 × 6 = 24 (car 6 × 4 = 24)";
           regles.push(`TYPE : ${calcType} — UNIQUEMENT ce type, jamais mélanger.
 - Exactement ${calcNbItems}${calcGrands}
 - Format lignes : ${calcEx}
@@ -1924,21 +1882,18 @@ RÈGLES ABSOLUES :
 
         if (isDictee) {
           regles.push(`TYPE : DICTÉE.
-- lignes[0] = "MOTS À PRÉPARER : mot1 | mot2 | mot3 | mot4 | mot5" — choisis 5 mots NOUVEAUX du même niveau orthographique que le modèle
+- lignes[0] = "MOTS À PRÉPARER : mot1 | mot2 | mot3 | mot4 | mot5"
 - lignes[1..n] = 4 à 6 phrases NOUVELLES utilisant ces mots, niveau CE1/CE2
-- JAMAIS copier les phrases du modèle — invente une situation, des personnages, un contexte différents`);
+- JAMAIS copier les phrases du modèle`);
         }
 
         if (isNature) {
           regles.push(`TYPE : NATURE DES MOTS.
 RÈGLES ABSOLUES :
-1. instructions = "Identifie la nature du mot EN MAJUSCULES dans chaque phrase. Natures possibles : nom, verbe, adjectif qualificatif, adverbe, pronom, déterminant, préposition."
+1. instructions = "Identifie la nature du mot EN MAJUSCULES dans chaque phrase."
 2. Chaque ligne = une phrase courte avec UN SEUL mot en MAJUSCULES + " →" à la fin
-3. example = "Le PETIT chat dort. → petit = adjectif qualificatif"
-4. Les mots en majuscules dans lignes doivent être DIFFÉRENTS de PETIT (le mot de l example)
-5. Varier les natures sur les phrases : inclure au moins 1 nom, 1 verbe, 1 adjectif, 1 adverbe
-6. JAMAIS mettre la réponse après "→" dans lignes
-7. parentNote = "" (vide)`);
+3. Varier les natures : inclure au moins 1 nom, 1 verbe, 1 adjectif, 1 adverbe
+4. JAMAIS mettre la réponse après "→" dans lignes`);
         }
 
         const isGrammaire = st.includes("accord") || st.includes("classes") || st.includes("fonctions") || st.includes("types_de_phrases") || st.includes("expansion") || st.includes("ponctuation");
@@ -1949,7 +1904,6 @@ RÈGLES ABSOLUES :
 - Niveau CE1/CE2, phrases adaptées à l âge`);
         }
 
-        // ─── FAMILLES DE MOTS : tirage forcé côté code ───────────────────────
         if (isFamilles) {
           const estAvance = st.includes("avancees");
 
