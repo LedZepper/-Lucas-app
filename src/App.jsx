@@ -408,10 +408,12 @@ function ExCard({ ex, dark=true }) {
             const top = parts[0]?.trim() || "";
             const bot = parts[1]?.trim() || "";
             return (
-              <div key={i} style={{fontFamily:"'Courier New',Courier,monospace", fontSize:dark?14:12, color:tc}}>
-                <div style={{textAlign:"right"}}>{top}</div>
-                <div style={{textAlign:"right"}}>− {bot}</div>
-                <div style={{borderTop:`2px solid ${lc}`, marginTop:4, minHeight:22}}></div>
+              <div key={i} style={{display:"flex", justifyContent:"flex-end"}}>
+                <div style={{fontFamily:"'Courier New',Courier,monospace", fontSize:dark?14:12, color:tc, display:"inline-block"}}>
+                  <div style={{textAlign:"right"}}>{top}</div>
+                  <div style={{textAlign:"right"}}>− {bot}</div>
+                  <div style={{borderTop:`2px solid ${lc}`, marginTop:4, minHeight:22}}></div>
+                </div>
               </div>
             );
           })}
