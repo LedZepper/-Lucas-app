@@ -130,7 +130,7 @@ const LABELS = {
   "sons_oi":"Sons OI / OIN","sons_eau_au":"Sons EAU / AU","sons_ill_gn":"Sons ILL / GN",
   "homophones_a_a":"Homophones A / À","homophones_et_est":"Homophones ET / EST","homophones_son_sont":"Homophones SON / SONT",
   "homophones_ou_où":"Homophones OU / OÙ","homophones_ces_ses":"Homophones CES / SES","homophones_on_ont":"Homophones ON / ONT","homophones_ma_ma":"Homophones MA / M'A",
-  "accord_adjectif":"Accord de l adjectif","accord_participe_passe":"Accord du participe passé","mots_invariables":"Mots invariables",
+  "accord_adjectif":"Accord de l adjectif","accord_participe_passe":"Accord du participe passé","mots_invariables":"Mots invariables",   "fractions_representation":"Représenter une fraction","fractions_ecriture":"Fractionner les parts","fractions_operations":"Addition & soustraction de fractions","fractions_decimales":"Fractions décimales — avancé",
 };
 const label = s => LABELS[s] || s.replace(/_/g," ");
 
